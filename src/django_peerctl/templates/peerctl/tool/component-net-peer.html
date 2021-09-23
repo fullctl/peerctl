@@ -1,0 +1,430 @@
+{% load i18n static %}
+<div data-peerctl="component_net_peer" class="container comp-net-peer">
+<h4 class="title">{% trans "Internet Exchange" %}:</h4>
+
+<div class="component-info" id="device-info">
+  <div class="component-info-upper row no-side-marg">
+    <div class="col-xs-12 col-sm-4">
+      <select id="select-port" class="primary"></select>
+    </div>
+    <div class="col-xs-12 col-sm-8 component-info-read right">
+
+      <div class="mobile-break">
+
+      <span class="info-label">{% trans "Speed" %}:</span>
+      <span id="port-speed" class="info-value speed">..</span>
+      <span class="info-marg"></span>
+
+      <input
+        checked
+        type="checkbox"
+        class="custom-icon"
+        data-filter-target="#list-net-peer .list-body"
+        data-filter-id="onrs"
+        data-filter-test="IsTrue"
+        data-filter-mode="additive"
+        data-filter-action="show"
+        id="show-rs-peers" />
+      <span class="icon">
+        <img class="on" src="{% static "legacy/md-eye.svg" %}">
+        <img class="off" src="{% static "legacy/md-eye-off.svg" %}">
+      </span>
+      <label for="show-rs-peers" class="info-label checkbox-label">
+      {% trans "Routeserver" %}
+      </label>
+      <span id="port-rs-peers" class="info-value rs-peers">..</span>
+
+      </div>
+      <div class="mobile-break">
+
+
+
+      <span class="info-marg"></span>
+
+      <input
+        checked
+        type="checkbox"
+        class="custom-icon"
+        data-filter-target="#list-net-peer .list-body"
+        data-filter-id="peerses"
+        data-filter-test="IsTrue"
+        data-filter-action="show"
+        id="show-peers" />
+      <span class="icon">
+        <img class="on" src="{% static "legacy/md-eye.svg" %}">
+        <img class="off" src="{% static "legacy/md-eye-off.svg" %}">
+      </span>
+      <label for="show-peers" class="info-label checkbox-label">{% trans "Active Peers" %}:</label>
+      <span id="port-peers" class="info-value peers">..</span>
+
+      <span class="info-marg"></span>
+
+      <input
+        checked
+        type="checkbox"
+        class="custom-icon"
+        data-filter-target="#list-net-peer .list-body"
+        data-filter-id="peerses"
+        data-filter-test="IsFalse"
+        data-filter-action="show"
+        id="show-available-peers" />
+      <span class="icon">
+        <img class="on" src="{% static "legacy/md-eye.svg" %}">
+        <img class="off" src="{% static "legacy/md-eye-off.svg" %}">
+      </span>
+      <label for="show-available-peers" class="info-label checkbox-label">{% trans "Available Peers" %}:</label>
+      <span id="port-available-peers" class="info-value available-peers">..</span>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="component-info-lower ixcfg row no-side-marg">
+    <div class="col-xs-12 mobile-collapse-indicator"
+      data-text-collapsed="{% trans "See Exchange Config" %}"
+      data-text-expanded="{% trans "Hide Exchange Config" %}">
+      <span class="indicator-label">{% trans "See Exchange Config" %}</span>
+      <span class="icon xsmall expanded-flip">
+        <img src="{% static "legacy/md-down.svg" %}">
+      </span>
+    </div>
+
+    <!-- NON MOBILE EXCHANGE CONFIG -->
+    <div class="col-xs-12 mobile-ixcfg">
+      <div class="row" data-mobile-collapse="ixcfg">
+        <div class="col-xs-12 col-sm-12 col-md-3 row-pad-md">
+          <div class="mobile-row">
+            <div class="mobile-col-label">
+              <span class="info-label">{% trans "Device Type" %}:</span>
+            </div>
+            <div class="mobile-col-value">
+              <span id="device-type" class="holder holder-inline col-pad-sm-md"></span>
+            </div>
+          </div>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-3">
+          <div class="row">
+            <div class="col-xs-12">
+              <div class="mobile-row">
+                <div class="mobile-col-label">
+                  <span class="info-label">{% trans "Policy IPv4" %}:</span>
+                </div>
+                <div class="mobile-col-value">
+                  <span id="port-policy4" class="holder holder-inline"></span>
+                </div>
+              </div>
+            </div>
+            <div class="col-xs-12">
+              <div class="mobile-row">
+                <div class="mobile-col-label">
+                  <span class="info-label">{% trans "Policy IPv6" %}:</span>
+                </div>
+                <div class="mobile-col-value">
+                  <span id="port-policy6" class="holder holder-inline"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-6 right-md row-pad-md">
+          <div class="mobile-row">
+            <div class="mobile-col-label">
+              <span class="info-label">{% trans "Template" %}:</span>
+            </div>
+            <div class="mobile-col-value">
+              <span id="device-template" class="holder holder-inline"></span>
+            </div>
+          </div>
+          <div class="mobile-button">
+            <button id="btn-device-config" class="mobile-button">Show Config</button>
+          </div>
+        </div>
+      </div>
+      <div class="component-info-lower ixcfg row no-side-marg mobile-hidden">
+        <div class="col-xs-12 right-md" data-mobile-collapse="ixcfg">
+          <button id="btn-email-peers">
+            <span class="icon">
+              <img src="{% static "legacy/md-mail-dark.svg" %}">
+            </span>
+            <span>{% trans "Email Peers" %}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="body">
+  <div class="list" id="peer-list">
+    <div
+      id="list-net-peer"
+      data-sort-container=".api-list-body"
+      data-sort-row=".item.mainlist"
+      data-peerctl="list_net_peer">
+      <div class="list-header">
+        <a
+          class="sortable-button"
+          data-sort-target=".name"
+          data-sort-initial="asc">{% trans "Name" %}
+            <span class="asc icon"><img src="{% static "legacy/md-arrow-down.svg" %}"></span>
+            <span class="desc icon"><img src="{% static "legacy/md-arrow-up.svg" %}"></span>
+        </a>
+      </div>
+      <div class="list-body api-list-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="hidden">
+
+  <!-- PEER ITEM TEMPLATE -->
+  <div
+    class="item mainlist"
+    data-peerctl="list_net_peer_item">
+    <div class="item-container">
+    <div class="item-header row">
+      <div class="col-xs-12">
+        <div class="name" name="name"></div>
+        <span class="mobile-only pdb-link-container">
+          <a href="" class="pdb-link">{% trans "PeeringDB" %}</a>
+          <span class="icon small">
+            <img src="{% static "legacy/md-exit.svg" %}">
+          </span>
+        </span>
+
+      </div>
+    </div>
+    <div class="item-info row">
+
+      <!-- ASN / MD5 / PDB -->
+      <div class="col-xs-12 col-sm-3">
+        <div class="item-upper">
+          <span class="info-label">{% trans "ASN" %}:</span>
+          <span class="info-value plain" class="asn" name="asn"></span>
+          <span class="info-marg"></span>
+          <a class="md5-pass interactive" data-action="set_md5" name="md5_pass">
+            <span class="icon">
+              <img src="{% static "legacy/md-copy.svg" %}">
+            </span>
+            {% trans "MD5 Password" %}
+          </a>
+        </div>
+        <div class="item-lower pad-adjust">
+          <span class="mobile-hidden">
+            <a href="" class="pdb-link">{% trans "View on PeeringDB" %}</a>
+            <span class="icon small">
+              <img src="{% static "legacy/md-exit.svg" %}">
+            </span>
+          </span>
+        </div>
+      </div>
+
+      <!-- PREFIX COUNT -->
+      <div class="col-xs-12 col-sm-2">
+        <div class="row">
+          <div class="item-upper col-xs-6 col-sm-12">
+            <span class="info-label">{% trans "Prefix 4" %}:</span>
+            <div class="info_prefixes4 holder">
+              <span class="info-value plain" class="info_prefixes4" name="info_prefixes4"></span>
+            </div>
+          </div>
+          <div class="item-lower col-xs-6 col-sm-12">
+            <span class="info-label">{% trans "Prefix 6" %}:</span>
+            <div class="info_prefixes6 holder">
+              <span class="info-value plain" class="info_prefixes6" name="info_prefixes6"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xs-12 mobile-collapse-indicator"
+        data-text-collapsed="{% trans "See Peer Details" %}"
+        data-text-expanded="{% trans "Hide Peer Details" %}">
+        <div class="inner">
+          <span class="indicator-label">{% trans "See Peer Details" %}</span>
+          <span class="icon xsmall expanded-flip">
+            <img src="{% static "legacy/md-down.svg" %}">
+          </span>
+        </div>
+      </div>
+
+      <!-- SCOPE / TYPE -->
+      <div class="col-xs-12 col-sm-2" data-mobile-collapse="peer details">
+        <div class="item-upper pad-adjust-2">
+          <span class="info-label">{% trans "Scope" %}:</span>
+          <span class="info-value plain" class="scope" name="scope"></span>
+        </div>
+        <div class="item-lower pad-adjust-3">
+          <span class="info-label">{% trans "Type" %}:</span>
+          <span class="info-value plain" class="type" name="type"></span>
+        </div>
+      </div>
+
+      <!-- PEER POLICY / RATIO REQ -->
+      <div class="col-xs-12 col-sm-2" data-mobile-collapse="peer details">
+        <div class="item-upper pad-adjust-2">
+          <span class="info-label">{% trans "Peering Policy" %}:</span>
+          <span class="info-value plain" class="policy_general" name="policy_general"></span>
+        </div>
+        <div class="item-lower pad-adjust-3">
+          <span class="info-label">{% trans "Ratio Req" %}:</span>
+          <span class="info-value plain" class="policy_ratio" name="policy_ratio"></span>
+        </div>
+      </div>
+
+      <!-- CONTRACT / LOCATION POLICIES -->
+      <div class="col-xs-12 col-sm-3" data-mobile-collapse="peer details">
+        <div class="item-upper pad-adjust-2">
+          <span class="info-label">{% trans "Multiple Locations" %}:</span>
+          <span class="info-value plain" class="policy_locations" name="policy_locations"></span>
+        </div>
+        <div class="item-lower filters pad-adjust-3">
+          <span class="info-label">{% trans "Contract Req" %}:</span>
+          <span class="info-value plain" class="policy_contracts" name="policy_contracts"></span>
+        </div>
+      </div>
+
+    </div>
+    <div class="item-info peerses peerses-list mainport">
+    </div>
+    </div>
+
+    <div class="item-nested">
+      <div class="pad-m expandable collapsed">
+        <span class="icon expanded btn-expand interactive"><img src="{% static "legacy/md-arrow-dropdown.svg" %}"></span>
+        <span class="icon collapsed btn-expand interactive"><img src="{% static "legacy/md-arrow-dropright.svg" %}"></span>
+        <span class="icon loading"><img src="{% static "legacy/loading.gif" %}"></span>
+        <span id="btn-expand-mutual-locations"  class="btn-expand interactive">
+          <span class="info-value plain">{% trans "Other Exchange Points" %}</span>
+        </span>
+        <button
+          class="btn-request-peering"
+          data-action="email_peer">
+          <span class="icon">
+            <img src="{% static "legacy/md-mail.svg" %}">
+          </span>
+          <span class="btn-label">
+          {% trans "Request Peering" %}
+          </span>
+        </button>
+      </div>
+      <div id="mutual-locs-container"></div>
+    </div>
+
+  </div>
+
+  <!-- PEER NETIXLAN ITEM -->
+  <div
+    class="row"
+    data-peerctl="list_net_peer_ipaddr">
+    <span class="mobile-only btn-peerses-container">
+      <span
+        class="peerses-active btn-peerses interactive"
+        data-action="delete_peerses">{% trans "Live" %}</span>
+      <span
+        class="peerses-inactive btn-peerses interactive"
+        data-action="add_peerses">{% trans "Add" %}</span>
+    </span>
+
+    <div class="col-xs-12 col-sm-3 col-md-3 col-lg-3 adjust-margin-5 ipaddr-container">
+      <span class="mobile-hidden">
+        <span
+          class="peerses-active btn-peerses interactive"
+          data-action="delete_peerses">{% trans "Live" %}</span>
+        <span
+          class="peerses-inactive btn-peerses interactive"
+          data-action="add_peerses">{% trans "Add" %}</span>
+      </span>
+      <span class="info-value plain ix_name" name="ix_name"></span>
+    </div>
+    <div class="col-xs-12 col-sm-4 col-md-4 col-lg-4 col-xl-3 ipaddr-container">
+      <span class="editable ipaddr4-toggle">
+        <span class="info-label mobile-hidden">{% trans "IPv4" %}:</span>
+        <span class="info-value ipaddr4" name="ipaddr4"></span>
+        <div class="policy4 holder"></div>
+      </span>
+    </div>
+    <div class="col-xs-12 col-sm-5 col-md-5 col-lg-5 col-xl-5 ipaddr-container">
+      <span class="editable ipaddr6-toggle">
+        <span class="info-label mobile-hidden">{% trans "IPv6" %}:</span>
+        <span class="info-value ipaddr6" name="ipaddr6"></span>
+        <div class="policy6 holder"></div>
+      </span>
+      <button class="component-tool btn-show-peer-config" id="btn-show-peer-config">
+        <span>{% trans "Show Config" %}</span>
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- PEER MUTUAL LOC LIST -->
+  <div
+    id="list-net-peer"
+    data-peerctl="list_net_peer_mutual">
+    <div class="api-list-body list-body">
+    </div>
+    <div class="api-list-empty">
+    {% trans "No other mutual locations found." %}
+    </div>
+  </div>
+
+
+  <!-- PEER MUTUAL LOC ITEM TEMPLATE -->
+  <div class="item" data-peerctl="list_net_peer_mutual_item">
+    <div class="item-container">
+    <div class="item-info row">
+      <div class="col-xs-12 col-sm-3 col-md-3 col-lg-3  adjust-margin peerses ipaddr-container">
+        <span
+          class="peerses-active interactive"
+          data-action="delete_peerses_other">{% trans "Live" %}</span>
+        <span
+          class="peerses-inactive interactive"
+          data-action="add_peerses_other">{% trans "Add" %}</span>
+        <span class="info-value plain ix_name" name="ix_name"></span>
+      </div>
+      <div class="col-xs-12 col-sm-4 col-md-4 col-lg-4 col-xl-3 ipaddr-container">
+        <span class="editable ipaddr4-toggle">
+          <span class="info-label mobile-hidden">{% trans "IPv4" %}:</span>
+          <span class="info-value ipaddr4" name="ipaddr4"></span>
+          <div class="policy4 holder"></div>
+        </span>
+      </div>
+      <div class="col-xs-12 col-sm-5 col-md-5 col-lg-5 col-xl-5 ipaddr-container">
+        <span class="editable ipaddr6-toggle">
+          <span class="info-label mobile-hidden">{% trans "IPv6" %}:</span>
+          <span class="info-value ipaddr6" name="ipaddr6"></span>
+          <div class="policy6 holder"></div>
+        </span>
+      </div>
+    </div>
+    </div>
+  </div>
+
+
+  <!-- PEER VIEW -->
+  <div data-peerctl="container_net_peer_details">
+    <div id="mutual-loc"></div>
+  </div>
+
+  <form data-peerctl="form_md5password">
+    <div class="row">
+      <div class="col-xs-12">
+        <input class="md5 big-input" name="value" id="value">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-xs-6">
+        <button type="button" class="big-button copy-to-clipboard">{% trans "Copy to Clipboard" %}</button>
+      </div>
+      <div class="col-xs-6">
+        <button type="button" class="big-button save">{% trans "Save" %}</button>
+      </div>
+    </div>
+  </form>
+
+
+
+</div>
+</div>

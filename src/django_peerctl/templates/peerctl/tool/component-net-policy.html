@@ -1,0 +1,142 @@
+{% load static i18n %}
+<div data-peerctl="component_net_policy" class="template-editor">
+<div class="title">
+  <div class="container">
+    <h1>{% trans "Policies" %}</h1>
+  </div>
+</div>
+<div class="body container">
+  <div class="row">
+    <div class="col-xs-12 col-sm-6 template-list editor-left" id="policy-list">
+      <h5>{% trans "Active policies" %}</h5>
+      <div
+        data-sort-container=".api-list-body"
+        data-sort-row=".template-item"
+        data-peerctl="list_net_policy">
+        <div class="hidden sortable-button" data-sort-target=".name" data-sort-initial="asc">Name</div>
+        <div class="api-list-body"></div>
+        <div class="api-list-empty">{% trans "No active policies." %}</div>
+      </div>
+    </div>
+
+    <div class="col-xs-12 col-sm-6 editor-right" id="policy-edit" style="display:none">
+    </div>
+
+    <div class="col-xs-12 col-sm-6 editor-right" id="policy-add">
+      <h5>{% trans "Create new policy" %}</h5>
+      <form data-peerctl="form_net_policy_add">
+        <div class="form-group">
+          <label for="name">{% trans "Name" %}</label>
+          <input type="text" class="block-input" name="name">
+        </div>
+        <div class="form-group">
+          <label for="import_policy">{% trans "Import Policy" %}</label>
+          <input type="text" class="block-input" name="import_policy">
+        </div>
+        <div class="form-group">
+          <label for="export_policy">{% trans "Export Policy" %}</label>
+          <input type="text" class="block-input" name="export_policy">
+        </div>
+        <div class="form-group">
+          <label for="peer_group">{% trans "Peer Group" %}</label>
+          <input type="text" class="block-input" name="peer_group">
+        </div>
+        <div class="checkbox">
+          <label for="is_global4">
+          <input type="checkbox" name="is_global4" id="is_global4">{% trans "Set as global v4 policy" %}
+          </label>
+        </div>
+        <div class="checkbox">
+          <label for="is_global6">
+          <input type="checkbox" name="is_global6" id="is_global6">{% trans "Set as global v6 policy" %}
+          </label>
+        </div>
+
+
+        <div class="form-group">
+          <button type="button" class="save" role="api-submit">{% trans "Add Policy" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="hidden">
+
+  <!-- POLICY EDITOR TEMPLATE -->
+
+  <div class="row" data-peerctl="container_net_policy_edit">
+    <div class="col-xs-12">
+      <form class="policy-form">
+        <h5>{% trans "Edit policy" %}</h5>
+        <div class="form-group">
+          <label for="name">{% trans "Name" %}</label>
+          <input type="text" class="block-input" name="name">
+        </div>
+        <div class="form-group">
+          <label for="import_policy">{% trans "Import Policy" %}</label>
+          <input type="text" class="block-input" name="import_policy">
+        </div>
+        <div class="form-group">
+          <label for="export_policy">{% trans "Export Policy" %}</label>
+          <input type="text" class="block-input" name="export_policy">
+        </div>
+        <div class="form-group">
+          <label for="peer_group">{% trans "Peer Group" %}</label>
+          <input type="text" class="block-input" name="peer_group">
+        </div>
+        <div class="checkbox">
+          <label for="is_global4">
+          <input type="checkbox" name="is_global4">{% trans "Set as global v4 policy" %}
+          </label>
+        </div>
+        <div class="checkbox">
+          <label for="is_global6">
+          <input type="checkbox" name="is_global6">{% trans "Set as global v6 policy" %}
+          </label>
+        </div>
+
+
+
+        <div class="form-group">
+          <button type="button" class="cancel">{% trans "Cancel" %}</button>
+          <button type="button" class="save" role="api-submit">{% trans "Save" %}</button>
+        </div>
+      </form>
+    </div> <!-- /col -->
+    <div class="col-xs-12 col-sm-6 ports">
+    </div> <!-- /col -->
+  </div> <!-- /row -->
+
+  <!-- POLICY ITEM TEMPLATE -->
+
+  <div class="template-item" data-peerctl="list_net_policy_item">
+    <div class="row">
+    <div class="col-xs-10">
+      <div class="main">
+        <span class="name" name="name"></span>
+        <span class="global" name="global">
+          <span class="icon">
+            <img src="{% static "legacy/md-globe.svg" %}">
+          </span>
+          {% trans "Global" %}
+          <span class="ipv4">v4</span>
+          <span class="ipv6">v6</span>
+        </span>
+      </div>
+      <div class="sub">
+        <!-- fixme: ip version policy needs impl first -->
+        <span>{% trans "Applied to" %}</span>
+        <span class="count_peers" name="count_peers">0</span>
+        <span>{% trans "peers" %}</span>
+      </div>
+    </div>
+    <div class="col-xs-2 buttons right">
+      <span class="icon interactive" data-action="delete_remote"><img src="{% static "legacy/md-trash.svg" %}"></span>
+      <span class="icon interactive" data-action="edit"><img src="{% static "legacy/md-create.svg" %}"></span>
+    </div>
+    </div>
+  </div>
+
+</div>
+</div>

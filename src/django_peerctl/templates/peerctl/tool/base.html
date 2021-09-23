@@ -1,0 +1,46 @@
+{% load static %}
+{% block bootstrap3_content %}
+
+<div class="container-fluid stretch">
+  {% if settings.content.header_message %}
+  <div class="header-message">
+    <div class="container">
+      <div>{{ settings.content.header_message }}</div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="header">
+    <div class="container">
+    {% include "peerctl/tool/header.html" %}
+    </div>
+  </div>
+  <div class="peeringmanger content">
+    {% block content %}{% endblock %}
+  </div>
+  <div class="footer">
+    <div class="container">
+    {% include "peerctl/tool/footer.html" %}
+    </div>
+  </div>
+</div>
+
+<div id="users-device-size">
+  <div id="xs" class="visible-xs"></div>
+  <div id="sm" class="visible-sm"></div>
+  <div id="md" class="visible-md"></div>
+  <div id="lg" class="visible-lg"></div>
+</div>
+
+
+{% endblock %}
+{% block bootstrap3_extra_script %}
+    {% if request.user.is_authenticated and request.user.is_active %}
+    <script type="text/javascript" src="{% static "legacy/twentyc.sortable.js" %}"></script>
+    <script type="text/javascript" src="{% static "legacy/peerctl.js" %}"></script>
+    <script type="text/javascript" src="{% static "legacy/twentyc.filterable.js" %}"></script>
+    <script typr="text/javascript">
+    Peerctl.STATIC_URL = "{% static "legacy/" %}";
+    </script>
+    {% endif %}
+    {% include "peerctl/tool/analytics.html" %}
+{% endblock %}

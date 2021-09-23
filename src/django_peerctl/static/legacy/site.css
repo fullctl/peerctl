@@ -1,0 +1,541 @@
+body {
+  margin: 0px;
+  background-color: #5E727A;
+  color: #000;
+  font-family: 'Fira Sans', sans-serif;
+}
+
+.left {
+  text-align: left;
+}
+
+.right {
+  text-align: right;
+}
+
+.center {
+  text-align: center;
+}
+
+.capitalized {
+  text-transform: capitalize;
+}
+
+.pad-m {
+  padding: 8px;
+}
+.pad-m-left {
+  padding-left: 8px;
+}
+
+.interactive {
+  cursor: pointer;
+}
+.bg-success {
+  background-color: #f2faf2;
+}
+.bg-normal {
+  background-color: #efeff0;
+}
+
+
+@media (min-width: 768px) {
+.no-side-marg {
+  margin-left: 0px;
+  margin-right: 0px;
+}
+
+.no-side-marg > div {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+}
+
+.icon > img {
+  height: 16px;
+  width: auto;
+  vertical-align: sub;
+}
+
+
+div.container-fluid.stretch {
+  padding-left:0px;
+  padding-right:0px;
+}
+
+div.header {
+  background-color: #1B435D;
+}
+
+div.header img.logo {
+  height: 50px;
+  margin: 16px 0px;
+}
+
+div.header div.menu-tabs {
+  position: relative;
+  text-align: right;
+  padding-top: 32px;
+}
+
+div.header div.menu-tabs a.menu-tab {
+  color: #7DB9D2;
+  font-size: 20px;
+  margin-left: 32px;
+  line-height: 24px;
+}
+
+div.header div.menu-tabs a.menu-tab.signup {
+  border-radius: 4px;
+  background-color: #F4865D;
+  font-family: "Fira Sans";
+  font-size: 16px;
+  line-height: 19px;
+  padding: 8px;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+div.header div.menu-tabs a.menu-tab.signup {
+  display: inline-block;
+  border-radius: 4px 4px 0px 0px;
+  margin-top: 1em;
+}
+}
+
+div.header div.menu-tabs a.menu-tab.active {
+}
+
+div.header div.menu-tabs a.user-icon {
+  background-color: transparent;
+  border-radius: 3px;
+  position: relative;
+  top: -3px;
+}
+
+/*
+ * footer
+ */
+
+div.footer {
+  background-color: #5E727A;
+  padding: 32px;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 19px;
+}
+
+div.footer img.logo {
+  width: 312px;
+  margin-top: 10px;
+  margin-left: -5px;
+}
+
+div.footer h5 {
+  color: #7DB9D2;
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 24px;
+  margin-top: 11px;
+}
+
+div.footer div.links a {
+  margin-top: 4px;
+  display: block;
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 19px;
+  text-decoration: underline;
+  text-transform: capitalize;
+}
+
+div.footer div.links a.mailto {
+  text-transform: lowercase;
+}
+
+div.footer div.links div.social {
+  margin-top: 16px;
+}
+
+div.footer div.links div.social a {
+  display: inline;
+  text-decoration:none;
+  margin-right: 16px;
+}
+
+div.footer div.links img {
+  border: none;
+}
+
+div.footer div.copyright {
+  margin-top: 64px;
+  text-transform: capitalize;
+}
+
+div.footer div.version {
+  color: #7DB9D2;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 23px;
+}
+
+
+div.site.content {
+  background-color: #fff;
+  position: relative;
+}
+
+div.site .gradient-bs {
+  background: linear-gradient(94.13deg, #5E727A 0%, #D2E1E7 50%);
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+}
+
+div.site > .container {
+  padding-top: 72px;
+}
+
+div.site .row.aboutus div {
+  padding-top: 73px;
+}
+
+div.site .row.aboutus h1 {
+  color: #5E727A;
+  font-family: "Fira Sans";
+  font-size: 32px;
+  line-height: 40px;
+}
+
+div.site .row.aboutus p.info {
+  color: #5E727A;
+  font-family: "Fira Sans";
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 26px;
+}
+
+div.site .row.aboutus a.btn.signup {
+  border-radius: 4px;
+  background-color: #F4865D;
+  padding: 14px;
+  width: 100%;
+  color: #FFFFFF;
+  font-family: "Fira Sans";
+  font-size: 20px;
+  line-height: 24px;
+}
+
+div.site .container.keyfeatures {
+  background-color: #fff;
+}
+
+div.site .container.keyfeatures div.section h1 {
+  color: #5E727A;
+  font-family: "Fira Sans";
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 46px;
+  margin-bottom: 64px;
+}
+
+@media (max-width: 768px) {
+div.site .container.keyfeatures div.section h1 {
+  margin-top: -32px;
+  margin-bottom: 32px;
+}
+}
+
+div.site .row.feature-border .border {
+  border-top: 1px #7DB9D2 solid;
+  margin
+}
+
+div.site .row.feature > div.name {
+  color: #7DB9D2;
+  font-family: "Fira Sans";
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 28px;
+  margin-left: -15px;
+  padding-top: 16px;
+}
+
+div.site .row.feature > div.info {
+  margin-bottom: 32px;
+  color: #5E727A;
+  font-family: "Fira Sans";
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 26px;
+  padding-top: 16px;
+}
+
+div.site .container.keyfeatures p.login {
+  font-family: "Fira Sans";
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 26px;
+  color: #5E727A;
+  padding-top: 32px;
+}
+
+div.site .container.keyfeatures p.login a {
+  color: #F4865D;
+  text-decoration: underline;
+}
+
+div.site div.pricing {
+margin-top: 128px;
+padding-bottom: 128px;
+background-color: #5E727A;
+}
+
+
+@media (max-width: 768px) {
+div.site div.pricing {
+  margin-top: 32px;
+}
+}
+
+div.site div.pricing div.section h1 {
+  color: #7DB9D2;
+  font-family: "Fira Sans";
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 46px;
+  text-align: center;
+  margin-top: 46px;
+  text-transform: capitalize;
+}
+
+div.site div.pricing div.section p.info {
+  color: #FFFFFF;
+  font-family: "Fira Sans";
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 26px;
+  text-align: center;
+  margin-top: 32px;
+}
+
+div.site div.pricing div.section p.info strong {
+  font-weight: 500;
+}
+
+div.site div.prices {
+  margin-top: 32px;
+}
+
+div.site div.price {
+  border-radius: 16px;
+  background-color: #f2f8fa;
+  display: inline-block;
+  width: 255px;
+  height: 302px;
+}
+
+div.site div.price.smallprice {
+  margin-right: 32px;
+}
+
+div.site div.price.big {
+  margin-left: 32px;
+}
+
+
+@media (max-width: 768px) {
+div.site div.price.big,
+div.site div.price.smallprice {
+  margin-right: auto;
+  margin-left: auto;
+  margin-bottom: 16px;
+  margin-top: 16px;
+}
+}
+
+div.site div.price span.sessions {
+  color: #5E727A;
+  font-family: "Fira Sans";
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 26px;
+  padding-top: 4px;
+  display: inline-block;
+}
+
+div.site div.price span.price {
+  color: #5E727A;
+  font-family: "Fira Sans";
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 26px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+div.site div.price h1 {
+  margin: 0px 0px;
+  color: #5E727A;
+  font-family: "Fira Sans";
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 26px;
+}
+
+div.site div.price span.offer {
+  display: inline-block;
+  padding: 2px 16px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  background-color: #7DD27F;
+  color: #FFFFFF;
+  font-family: "Fira Sans";
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 23px;
+  text-transform:uppercase;
+}
+
+div.site div.price div.top {
+  background-color: #e5f1f6;
+  padding-top: 16px;
+  border-radius: 16px 16px 0px 0px;
+  padding-bottom: 24px;
+}
+
+div.site div.price div.middle {
+  background-color: #f2f8fa;
+  padding-top: 16px;
+}
+
+
+div.site div.price div.bottom {
+  background-color: #fff;
+  padding-top: 16px;
+  padding-bottom: 20px;
+  border-radius: 0px 0px 16px 16px;
+}
+
+div.site div.price div.bottom h1 {
+  margin-top: 0px;
+}
+
+div.site div.price span.price-annu {
+  color: #F4865D;
+  font-family: "Fira Sans";
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 26px;
+}
+
+div.site div.price span.strike {
+  color: #5E727A;
+  font-family: "Fira Sans";
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 26px;
+  text-decoration: line-through;
+}
+
+div.site div.pricing p.info {
+  color: #FFFFFF;
+  font-family: "Fira Sans";
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 26px;
+  text-align: center;
+  margin-top: 32px;
+}
+
+div.site div.pricing p.info a {
+  color: #F4865D;
+  text-decoration: underline;
+}
+
+div.site div.pricing a.signup {
+  width: 350px;
+  border-radius: 4px;
+  background-color: #F4865D;
+  color: #FFFFFF;
+  font-family: "Fira Sans";
+  font-size: 20px;
+  line-height: 24px;
+  padding: 14px;
+  border: none;
+  margin-top: 32px;
+}
+
+div.site div.container.getintouch {
+  padding-bottom: 64px;
+}
+
+div.site div.container.getintouch p {
+  font-size: 24px;
+}
+
+
+div.site div.container.getintouch p a {
+  color: #F4865D;
+  text-decoration: underline;
+}
+
+div.site div.container.getintouch h1 {
+  color: #7DB9D2;
+  font-family: "Fira Sans";
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 28px;
+  border-bottom: 1px #7DB9D2 solid;
+}
+
+div.site div.container.getintouch label {
+  color: #7DB9D2;
+  font-family: "Fira Sans";
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 8px;
+}
+
+div.site div.container.getintouch input.form-control {
+  outline: none !important;
+  box-shadow: none;
+  border: none;
+  border-bottom: 1px #7DB9D2 solid;
+  border-radius: 0px;
+}
+
+div.site div.container.getintouch textarea.form-control {
+  outline: none !important;
+  box-shadow: none;
+  border: none;
+  border-bottom: 1px #7DB9D2 solid;
+  border-radius: 0px;
+  height: 150px;
+}
+
+div.site div.container.getintouch button {
+  border-radius: 4px;
+  background-color: #F4865D;
+  color: #FFFFFF;
+  font-family: "Fira Sans";
+  font-size: 16px;
+  line-height: 19px;
+  text-align: center;
+  padding: 8px;
+  border: none;
+}
+
+
+
+
+
+div.site.content > div.container {
+
+}
+

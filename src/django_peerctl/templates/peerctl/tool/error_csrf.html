@@ -1,0 +1,7 @@
+{% extends "peerctl/site.error.html" %}
+{% block "error_title" %}CSRF Cookie could not be ensured{% endblock %}
+{% block "error_message" %}Please make sure cookies are enabled and reload the page. If the problem persists please dont hesitate to contact us at support@peerctl.com.
+<p>
+{{ reason }}
+</p>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% load static i18n %}
+{% block header %}
+{% if request.user.is_authenticated and not hide_header and request.user.is_active %}
+<div class="row marg-top-s">
+  <div class="col-xs-12 col-sm-4">
+  </div>
+  <div class="col-xs-12 col-sm-8 menu-container">
+
+    <div
+      class="mobile-collapse-indicator"
+      data-icon-collapsed="{% static "legacy/hamburger.svg" %}"
+      data-icon-expanded="{% static "legacy/md-close.svg" %}">
+
+      <span class="icon">
+        <img class="img-responsive indicator-icon">
+      </span>
+
+    </div>
+
+    <div class="menu-tabs" data-peerctl="header_menu" data-mobile-collapse="menu">
+      <div class="mobile-break">
+        <a class="menu-tab active" data-peerctl="btn_peering_lists">{% trans "Peering Lists" %}</a>
+      </div>
+      <div class="mobile-break">
+        <a class="menu-tab" data-peerctl="btn_templates">{% trans "Templates" %}</a>
+      </div>
+      <div class="mobile-break">
+        <span class="dropdown" style="position:relative">
+        <a
+          class="user-icon icon interactive"
+          aria-haspop="true"
+          aria-expanded="false"
+          data-toggle="dropdown">
+          <img src="{% static "legacy/md-person.svg" %}">
+        </a>
+        <ul
+          class="dropdown-menu dropdown-menu-right"
+          aria-labeled-by="btn-navmenu"
+          data-peerctl="nav_menu">
+          <li role="separator" class="divider"></li>
+          <li><a href="/logout/"><span class="glyphicon glyphicon-off"></span> Logout</a></li>
+        </ul>
+        </span>
+      </div>
+    </div>
+
+    <div class="hidden">
+    <span
+      class="selected-target"
+      data-peerctl="selected_target"
+    >
+      <h4><span class="name"></span><small class="sub"></small></h4>
+    </span>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

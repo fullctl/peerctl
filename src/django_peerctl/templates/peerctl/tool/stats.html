@@ -1,0 +1,19 @@
+{% load i18n %}
+  <div class="col-xs-12 col-sm-4">
+    <h5>{% trans "Peering Statistics" %}</h5>
+    <div>{% trans "Peers" %}:  {{ stats.peers.all }}</div>
+    <div>{% trans "IPv4 Sessions" %}:  {{ stats.peerses.ip4 }}</div>
+    <div>{% trans "IPv6 Sessions" %}:  {{ stats.peerses.ip6 }}</div>
+  </div>
+  <div class="col-xs-12 col-sm-4">
+    <h5>{% trans "Peers by Region" %}</h5>
+    {% for scope, count in stats.peers.scope %}
+    <div>{{ scope }}: {{ count }}</div>
+    {% endfor %}
+  </div>
+  <div class="col-xs-12 col-sm-4">
+    <h5>{% trans "Peers by Type" %}</h5>
+    {% for type, count in stats.peers.type %}
+    <div>{{ type }}: {{ count }}</div>
+    {% endfor %}
+  </div>

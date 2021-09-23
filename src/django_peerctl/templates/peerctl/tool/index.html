@@ -1,0 +1,46 @@
+{% extends "peerctl/tool/base.html" %}
+{% load static %}
+{% load util %}
+
+{% block content %}
+<div class="marg-top-s">
+</div>
+
+{% include "peerctl/tool/modal.html" %}
+
+<div class="hidden">
+{% include "peerctl/tool/make-a-wish.html" %}
+{% include "peerctl/tool/bulk-email.html" %}
+{% include "peerctl/tool/user-preferences.html" %}
+{% include "peerctl/tool/peering-request-email.html" %}
+{% include "peerctl/tool/device-template-view.html" %}
+{% include "peerctl/tool/errors.html" %}
+</div>
+
+<div
+  class="application-grid"
+  data-peerctl="application_grid"
+>
+
+  <div class="row">
+    <div
+      data-peerctl="component_active"
+      class="component col-xs-12">
+    </div>
+  </div>
+
+
+  <div
+    data-peerctl="component_idle"
+    class="hidden">
+    {% include "peerctl/tool/component-net-peer.html" %}
+    {% include "peerctl/tool/component-net-port.html" %}
+    {% include "peerctl/tool/component-net-device.html" %}
+    {% include "peerctl/tool/component-net-policy.html" %}
+    {% include "peerctl/tool/component-net-email.html" %}
+    {% include "peerctl/tool/component-net-devicetmpl.html" %}
+  </div>
+</div>
+
+
+{% endblock %}

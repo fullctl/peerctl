@@ -1,0 +1,71 @@
+   
+[tool.poetry]
+name = "peerctl"
+repository = "https://github.com/fullctl/peerctl"
+version = "0.1.0"
+description = "ix control"
+authors = ["20C <code@20c.com>"]
+license = "Apache-2.0"
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development"
+]
+
+
+[tool.poetry.scripts]
+peerctl = "peerctl.cli:main"
+
+
+[tool.poetry.dependencies]
+python = "^3.7"
+django-handleref = ">=0.5"
+djangorestframework = ">=3.11,<4"
+Django = ">=3.2,<4"
+django-peeringdb = "*"
+psycopg2-binary = ">2.8,<3"
+django-reversion = ">=3,<4"
+django-inet = "*"
+django-netfields = "<2"
+django-autocomplete-light = ">=3,<3.8"
+django-allauth = ">=0.45,<2"
+social-auth-app-django = "<4"
+grainy = ">=1.8.1,<2"
+django-grainy = ">=1.9.0,<2"
+pyyaml = "*"
+pip = "*"
+arouteserver = "*"
+celery = "<6,>=5"
+fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "prep-release" }
+peeringdb = "^1.1.0"
+netom = "<2.0.0"
+confu = ">=1.5,<2"
+uWSGI = "^2.0.19"
+
+[tool.poetry.dev-dependencies]
+# tests
+pytest = ">=6.0.1"
+pytest-django = ">=3.8.0"
+pytest-cov = "*"
+
+# linting
+bandit = "^1.6.2"
+black = "^20.8b1"
+isort = "^5.7.0"
+flake8 = "^3.8.4"
+docker-compose = "^1.29.1"
+
+#ctl
+ctl = "^1.0.0"
+jinja2 = "^2.11.2"
+tmpl = "^0.3.0"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

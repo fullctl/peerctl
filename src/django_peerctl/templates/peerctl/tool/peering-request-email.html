@@ -1,0 +1,31 @@
+<form data-peerctl="form_peer_request_email">
+  <div class="row">
+    <div class="col-xs-7">
+      <div class="panel panel-default">
+        <div class="panel-heading" id="peer_name"></div>
+        <div class="panel-body">
+          <p><strong>ASN: </strong><span id="peer_asn"></span></p>
+          <p><a href="mailto:" id="peer_contact"></a></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-xs-5">
+      <div class="panel panel-info">
+        <div class="panel-heading">Workflow</div>
+        <div class="panel-body peerses-workflow">
+          <p class="peer-request">1. Request</p>
+          <p class="peer-config-complete">2. Configuration Complete</p>
+          <p class="peer-session-live">3. Session Live</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="component">Template</label>
+    <select class="block-input" name="emltmpl" id="template"></select>
+  </div>
+  <div class="form-group peer-request-email">
+    <div class="non-field-errors"></div>
+    <textarea class="preview" id="preview" name="body"></textarea>
+  </div>
+</form>

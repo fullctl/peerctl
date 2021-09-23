@@ -1,0 +1,6 @@
+project_name: "peerctl"
+service_home: "/src/service"
+virtual_env: "venv"
+database_name: "peerctl"
+database_user: "peerctl"
+coverage_repos: "django_peerctl,ixctl"

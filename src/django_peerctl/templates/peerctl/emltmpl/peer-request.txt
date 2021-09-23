@@ -1,0 +1,23 @@
+Dear {{ peer.company_name }},
+
+{{ my.company_name }} (AS{{ my.asn }}) would like to enter into settlement-free
+peering with your organization, we are currently a member of {{ my.exchanges | length }}
+peering exchanges.
+
+For more information on {{ my.company_name }}, please visit:
+
+Website: {{ my.website }}
+Peering Information: https://peerwith.me/{{ my.asn }}
+
+We would like to peer at the following mutual location(s):
+
+{% for exchange in mutual_locations %}- {{ exchange.name }}
+{% endfor %}
+
+Please notify us once your sessions have been configured and enabled by responding to this email.
+
+Please let us know if you have any questions or concerns.
+
+Sincerely,
+
+{{ my.company_name }} Peering

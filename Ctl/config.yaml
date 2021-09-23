@@ -1,0 +1,102 @@
+
+ctl:
+  plugins:
+
+    # git repo for copying setup
+
+    - name: git_template
+      type: git
+      config:
+        repo_url: git@github.com:20c/ctl-tmpl-django
+        brnach: origin/main
+
+    # template for copying template assets
+
+    - name: django_template
+      type: template
+      config:
+        # template root directory (path)
+        source: "{{ ctx.cachedir }}/github.com/20c/ctl-tmpl-django"
+        # template output directory (path)
+        output: "{{ ctx.home }}/.."
+        walk_dirs:
+          - .
+        vars:
+          - Ctl/tmplvars.yaml
+        ignore:
+          - \.git/
+          - \.peerctl.env
+
+    # command to remove temporary files
+
+    - name: clean
+      type: command
+      config:
+        shell: true
+        command:
+          - rm -rf Ctl/tmp
+
+    # command to set executables
+
+    - name: executables
+      type: command
+      config:
+        shell: true
+        command:
+          - chmod 774 Ctl/dev/*.sh
+          - chmod 774 Ctl/docker/*.sh
+
+    # chain plugin for entire template process
+
+    - name: sync_tmpl
+      type: chain
+      config:
+        chain:
+          - stage: git_clone
+            plugin: git_template
+            action:
+              name: clone
+
+          - stage: git_pull
+            plugin: git_template
+            action:
+              name: pull
+
+          - stage: django_template
+            plugin: django_template
+
+          - stage: executables
+            plugin: executables
+
+    # changelog plugin
+    - type: changelog
+      name: changelog
+
+  permissions:
+    - namespace: "ctl"
+      permission: "crud"
+
+  log:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s] %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        level: DEBUG
+        formatter: simple
+        stream: ext://sys.stdout
+    loggers:
+      ctl:
+        handlers: [console]
+        level: DEBUG
+        propagate: no
+      ctl.plugins.git:
+        handlers: [console]
+        level: DEBUG
+        propagate: no
+      usage:
+        handlers: [console]
+        level: INFO
+        propagate: no

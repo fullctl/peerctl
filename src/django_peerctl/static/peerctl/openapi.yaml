@@ -1,0 +1,897 @@
+including /srv/ixctl/main/ixctl/settings/dev.py dev
+loaded additional settings file '/srv/ixctl/main/ixctl/settings/dev.py'
+Release env is 'dev'
+loaded settings for version 0.1.0 (DEBUG: True)
+openapi: 3.0.2
+info:
+  title: ''
+  version: ''
+paths:
+  /api/account/org/:
+    get:
+      operationId: listOrganizations
+      description: 'list the organizations that the user belongs
+
+        to or has permissions to'
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organization'
+          description: ''
+      tags:
+      - api
+  /api/account/user/asns/:
+    get:
+      operationId: asnsASN
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ASN'
+          description: ''
+      tags:
+      - api
+  /api/ix/{org_tag}/:
+    get:
+      operationId: listInternetExchanges
+      description: Return all internet exchanges.
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InternetExchange'
+          description: ''
+      tags:
+      - api
+    post:
+      operationId: createInternetExchange
+      description: Create a new internet exchange.
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternetExchange'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InternetExchange'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InternetExchange'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternetExchange'
+          description: ''
+      tags:
+      - api
+  /api/ix/{org_tag}/{ix_tag}/:
+    get:
+      operationId: retrieveInternetExchange
+      description: Return a internet exchange instance.
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: ix_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternetExchange'
+          description: ''
+      tags:
+      - api
+  /api/member/{org_tag}/{ix_tag}/:
+    get:
+      operationId: listInternetExchangeMembers
+      description: Return all member instances.
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: ix_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InternetExchangeMember'
+          description: ''
+      tags:
+      - api
+    post:
+      operationId: createInternetExchangeMember
+      description: Create a new member.
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: ix_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternetExchangeMember'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InternetExchangeMember'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InternetExchangeMember'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternetExchangeMember'
+          description: ''
+      tags:
+      - api
+  /api/rs/{org_tag}/{ix_tag}/:
+    get:
+      operationId: listRouteservers
+      description: ''
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: ix_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Routeserver'
+          description: ''
+      tags:
+      - api
+    post:
+      operationId: createRouteserver
+      description: ''
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: ix_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Routeserver'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Routeserver'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Routeserver'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Routeserver'
+          description: ''
+      tags:
+      - api
+  /api/{org_tag}/rsconf/{name}/:
+    get:
+      operationId: retrieveRouteserverConfig
+      description: ''
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: name
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteserverConfig'
+          description: ''
+      tags:
+      - api
+  /api/{org_tag}/rsconf/{name}/plain/:
+    get:
+      operationId: plainRouteserverConfig
+      description: ''
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: name
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/RouteserverConfig'
+          description: ''
+      tags:
+      - api
+  /api/{org_tag}/net/:
+    get:
+      operationId: listNetworks
+      description: ''
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Network'
+          description: ''
+      tags:
+      - api
+  /api/{org_tag}/net/presence/{asn}/:
+    get:
+      operationId: presenceNetwork
+      description: ''
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: asn
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Network'
+          description: ''
+      tags:
+      - api
+  /api/{org_tag}/permreq/:
+    get:
+      operationId: listPermissionRequests
+      description: ''
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PermissionRequest'
+          description: ''
+      tags:
+      - api
+  /api/ix/{org_tag}/import_peeringdb:
+    post:
+      operationId: importPeeringdbInternetExchange
+      description: Import an internet exhange from Peeringdb.
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternetExchange'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InternetExchange'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InternetExchange'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternetExchange'
+          description: ''
+      tags:
+      - api
+  /api/member/{org_tag}/{ix_tag}/{member_id}:
+    put:
+      operationId: updateInternetExchangeMember
+      description: Update a member.
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: ix_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: member_id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternetExchangeMember'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InternetExchangeMember'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InternetExchangeMember'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternetExchangeMember'
+          description: ''
+      tags:
+      - api
+    delete:
+      operationId: destroyInternetExchangeMember
+      description: Delete a member.
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: ix_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: member_id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+      - api
+  /api/rs/{org_tag}/{ix_tag}/{rs_id}:
+    put:
+      operationId: updateRouteserver
+      description: ''
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: ix_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: rs_id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Routeserver'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Routeserver'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Routeserver'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Routeserver'
+          description: ''
+      tags:
+      - api
+    delete:
+      operationId: destroyRouteserver
+      description: ''
+      parameters:
+      - name: org_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: ix_tag
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      - name: rs_id
+        in: path
+        required: true
+        description: ''
+        schema:
+          type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+      - api
+components:
+  schemas:
+    Organization:
+      type: object
+      properties:
+        slug:
+          type: string
+          maxLength: 64
+        name:
+          type: string
+          readOnly: true
+        selected:
+          type: string
+          readOnly: true
+        personal:
+          type: boolean
+        access_type:
+          type: string
+          readOnly: true
+        grainy:
+          type: string
+          readOnly: true
+        id:
+          type: integer
+          readOnly: true
+        status:
+          enum:
+          - ok
+          - pending
+          - deactivated
+          - failed
+          - expired
+          type: string
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - slug
+    ASN:
+      type: object
+      properties:
+        asn:
+          type: integer
+        name:
+          type: string
+          readOnly: true
+      required:
+      - asn
+    InternetExchange:
+      type: object
+      properties:
+        pdb_id:
+          type: integer
+          maximum: 2147483647
+          nullable: true
+          minimum: 0
+        urlkey:
+          type: string
+          maxLength: 255
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 64
+        grainy:
+          type: string
+          readOnly: true
+        id:
+          type: integer
+          readOnly: true
+        status:
+          enum:
+          - ok
+          - pending
+          - deactivated
+          - failed
+          - expired
+          type: string
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - name
+    InternetExchangeMember:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        pdb_id:
+          type: integer
+          maximum: 2147483647
+          nullable: true
+          minimum: 0
+        ix:
+          type: integer
+          description: Members at this Exchange
+        ixf_member_type:
+          enum:
+          - peering
+          - ixp
+          - routeserver
+          - probono
+          type: string
+        ixf_state:
+          type: string
+          maxLength: 255
+        asn:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        name:
+          type: string
+          nullable: true
+          maxLength: 255
+        display_name:
+          type: string
+          readOnly: true
+        ipaddr4:
+          type: string
+          nullable: true
+        ipaddr6:
+          type: string
+          nullable: true
+        macaddr:
+          type: string
+          nullable: true
+          pattern: (?i)^([0-9a-f]{2}[-:]){5}[0-9a-f]{2}$
+        as_macro:
+          type: string
+          nullable: true
+          maxLength: 255
+        is_rs_peer:
+          type: boolean
+        speed:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        grainy:
+          type: string
+          readOnly: true
+        status:
+          enum:
+          - ok
+          - pending
+          - deactivated
+          - failed
+          - expired
+          type: string
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - ix
+      - asn
+      - speed
+    Routeserver:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        ix:
+          type: integer
+        name:
+          type: string
+          description: Routeserver name
+          maxLength: 255
+        display_name:
+          type: string
+          readOnly: true
+        asn:
+          type: integer
+          maximum: 2147483647
+          description: ASN
+          minimum: 0
+        router_id:
+          type: string
+        ars_type:
+          enum:
+          - bird
+          - bird2
+          - openbgpd
+          type: string
+        max_as_path_length:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          description: Max length of AS_PATH attribute.
+        no_export_action:
+          enum:
+          - pass
+          - strip
+          type: string
+          description: RFC1997 well-known communities (NO_EXPORT and NO_ADVERTISE)
+        rpki_bgp_origin_validation:
+          type: boolean
+        graceful_shutdown:
+          type: boolean
+          description: Graceful BGP session shutdown
+        extra_config:
+          type: string
+          nullable: true
+          description: Extra arouteserver config
+        grainy:
+          type: string
+          readOnly: true
+        status:
+          enum:
+          - ok
+          - pending
+          - deactivated
+          - failed
+          - expired
+          type: string
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - ix
+      - name
+      - asn
+      - router_id
+    RouteserverConfig:
+      type: object
+      properties:
+        rs:
+          type: integer
+          nullable: true
+        body:
+          type: string
+          description: Config content
+        grainy:
+          type: string
+          readOnly: true
+        id:
+          type: integer
+          readOnly: true
+        status:
+          enum:
+          - ok
+          - pending
+          - deactivated
+          - failed
+          - expired
+          type: string
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - body
+    Network:
+      type: object
+      properties:
+        pdb_id:
+          type: integer
+          maximum: 2147483647
+          nullable: true
+          minimum: 0
+        asn:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        name:
+          type: string
+          maxLength: 255
+        display_name:
+          type: string
+          readOnly: true
+        grainy:
+          type: string
+          readOnly: true
+        id:
+          type: integer
+          readOnly: true
+        status:
+          enum:
+          - ok
+          - pending
+          - deactivated
+          - failed
+          - expired
+          type: string
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - asn
+      - name
+    PermissionRequest:
+      type: object
+      properties:
+        user:
+          type: integer
+        type:
+          enum:
+          - net_ix
+          type: string
+        org:
+          type: integer
+        grainy:
+          type: string
+          readOnly: true
+        id:
+          type: integer
+          readOnly: true
+        status:
+          enum:
+          - ok
+          - pending
+          - deactivated
+          - failed
+          - expired
+          type: string
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+        updated:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - user
+      - type
+      - org
