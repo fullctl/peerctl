@@ -1580,6 +1580,10 @@ div.component > div.template-editor {
   }
 }
 
+#selected-asn {
+  color: #fff;
+}
+
 .modal-body {
 	color: #fff;
 }

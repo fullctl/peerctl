@@ -2304,6 +2304,7 @@ Peerctl.NetworkApplication = twentyc.cls.extend(
       this.devicetmpls.refresh();
       document.location.href = "#"+asn+"-"+this.page;
       $(this).trigger('network_change', [asn]);
+      $('#selected-asn').text("AS"+asn);
     },
 
     /**
