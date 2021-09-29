@@ -188,7 +188,10 @@ class Port(CachedObjectMixin, viewsets.ModelViewSet):
 
         instances = models.Port.objects.filter(portinfo__net__asn=asn, status="ok")
         serializer = self.serializer_class(instances, many=True)
-        return Response(serializer.data)
+
+        data = sorted(serializer.data, key=lambda x: x["ix_name"])
+
+        return Response(data)
 
     @action(detail=True, methods=["get"])
     @load_object("port", models.Port, id="pk", portinfo__net__asn="asn")

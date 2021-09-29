@@ -125,9 +125,7 @@ class Port(ModelSerializer):
         ixlan = instance.portinfo.pdb.ixlan
         ix = ixlan.ix
 
-        name = "{}: {}".format(ix.name, ix.name_long)
-        if ixlan.name:
-            return "{} {}".format(name, ixlan.name)
+        name = f"{ix.name}: {instance.portinfo.ipaddr4}"
         return name
 
     @models.pdb_fallback(0)
