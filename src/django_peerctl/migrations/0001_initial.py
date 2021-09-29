@@ -16,482 +16,1184 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('sessions', '0001_initial'),
+        ("sessions", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Device',
+            name="Device",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('name', models.CharField(max_length=255)),
-                ('description', django_peerctl.models.peerctl.DescriptionField(blank=True, max_length=255, null=True)),
-                ('type', models.CharField(blank=True, choices=[('arista', 'Arista EOS'), ('bird', 'BIRD'), ('bird2', 'BIRD 2'), ('cisco', 'Cisco IOS'), ('cisco-xr', 'Ciscoi IOS XR'), ('junos', 'Juniper Junos OS'), ('junos-set', 'Juniper Junos OS set'), ('sros-md', 'Nokia SR OS MD-CLI'), ('sros-classic', 'Nokia SR OS Classic CLI')], help_text='type of device (software)', max_length=255, null=True)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "description",
+                    django_peerctl.models.peerctl.DescriptionField(
+                        blank=True, max_length=255, null=True
+                    ),
+                ),
+                (
+                    "type",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("arista", "Arista EOS"),
+                            ("bird", "BIRD"),
+                            ("bird2", "BIRD 2"),
+                            ("cisco", "Cisco IOS"),
+                            ("cisco-xr", "Ciscoi IOS XR"),
+                            ("junos", "Juniper Junos OS"),
+                            ("junos-set", "Juniper Junos OS set"),
+                            ("sros-md", "Nokia SR OS MD-CLI"),
+                            ("sros-classic", "Nokia SR OS Classic CLI"),
+                        ],
+                        help_text="type of device (software)",
+                        max_length=255,
+                        null=True,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_device',
+                "db_table": "peerctl_device",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='EmailLog',
+            name="EmailLog",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('sender_address', models.CharField(max_length=255)),
-                ('subject', models.CharField(max_length=255)),
-                ('body', models.TextField()),
-                ('origin', models.CharField(choices=[('peerses-workflow', 'Peering Session Workflow'), ('bulk-email', 'Notification Email')], max_length=255)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                ("sender_address", models.CharField(max_length=255)),
+                ("subject", models.CharField(max_length=255)),
+                ("body", models.TextField()),
+                (
+                    "origin",
+                    models.CharField(
+                        choices=[
+                            ("peerses-workflow", "Peering Session Workflow"),
+                            ("bulk-email", "Notification Email"),
+                        ],
+                        max_length=255,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_emaillog',
+                "db_table": "peerctl_emaillog",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='InternetExchange',
+            name="InternetExchange",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('name', models.CharField(max_length=64, unique=True)),
-                ('name_long', models.CharField(blank=True, max_length=254)),
-                ('country', django_countries.fields.CountryField(max_length=2)),
-                ('ixlan_id', models.PositiveIntegerField(unique=True)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("name", models.CharField(max_length=64, unique=True)),
+                ("name_long", models.CharField(blank=True, max_length=254)),
+                ("country", django_countries.fields.CountryField(max_length=2)),
+                ("ixlan_id", models.PositiveIntegerField(unique=True)),
             ],
             options={
-                'db_table': 'peerctl_ix',
+                "db_table": "peerctl_ix",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='LogicalPort',
+            name="LogicalPort",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('name', models.CharField(blank=True, max_length=255)),
-                ('description', django_peerctl.models.peerctl.DescriptionField(blank=True, max_length=255, null=True)),
-                ('trunk', models.IntegerField(blank=True, null=True)),
-                ('channel', models.IntegerField(blank=True, null=True)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("name", models.CharField(blank=True, max_length=255)),
+                (
+                    "description",
+                    django_peerctl.models.peerctl.DescriptionField(
+                        blank=True, max_length=255, null=True
+                    ),
+                ),
+                ("trunk", models.IntegerField(blank=True, null=True)),
+                ("channel", models.IntegerField(blank=True, null=True)),
             ],
             options={
-                'db_table': 'peerctl_logport',
+                "db_table": "peerctl_logport",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='Network',
+            name="Network",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('max_sessions', models.PositiveIntegerField(default=0, help_text='maximum amount of peering sessions allowed ')),
-                ('asn', django_inet.models.ASNField(db_index=True, unique=True, validators=[django.core.validators.MinValueValidator(0), django.core.validators.MinValueValidator(0), django.core.validators.MinValueValidator(0)])),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                (
+                    "max_sessions",
+                    models.PositiveIntegerField(
+                        default=0,
+                        help_text="maximum amount of peering sessions allowed ",
+                    ),
+                ),
+                (
+                    "asn",
+                    django_inet.models.ASNField(
+                        db_index=True,
+                        unique=True,
+                        validators=[
+                            django.core.validators.MinValueValidator(0),
+                            django.core.validators.MinValueValidator(0),
+                            django.core.validators.MinValueValidator(0),
+                        ],
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_net',
+                "db_table": "peerctl_net",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='Organization',
+            name="Organization",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('max_sessions', models.PositiveIntegerField(default=0, help_text='maximum amount of peering sessions allowed ')),
-                ('name', models.CharField(max_length=128, unique=True)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                (
+                    "max_sessions",
+                    models.PositiveIntegerField(
+                        default=0,
+                        help_text="maximum amount of peering sessions allowed ",
+                    ),
+                ),
+                ("name", models.CharField(max_length=128, unique=True)),
             ],
             options={
-                'db_table': 'peerctl_org',
+                "db_table": "peerctl_org",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='PeerNetwork',
+            name="PeerNetwork",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('md5', models.CharField(blank=True, max_length=255, null=True)),
-                ('info_prefixes4', models.PositiveIntegerField(blank=True, null=True)),
-                ('info_prefixes6', models.PositiveIntegerField(blank=True, null=True)),
-                ('net', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='django_peerctl.network')),
-                ('peer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='django_peerctl.network')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("md5", models.CharField(blank=True, max_length=255, null=True)),
+                ("info_prefixes4", models.PositiveIntegerField(blank=True, null=True)),
+                ("info_prefixes6", models.PositiveIntegerField(blank=True, null=True)),
+                (
+                    "net",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="django_peerctl.network",
+                    ),
+                ),
+                (
+                    "peer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="django_peerctl.network",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Network to Peer Relationship',
-                'verbose_name_plural': 'Network to Peer Relationships',
-                'db_table': 'peerctl_peernet',
+                "verbose_name": "Network to Peer Relationship",
+                "verbose_name_plural": "Network to Peer Relationships",
+                "db_table": "peerctl_peernet",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='Policy',
+            name="Policy",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('name', models.CharField(max_length=255)),
-                ('import_policy', models.CharField(max_length=1024)),
-                ('export_policy', models.CharField(max_length=1024)),
-                ('localpref', models.IntegerField(blank=True, null=True)),
-                ('med', models.IntegerField(blank=True, null=True)),
-                ('peer_group', models.CharField(blank=True, max_length=255, null=True)),
-                ('net', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='django_peerctl.network')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("import_policy", models.CharField(max_length=1024)),
+                ("export_policy", models.CharField(max_length=1024)),
+                ("localpref", models.IntegerField(blank=True, null=True)),
+                ("med", models.IntegerField(blank=True, null=True)),
+                ("peer_group", models.CharField(blank=True, max_length=255, null=True)),
+                (
+                    "net",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="django_peerctl.network",
+                    ),
+                ),
             ],
             options={
-                'verbose_name_plural': 'Policies',
-                'db_table': 'peerctl_policy',
+                "verbose_name_plural": "Policies",
+                "db_table": "peerctl_policy",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='Wish',
+            name="Wish",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('path', models.CharField(max_length=1024)),
-                ('text', models.TextField()),
-                ('ticket', models.IntegerField(default=0)),
-                ('status', models.CharField(choices=[('open', 'open'), ('closed', 'closed')], default='open', max_length=255)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to=settings.AUTH_USER_MODEL)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                ("path", models.CharField(max_length=1024)),
+                ("text", models.TextField()),
+                ("ticket", models.IntegerField(default=0)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("open", "open"), ("closed", "closed")],
+                        default="open",
+                        max_length=255,
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name_plural': 'Feature Requests',
-                'db_table': 'peerctl_wish',
+                "verbose_name_plural": "Feature Requests",
+                "db_table": "peerctl_wish",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='VirtualPort',
+            name="VirtualPort",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('vlan_id', models.IntegerField()),
-                ('logport', models.ForeignKey(blank=True, help_text='logical port', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='virtport_qs', to='django_peerctl.logicalport')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("vlan_id", models.IntegerField()),
+                (
+                    "logport",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="logical port",
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="virtport_qs",
+                        to="django_peerctl.logicalport",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_virtport',
+                "db_table": "peerctl_virtport",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='UserSession',
+            name="UserSession",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('session', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sessions.session')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "session",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sessions.session",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='UserPreferences',
+            name="UserPreferences",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('email_opt_features', models.BooleanField(default=True)),
-                ('email_opt_offers', models.BooleanField(default=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                ("email_opt_features", models.BooleanField(default=True)),
+                ("email_opt_offers", models.BooleanField(default=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_userpref',
+                "db_table": "peerctl_userpref",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='PortInfo',
+            name="PortInfo",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('netixlan_id', models.PositiveIntegerField()),
-                ('net', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='portinfo_qs', to='django_peerctl.network')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("netixlan_id", models.PositiveIntegerField()),
+                (
+                    "net",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="portinfo_qs",
+                        to="django_peerctl.network",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Port Information',
-                'verbose_name_plural': 'Port Information',
-                'db_table': 'peerctl_portinfo',
+                "verbose_name": "Port Information",
+                "verbose_name_plural": "Port Information",
+                "db_table": "peerctl_portinfo",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='Port',
+            name="Port",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('policy4', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='django_peerctl.policy')),
-                ('policy6', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='django_peerctl.policy')),
-                ('portinfo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='port_qs', to='django_peerctl.portinfo')),
-                ('virtport', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='django_peerctl.virtualport')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                (
+                    "policy4",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to="django_peerctl.policy",
+                    ),
+                ),
+                (
+                    "policy6",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to="django_peerctl.policy",
+                    ),
+                ),
+                (
+                    "portinfo",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="port_qs",
+                        to="django_peerctl.portinfo",
+                    ),
+                ),
+                (
+                    "virtport",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="django_peerctl.virtualport",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_port',
+                "db_table": "peerctl_port",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='PhysicalPort',
+            name="PhysicalPort",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('name', models.CharField(max_length=255)),
-                ('description', django_peerctl.models.peerctl.DescriptionField(blank=True, max_length=255, null=True)),
-                ('device', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='phyport_qs', to='django_peerctl.device')),
-                ('logport', models.ForeignKey(blank=True, help_text='logical port this is a member of', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='phyport_qs', to='django_peerctl.logicalport')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "description",
+                    django_peerctl.models.peerctl.DescriptionField(
+                        blank=True, max_length=255, null=True
+                    ),
+                ),
+                (
+                    "device",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="phyport_qs",
+                        to="django_peerctl.device",
+                    ),
+                ),
+                (
+                    "logport",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="logical port this is a member of",
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="phyport_qs",
+                        to="django_peerctl.logicalport",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_phyport',
+                "db_table": "peerctl_phyport",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='PeerPort',
+            name="PeerPort",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('peernet', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='django_peerctl.peernetwork')),
-                ('portinfo', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='django_peerctl.portinfo')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                (
+                    "peernet",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="django_peerctl.peernetwork",
+                    ),
+                ),
+                (
+                    "portinfo",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="django_peerctl.portinfo",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_peerport',
+                "db_table": "peerctl_peerport",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.AddField(
-            model_name='peernetwork',
-            name='policy4',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='django_peerctl.policy'),
+            model_name="peernetwork",
+            name="policy4",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="+",
+                to="django_peerctl.policy",
+            ),
         ),
         migrations.AddField(
-            model_name='peernetwork',
-            name='policy6',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='django_peerctl.policy'),
+            model_name="peernetwork",
+            name="policy6",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="+",
+                to="django_peerctl.policy",
+            ),
         ),
         migrations.AddField(
-            model_name='network',
-            name='org',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='net_set', to='django_peerctl.organization'),
+            model_name="network",
+            name="org",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="net_set",
+                to="django_peerctl.organization",
+            ),
         ),
         migrations.AddField(
-            model_name='network',
-            name='policy4',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='django_peerctl.policy'),
+            model_name="network",
+            name="policy4",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="+",
+                to="django_peerctl.policy",
+            ),
         ),
         migrations.AddField(
-            model_name='network',
-            name='policy6',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='django_peerctl.policy'),
+            model_name="network",
+            name="policy6",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="+",
+                to="django_peerctl.policy",
+            ),
         ),
         migrations.CreateModel(
-            name='EmailTemplate',
+            name="EmailTemplate",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('body', models.TextField()),
-                ('name', models.CharField(max_length=255)),
-                ('type', models.CharField(choices=[('peer-request', 'Peering Request'), ('peer-config-complete', 'Peering Configuration Complete'), ('peer-session-live', 'Peering Session Live')], max_length=255)),
-                ('net', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='django_peerctl.network')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("body", models.TextField()),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[
+                            ("peer-request", "Peering Request"),
+                            ("peer-config-complete", "Peering Configuration Complete"),
+                            ("peer-session-live", "Peering Session Live"),
+                        ],
+                        max_length=255,
+                    ),
+                ),
+                (
+                    "net",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="django_peerctl.network",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_emltmpl',
+                "db_table": "peerctl_emltmpl",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='EmailLogRecipient',
+            name="EmailLogRecipient",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('email', models.CharField(max_length=255)),
-                ('asn', models.PositiveIntegerField(blank=True, null=True)),
-                ('emaillog', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='qset_recipient', to='django_peerctl.emaillog')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("email", models.CharField(max_length=255)),
+                ("asn", models.PositiveIntegerField(blank=True, null=True)),
+                (
+                    "emaillog",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="qset_recipient",
+                        to="django_peerctl.emaillog",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_emaillog_recipient',
+                "db_table": "peerctl_emaillog_recipient",
             },
         ),
         migrations.AddField(
-            model_name='emaillog',
-            name='net',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='qset_emaillog', to='django_peerctl.network'),
+            model_name="emaillog",
+            name="net",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="qset_emaillog",
+                to="django_peerctl.network",
+            ),
         ),
         migrations.AddField(
-            model_name='emaillog',
-            name='user',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL),
+            model_name="emaillog",
+            name="user",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.CreateModel(
-            name='DeviceTemplate',
+            name="DeviceTemplate",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('body', models.TextField()),
-                ('name', models.CharField(max_length=255)),
-                ('type', models.CharField(choices=[('bird-bgp-neighbors', 'BIRD BGP neighbors'), ('junos-bgp-neighbors', 'Juniper Junos OS BGP neighbors'), ('junos-set-bgp-neighbors', 'Juniper Junos OS set BGP neighbors'), ('sros-md-bgp-neighbors', 'Nokia SR OS MD-CLI BGP neighbors'), ('sros-classic-bgp-neighbors', 'Nokia SR OS Classic CLI BGP neighbors')], max_length=255)),
-                ('net', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='django_peerctl.network')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                ("body", models.TextField()),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[
+                            ("bird-bgp-neighbors", "BIRD BGP neighbors"),
+                            ("junos-bgp-neighbors", "Juniper Junos OS BGP neighbors"),
+                            (
+                                "junos-set-bgp-neighbors",
+                                "Juniper Junos OS set BGP neighbors",
+                            ),
+                            (
+                                "sros-md-bgp-neighbors",
+                                "Nokia SR OS MD-CLI BGP neighbors",
+                            ),
+                            (
+                                "sros-classic-bgp-neighbors",
+                                "Nokia SR OS Classic CLI BGP neighbors",
+                            ),
+                        ],
+                        max_length=255,
+                    ),
+                ),
+                (
+                    "net",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="django_peerctl.network",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_devicetmpl',
+                "db_table": "peerctl_devicetmpl",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.AddField(
-            model_name='device',
-            name='net',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='device_qs', to='django_peerctl.network'),
+            model_name="device",
+            name="net",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="device_qs",
+                to="django_peerctl.network",
+            ),
         ),
         migrations.CreateModel(
-            name='AuditLog',
+            name="AuditLog",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('event', models.CharField(choices=[('peerses-request', 'Peering Request'), ('peerses-add', 'Session Add'), ('peerses-del', 'Session Delete'), ('peerses-mod', 'Session Modify'), ('policy-mod', 'Policy Modify'), ('email', 'Email')], max_length=255)),
-                ('data', models.TextField(blank=True, null=True)),
-                ('net', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='qset_auditlog', to='django_peerctl.network')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='peerctl_auditlog', to=settings.AUTH_USER_MODEL)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "event",
+                    models.CharField(
+                        choices=[
+                            ("peerses-request", "Peering Request"),
+                            ("peerses-add", "Session Add"),
+                            ("peerses-del", "Session Delete"),
+                            ("peerses-mod", "Session Modify"),
+                            ("policy-mod", "Policy Modify"),
+                            ("email", "Email"),
+                        ],
+                        max_length=255,
+                    ),
+                ),
+                ("data", models.TextField(blank=True, null=True)),
+                (
+                    "net",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="qset_auditlog",
+                        to="django_peerctl.network",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="peerctl_auditlog",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_auditlog',
+                "db_table": "peerctl_auditlog",
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.CreateModel(
-            name='PeerSession',
+            name="PeerSession",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(blank=True, max_length=255, verbose_name='Status')),
-                ('created', django_handleref.models.CreatedDateTimeField(auto_now_add=True, verbose_name='Created')),
-                ('updated', django_handleref.models.UpdatedDateTimeField(auto_now=True, verbose_name='Updated')),
-                ('version', models.IntegerField(default=0)),
-                ('notes_public', models.TextField(blank=True, help_text='public notes', null=True)),
-                ('notes_private', models.TextField(blank=True, help_text='private notes', null=True)),
-                ('peerport', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='django_peerctl.peerport')),
-                ('policy4', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='django_peerctl.policy')),
-                ('policy6', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='django_peerctl.policy')),
-                ('port', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='peerses_qs', to='django_peerctl.port')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(blank=True, max_length=255, verbose_name="Status"),
+                ),
+                (
+                    "created",
+                    django_handleref.models.CreatedDateTimeField(
+                        auto_now_add=True, verbose_name="Created"
+                    ),
+                ),
+                (
+                    "updated",
+                    django_handleref.models.UpdatedDateTimeField(
+                        auto_now=True, verbose_name="Updated"
+                    ),
+                ),
+                ("version", models.IntegerField(default=0)),
+                (
+                    "notes_public",
+                    models.TextField(blank=True, help_text="public notes", null=True),
+                ),
+                (
+                    "notes_private",
+                    models.TextField(blank=True, help_text="private notes", null=True),
+                ),
+                (
+                    "peerport",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="django_peerctl.peerport",
+                    ),
+                ),
+                (
+                    "policy4",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to="django_peerctl.policy",
+                    ),
+                ),
+                (
+                    "policy6",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="+",
+                        to="django_peerctl.policy",
+                    ),
+                ),
+                (
+                    "port",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="peerses_qs",
+                        to="django_peerctl.port",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'peerctl_peerses',
-                'unique_together': {('port', 'peerport')},
+                "db_table": "peerctl_peerses",
+                "unique_together": {("port", "peerport")},
             },
             managers=[
-                ('handleref', django.db.models.manager.Manager()),
+                ("handleref", django.db.models.manager.Manager()),
             ],
         ),
         migrations.AlterUniqueTogether(
-            name='peernetwork',
-            unique_together={('net', 'peer')},
+            name="peernetwork",
+            unique_together={("net", "peer")},
         ),
     ]

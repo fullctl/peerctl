@@ -3039,7 +3039,7 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
           return {"put":"peer/"+this.application.selected_network+
                  "/"+peer.port_id+
                  "/"+peer.id+
-                 "/set_max_prefix"};
+                 "/set_max_prefix/"};
         }.bind(this),
         {}
       ).payload(
@@ -3494,10 +3494,11 @@ Peerctl.NetworkApplication.TemplateEditorComponent = twentyc.cls.extend(
       var preview = form.find("#"+this.tag+"-preview")
       this.loading_shim.show();
       this.application.api.create(
-        this.tag+"/"+this.application.selected_network+"/0/preview/",
+        this.tag+"/"+this.application.selected_network+"/preview_blank/",
         {
           "type" : form.find("#"+this.tag+"-type").val(),
-          "body" : form.find("#"+this.tag+"-body").val()
+          "body" : form.find("#"+this.tag+"-body").val(),
+          "device": peerctl.components.component_net_peer.api_object.device.id,
         },
         function(data) {
           preview.html(data[0].body);
@@ -3696,8 +3697,17 @@ Peerctl.Modals.DeviceTemplate = twentyc.cls.extend(
 
 
       this.template_select.on("change", function() {
+
+				let tmpl_id = $(this).val();
+				let asn = application.selected_network;
+
+				if(tmpl_id && tmpl_id != "0")
+				  path = "devicetmpl/"+asn+"/"+tmpl_id+"/preview/";
+				else
+				  path = "devicetmpl/"+asn+"/preview_blank/";
+
         application.api.create(
-          "devicetmpl/"+application.selected_network+"/"+$(this).val()+"/preview/",
+				  path,
           {type:type, device:device.id, netixlan:peer?peer.id:null},
           function(data) {
             modal.preview.html(data[0].body);
@@ -3905,8 +3915,18 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
 
 
         this.template_select.on("change", function() {
+
+          let asn = application.selected_network;
+          let tmpl_id = $(this).val();
+
+          if(tmpl_id && tmpl_id != "0") {
+            var path = "emltmpl/"+asn+"/"+tmpl_id+"/preview/";
+          } else {
+            var path = "emltmpl/"+asn+"/preview_blank/";
+          }
+
           application.api.create(
-            "emltmpl/"+application.selected_network+"/"+$(this).val()+"/preview/",
+            path,
             {type:current_step, peer:netixlan.id, peerses:netixlan.peerses},
             function(data) {
               modal.preview.html(data[0].body);

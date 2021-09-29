@@ -45,7 +45,6 @@ class Network(ModelSerializer):
         return instance.contacts
 
 
-
 @register
 class Device(ModelSerializer):
 
@@ -97,7 +96,7 @@ class Port(ModelSerializer):
     policy6 = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
 
-    class Meta(object):
+    class Meta:
         model = models.Port
         fields = [
             "id",
@@ -117,7 +116,9 @@ class Port(ModelSerializer):
 
     @models.pdb_fallback(0)
     def get_ix(self, instance):
-        return models.InternetExchange.objects.get(ixlan_id=instance.portinfo.pdb.ixlan_id).id
+        return models.InternetExchange.objects.get(
+            ixlan_id=instance.portinfo.pdb.ixlan_id
+        ).id
 
     @models.pdb_fallback("")
     def get_ix_name(self, instance):
@@ -153,8 +154,6 @@ class Port(ModelSerializer):
         return self.get_policy(instance, 6)
 
 
-
-
 @register
 class Peer(ModelSerializer):
 
@@ -179,8 +178,7 @@ class Peer(ModelSerializer):
     ipaddr = serializers.SerializerMethodField()
     ref_tag = "peer"
 
-
-    class Meta(object):
+    class Meta:
         model = NetworkIXLan
         fields = [
             "id",
@@ -206,7 +204,6 @@ class Peer(ModelSerializer):
             "port_id",
             "ipaddr",
         ]
-
 
     @property
     def port(self):
@@ -258,7 +255,6 @@ class Peer(ModelSerializer):
     def get_peeringdb(self, obj):
         return "https://www.peeringdb.com/asn/{}".format(obj.net.asn)
 
-
     def get_ipaddr(self, obj):
         result = []
 
@@ -306,7 +302,6 @@ class Peer(ModelSerializer):
     def get_policy6(self, obj):
         return self.get_policy(obj, 6)
 
-
     def get_peerses(self, obj):
         if getattr(obj, "peerses", None):
             return obj.peerses.id
@@ -351,7 +346,6 @@ class Peer(ModelSerializer):
     def get_port_id(self, obj):
         return self.context["port"].id
 
-
     def get_info_prefixes4(self, obj):
         peernet = self.peernets.get(obj.net.asn)
         if peernet and peernet.info_prefixes4 is not None:
@@ -364,13 +358,14 @@ class Peer(ModelSerializer):
             return peernet.info_prefixes6
         return obj.net.info_prefixes6
 
+
 @register
 class PeerDetails(ModelSerializer):
     mutual_locations = serializers.SerializerMethodField()
 
     ref_tag = "peerdetail"
 
-    class Meta(object):
+    class Meta:
         model = NetworkIXLan
         fields = [
             "id",
@@ -386,12 +381,12 @@ class PeerDetails(ModelSerializer):
             port = models.Port.get_or_create(result[net.asn][0])
             if port.id == my_port.id:
                 continue
-            port_data = PortSerializer(instance=port).data
+            port_data = Port(instance=port).data
             for asn, netixlans in result.items():
                 if asn == net.asn:
                     continue
                 for netixlan in netixlans:
-                    peer = PeerSerializer(
+                    peer = Peer(
                         instance=netixlan, context={"port": port, "net": net}
                     ).data
                     peer["port"] = port_data
@@ -401,11 +396,38 @@ class PeerDetails(ModelSerializer):
 
 
 @register
-class PeerSession(serializers.ModelSerializer):
-    class Meta(object):
+class PeerSession(ModelSerializer):
+    class Meta:
         model = models.PeerSession
         fields = ["id", "port", "peerport"]
 
+
+@register
+class TemplatePreview(serializers.Serializer):
+
+    """
+    This serializer can be used to preview templates
+
+    It needs to be instantiated with a TemplateBase
+    object
+    """
+
+    body = serializers.SerializerMethodField()
+    ref_tag = "tmplpreview"
+
+    class Meta:
+        fields = ["body"]
+
+    def get_body(self, obj):
+        try:
+            return obj.render()
+        except Exception as exc:
+            return (
+                "!!! ERROR !!!\nWhen trying to render the template "
+                "we encountered the following issue:\n\n{}\n\nPlease fix and try again.".format(
+                    exc
+                )
+            )
 
 
 @register
@@ -446,3 +468,10 @@ class EmailTemplate(ModelSerializer):
     class Meta:
         model = models.EmailTemplate
         fields = ["id", "name", "type", "body"]
+
+
+@register
+class UserPreferences(ModelSerializer):
+    class Meta:
+        model = models.UserPreferences
+        fields = ["id", "email_opt_features", "email_opt_offers"]

@@ -6,8 +6,8 @@ from django_peerctl.email import send_mail_from_default
 from django_peerctl.models import UserSession
 
 
-#TODO: no longer needed?
-#@receiver(user_signed_up, dispatch_uid="allauth.user_signed_up")
+# TODO: no longer needed?
+# @receiver(user_signed_up, dispatch_uid="allauth.user_signed_up")
 def allauth_signup(request, user, sociallogin=None, **kwargs):
     """
     When a new user is created through allauth we want to

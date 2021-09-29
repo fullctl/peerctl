@@ -17,6 +17,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         self.pdburl = kwargs.get("pdburl")
+        self.username = getattr(settings, "PDB_API_USERNAME", "")
+        self.password = getattr(settings, "PDB_API_PASSWORD", "")
         self.sync()
 
     def sync(self):
@@ -24,8 +26,8 @@ class Command(BaseCommand):
         config = {
             "sync": {
                 "url": self.pdburl,
-                "user": "",
-                "password": "",
+                "user": self.username,
+                "password": self.password,
                 "strip_tz": 1,
                 "timeout": 0,
                 "only": [],

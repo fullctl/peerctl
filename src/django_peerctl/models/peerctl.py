@@ -255,6 +255,7 @@ class PolicyHolderMixin(models.Model):
         field_name = f"policy{ip_version}"
 
         setattr(self, field_name, policy)
+        print("policy updated", self, policy)
 
         if save:
             self.save()
@@ -285,11 +286,19 @@ class Organization(UsageLimitMixin, Base):
         return f"Organization({self.id}): {self.name}"
 
 
-@grainy_model(namespace="verified.asn", namespace_instance="{namespace}.{instance.asn}.?")
+@grainy_model(
+    namespace="verified.asn", namespace_instance="{namespace}.{instance.asn}.?"
+)
 @reversion.register
 class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
-    org = models.ForeignKey(Organization, null=True, blank=True, on_delete=models.CASCADE, related_name="net_set")
+    org = models.ForeignKey(
+        Organization,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="net_set",
+    )
 
     # non editable
     asn = ASNField(unique=True, db_index=True)
@@ -427,9 +436,13 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         If neither the organization nor the network has a limit
         defined the free usage limit will be returned
         """
-        if self.org_id and self.org.max_sessions:
-            return self.org.max_sessions
-        return self.max_sessions or settings.FREE_LIMITS.get("MAX_PEERSES")
+
+        # XXX aaactl metered / plans
+        return 99999
+
+        # if self.org_id and self.org.max_sessions:
+        #     return self.org.max_sessions
+        # return self.max_sessions or settings.FREE_LIMITS.get("MAX_PEERSES")
 
     def validate_limits(self):
         maxses = self.get_max_sessions()
@@ -609,7 +622,9 @@ class PortInfo(Base):
     to add private peering, we will probably need to define facility as well, and abstract to this
     """
 
-    net = models.ForeignKey(Network, on_delete=models.CASCADE, related_name="portinfo_qs")
+    net = models.ForeignKey(
+        Network, on_delete=models.CASCADE, related_name="portinfo_qs"
+    )
 
     netixlan_id = models.PositiveIntegerField()
     # ip_addr
@@ -842,7 +857,13 @@ class Device(Base):
 # TODO djnetworkdevice
 @reversion.register
 class PhysicalPort(Base):
-    device = models.ForeignKey(Device, null=True, blank=True, on_delete=models.CASCADE, related_name="phyport_qs")
+    device = models.ForeignKey(
+        Device,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="phyport_qs",
+    )
     name = models.CharField(max_length=255, unique=False)
     description = DescriptionField()
 
@@ -851,7 +872,8 @@ class PhysicalPort(Base):
         null=True,
         blank=True,
         help_text="logical port this is a member of",
-        on_delete=models.CASCADE, related_name="phyport_qs",
+        on_delete=models.CASCADE,
+        related_name="phyport_qs",
     )
 
     class HandleRef:
@@ -897,7 +919,8 @@ class VirtualPort(Base):
         null=True,
         blank=True,
         help_text="logical port",
-        on_delete=models.CASCADE, related_name="virtport_qs",
+        on_delete=models.CASCADE,
+        related_name="virtport_qs",
     )
 
     vlan_id = models.IntegerField()
@@ -918,8 +941,12 @@ class Port(PolicyHolderMixin, Base):
     makes it easy to support different policy on separate ports, and for the 99% who just have a single IP, it's no different
     """
 
-    virtport = models.ForeignKey(VirtualPort, on_delete=models.CASCADE, related_name="+")
-    portinfo = models.ForeignKey(PortInfo, on_delete=models.CASCADE, related_name="port_qs")
+    virtport = models.ForeignKey(
+        VirtualPort, on_delete=models.CASCADE, related_name="+"
+    )
+    portinfo = models.ForeignKey(
+        PortInfo, on_delete=models.CASCADE, related_name="port_qs"
+    )
 
     class HandleRef:
         tag = "port"
@@ -1086,6 +1113,7 @@ class PeerPort(Base):
 
 
 # class BGPSession(Base):
+@grainy_model(namespace="peerses")
 @reversion.register
 class PeerSession(PolicyHolderMixin, Base):
     """
@@ -1148,7 +1176,9 @@ class PeerSession(PolicyHolderMixin, Base):
 @grainy_model(namespace="peerctl.user.{user.id}.wish")
 @reversion.register
 class Wish(HandleRefModel):
-    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="+")
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name="+"
+    )
     path = models.CharField(max_length=1024)
     text = models.TextField()
     ticket = models.IntegerField(default=0)
@@ -1256,8 +1286,11 @@ class TemplateBase(models.Model):
             raise TemplateRenderError(exc)
 
 
-@grainy_model(namespace="peerctl.net.{net.id}.devicetmpl")
 @reversion.register
+@grainy_model(
+    namespace=Network.Grainy.namespace(),
+    namespace_instance="{namespace}.{instance.net.asn}.device.{instance.id}",
+)
 class DeviceTemplate(Base, TemplateBase):
     type = models.CharField(max_length=255, choices=const.DEVICE_TEMPLATE_TYPES)
 
@@ -1291,8 +1324,11 @@ class DeviceTemplate(Base, TemplateBase):
         return data
 
 
-@grainy_model(namespace="peerctl.net.{net.id}.emltmpl")
 @reversion.register
+@grainy_model(
+    namespace=Network.Grainy.namespace(),
+    namespace_instance="{namespace}.{instance.net.asn}.device.{instance.id}",
+)
 class EmailTemplate(Base, TemplateBase):
     type = models.CharField(max_length=255, choices=EMAIL_TEMPLATE_TYPES)
 
@@ -1374,8 +1410,10 @@ class EmailTemplate(Base, TemplateBase):
         return data
 
 
-#XXX dont need anymore (fullctl auditlog)
-@grainy_model(namespace="peerctl.net", namespace_instance="{namespace}.{instance.net.asn}")
+# XXX dont need anymore (fullctl auditlog)
+@grainy_model(
+    namespace="peerctl.net", namespace_instance="{namespace}.{instance.net.asn}"
+)
 @reversion.register
 class AuditLog(HandleRefModel):
 
@@ -1385,7 +1423,9 @@ class AuditLog(HandleRefModel):
 
     event = models.CharField(max_length=255, choices=const.AUDIT_EVENTS)
 
-    user = models.ForeignKey(get_user_model(), on_delete=models.PROTECT, related_name="peerctl_auditlog")
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.PROTECT, related_name="peerctl_auditlog"
+    )
 
     data = models.TextField(null=True, blank=True)
 
@@ -1477,7 +1517,9 @@ class AuditLog(HandleRefModel):
         self.recent_log = msg
 
 
-@grainy_model(namespace="peerctl.net", namespace_instance="{namespace}.{instance.net.asn}")
+@grainy_model(
+    namespace="peerctl.net", namespace_instance="{namespace}.{instance.net.asn}"
+)
 @reversion.register
 class EmailLog(HandleRefModel):
 
@@ -1577,7 +1619,8 @@ class EmailLog(HandleRefModel):
 
 
 @grainy_model(
-    namespace="peerctl.net", namespace_instance="{namespace}.{instance.emaillog.net.asn}"
+    namespace="peerctl.net",
+    namespace_instance="{namespace}.{instance.emaillog.net.asn}",
 )
 class EmailLogRecipient(models.Model):
 
@@ -1592,7 +1635,7 @@ class EmailLogRecipient(models.Model):
         db_table = "peerctl_emaillog_recipient"
 
 
-@grainy_model(namespace="peerctl.user.{user.id}.userpref")
+@grainy_model(namespace="user")
 @reversion.register
 class UserPreferences(HandleRefModel):
 

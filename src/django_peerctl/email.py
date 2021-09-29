@@ -50,6 +50,7 @@ def send_mail(subject, body, from_address, to_addresses, reply_to=None, **kwargs
         print(to_addresses)
         print(body)
         print(kwargs)
+        return
 
     body = f"{body}\n\nSent with Peerctl"
 

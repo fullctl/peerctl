@@ -297,6 +297,9 @@ settings_manager.set_bool("BILLING_INTEGRATION", True)
 TABLE_PREFIX = "peeringdb_"
 ABSTRACT_ONLY = False
 
+settings_manager.set_option("PDB_API_USERNAME", "")
+settings_manager.set_option("PDB_API_PASSWORD", "")
+
 # add user defined iso code for Kosovo
 COUNTRIES_OVERRIDE = {
     "XK": "Kosovo",
@@ -342,8 +345,10 @@ settings_manager.set_option("GOOGLE_ANALYTICS_ID", "")
 
 import netom
 
-settings_manager.set_option("NETOM_DIR",os.path.dirname(netom.__file__))
-settings_manager.set_option("NETOM_TEMPLATE_DIR", os.path.join(NETOM_DIR, "templates", "netom0"))
+settings_manager.set_option("NETOM_DIR", os.path.dirname(netom.__file__))
+settings_manager.set_option(
+    "NETOM_TEMPLATE_DIR", os.path.join(NETOM_DIR, "templates", "netom0")
+)
 
 # FINALIZE
 

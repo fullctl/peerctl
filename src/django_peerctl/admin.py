@@ -11,6 +11,7 @@ from django_peerctl.models import (
     InternetExchange,
     PeerNetwork,
     Device,
+    DeviceTemplate,
     LogicalPort,
     PhysicalPort,
     VirtualPort,
@@ -116,6 +117,11 @@ class PortInfoAdmin(admin.ModelAdmin):
             return obj.pdb.id
         except:
             return f"PDB Missing (id={obj.netixlan_id})"
+
+
+@admin.register(DeviceTemplate)
+class DeviceTemplateAdmin(admin.ModelAdmin):
+    pass
 
 
 @admin.register(Port)

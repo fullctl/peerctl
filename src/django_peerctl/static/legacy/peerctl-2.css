@@ -1083,9 +1083,9 @@ div.modal.fullscreen div.modal-content {
 }
 
 div.modal-content {
-  background-color: #e5f5e5;
+  background-color: #000;
   border-radius: 0px;
-  border-top: 4px #7dd27f solid;
+  border-top: 4px #7db9d2 solid;
   box-shadow: 0 5px 5px rgba(0,0,0,0.2);
 }
 
@@ -1578,4 +1578,36 @@ div.component > div.template-editor {
   .col-pad-sm-md {
     padding-top: 11px;
   }
+}
+
+.modal-body {
+	color: #fff;
+}
+
+.panel-body {
+	background-color: #191f26;
+  color: #fff;
+  border-color: #7db9d2;
+}
+
+.panel-info>.panel-heading {
+    background-color: #414d5a;
+    border-color: #000000;
+    color: #fff;
+}
+
+.panel {
+		background-color: transparent;
+}
+
+.panel-default,
+.panel-info {
+		border-color: transparent;
+}
+
+
+.panel-default>.panel-heading {
+    color: #fff;
+    background-color: #414d5a;
+    border-color: #000;
 }

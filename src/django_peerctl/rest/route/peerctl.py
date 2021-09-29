@@ -17,8 +17,14 @@ def route(viewset):
     if getattr(viewset, "require_asn", False):
         prefix = f"{prefix}/(?P<asn>[^/]+)"
 
+    if getattr(viewset, "require_device", False):
+        prefix = f"{prefix}/(?P<device_pk>[^/]+)"
+
     if getattr(viewset, "require_port", False):
         prefix = f"{prefix}/(?P<port_pk>[^/]+)"
+
+    if getattr(viewset, "require_netixlan", False):
+        prefix = f"{prefix}/(?P<netixlan_pk>[^/]+)"
 
     router.register(prefix, viewset, basename=ref_tag)
     return viewset
