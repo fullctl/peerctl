@@ -66,7 +66,7 @@ the following command.
 Make sure you set the `PDB_API_USERNAME` and `PDB_API_PASSWORD` env variables otherwise you will be missing all non-public network contacts.
 
 ```sh
-Ctl/dev/run.sh peerctl_peeringdb_sync
+Ctl/dev/run.sh fullctl_peeringdb_sync
 ```
 
 
