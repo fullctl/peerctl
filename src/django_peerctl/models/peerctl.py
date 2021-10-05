@@ -9,11 +9,14 @@ from django.contrib.sessions.models import Session
 from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 
-import django_peeringdb.models.concrete as pdb_models
 from django_handleref.models import HandleRefModel
 from django_countries.fields import CountryField
 from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
+
+
+import fullctl.service_bridge.pdbctl as pdbctl_bridge
+
 
 from fullctl.django.models.concrete import Instance
 
@@ -35,10 +38,6 @@ from django_grainy.decorators import (
 )
 
 import reversion
-
-from django_peeringdb.models.concrete import (
-    NetworkIXLan,
-)
 
 from django_peerctl.exceptions import (
     PdbNotFoundError,
@@ -63,13 +62,17 @@ from django_peerctl import const
 import collections
 
 
-def pdb_lookup(cls, pk, pk_name="pk"):
-    try:
-        kwargs = {pk_name: pk}
-        return cls.objects.get(**kwargs)
+def pdb_lookup(pdbctl_obj, pk, field_name="id", **kwargs):
 
-    except cls.DoesNotExist:
-        raise PdbNotFoundError(cls.handleref.tag, pk)
+    if isinstance(pdbctl_obj, pdbctl_bridge.NetworkIXLan):
+        kwargs.update(join="net")
+
+    kwargs[field_name] = pk
+    obj = pdbctl_obj.first(**kwargs)
+    if not obj:
+        raise PdbNotFoundError(None, pk)
+    return obj
+
 
 
 # naming::
@@ -339,7 +342,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         """returns PeeringDB Network object"""
 
         if not hasattr(self, "_pdb"):
-            self._pdb = pdb_lookup(pdb_models.Network, self.asn, "asn")
+            self._pdb = pdb_lookup(pdbctl_bridge.Network(), self.asn, "asn")
 
         return self._pdb
 
@@ -377,7 +380,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     @pdb_fallback({})
     def contacts(self):
         contacts = {}
-        for poc in self.pdb.poc_set.filter(status="ok"):
+        for poc in pdbctl_bridge.NetworkContact().objects(asn=self.asn):
             role = poc.role.lower()
             if poc.email and role not in contacts:
                 contacts[role] = poc.email
@@ -407,7 +410,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         if ix_id:
             exchange = InternetExchange.objects.get(id=ix_id)
             netixlans = [
-                n.id for n in NetworkIXLan.objects.filter(ixlan_id=exchange.ixlan_id)
+                n.id for n in pdbctl_bridge.NetworkIXLan().objects(ix=exchange.ixlan_id)
             ]
             peerport_qset = PeerPort.objects.filter(portinfo__netixlan_id__in=netixlans)
             ids = [peerport.peernet_id for peerport in peerport_qset]
@@ -420,7 +423,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         if ix_id:
             exchange = InternetExchange.objects.get(id=ix_id)
             netixlans = [
-                n.id for n in NetworkIXLan.objects.filter(ixlan_id=exchange.ixlan_id)
+                n.id for n in pdbctl_bridge.NetworkIXLan().objects(ix=exchange.ixlan_id)
             ]
             qset = qset.filter(peerport__portinfo__netixlan_id__in=netixlans)
 
@@ -469,12 +472,11 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         asns = [self.asn, other_asn]
         exchanges = {}
 
-        for netixlan in pdb_models.NetworkIXLan.objects.filter(
-            net__asn__in=asns, status="ok"
-        ).select_related("net"):
+        for netixlan in pdbctl_bridge.NetworkIXLan().objects(asns=asns, join="net"):
             if netixlan.ixlan_id not in exchanges:
                 exchanges[netixlan.ixlan_id] = {self.asn: [], other_asn: []}
-            exchanges[netixlan.ixlan_id][netixlan.net.asn].append(netixlan)
+
+            exchanges[netixlan.ixlan_id][netixlan.asn].append(netixlan)
 
         mutual = {}
 
@@ -580,7 +582,7 @@ class InternetExchange(Base):
     def pdb(self):
         """returns PeeringDB object"""
         if not hasattr(self, "_pdb"):
-            self._pdb = pdb_lookup(pdb_models.IXLan, self.ixlan_id)
+            self._pdb = pdb_lookup(pdbctl_bridge.InternetExchange(), self.ixlan_id)
 
         return self._pdb
 
@@ -593,7 +595,7 @@ class InternetExchange(Base):
         """
 
         if isinstance(ixlan, int):
-            ixlan = pdb_models.IXLan.objects.get(id=ixlan)
+            ixlan = pdbctl_bridge.InternetExchange().object(ixlan)
 
         try:
             obj = cls.objects.get(ixlan_id=ixlan.id)
@@ -641,7 +643,7 @@ class PortInfo(Base):
     def pdb(self):
         """returns PeeringDB object"""
         if not hasattr(self, "_pdb"):
-            self._pdb = pdb_lookup(pdb_models.NetworkIXLan, self.netixlan_id)
+            self._pdb = pdb_lookup(pdbctl_bridge.NetworkIXLan(), self.netixlan_id, join="net")
 
         return self._pdb
 
@@ -683,12 +685,14 @@ class PortInfo(Base):
     @property
     @pdb_fallback("")
     def ix_name(self):
-        return self.pdb.ixlan.ix.name
+        return pdbctl_bridge.InternetExchange().object(self.pdb.ixlan_id).name
 
     @property
     @pdb_fallback(None)
     def ix(self):
-        return InternetExchange.get_or_create(self.pdb.ixlan)
+        return InternetExchange.get_or_create(
+            pdbctl_bridge.InternetExchange().object(self.pdb.ixlan_id)
+        )
 
     def __str__(self):
         return "PortInfo({}): {} {} {}".format(
@@ -958,7 +962,7 @@ class Port(PolicyHolderMixin, Base):
     @reversion.create_revision()
     def get_or_create(cls, netixlan):
 
-        net, created = Network.objects.get_or_create(asn=netixlan.net.asn)
+        net, created = Network.objects.get_or_create(asn=netixlan.asn)
 
         portinfo = PortInfo.objects.filter(net=net, netixlan_id=netixlan.id)
 
@@ -1052,13 +1056,12 @@ class Port(PolicyHolderMixin, Base):
         this port
         """
 
-        peers = (
-            self.portinfo.pdb.ixlan.netixlan_set.filter(status="ok")
-            .exclude(id=self.portinfo.netixlan_id)
-            .select_related("net")
+        query = pdbctl_bridge.NetworkIXLan().objects(
+            peers = self.portinfo.netixlan_id,
+            join = "net"
         )
 
-        return peers
+        return [peer for peer in query]
 
     def __str__(self):
         return f"Port({self.id}): {self.portinfo}"
@@ -1350,8 +1353,8 @@ class EmailTemplate(Base, TemplateBase):
         try:
             ixlan_ids = {
                 netixlan.ixlan_id
-                for netixlan in pdb_models.NetworkIXLan.objects.filter(
-                    net=self.net.pdb, status="ok"
+                for netixlan in pdbctl_bridge.NetworkIXLan().objects(
+                    asn=self.net.asn
                 )
             }
         except PdbNotFoundError:

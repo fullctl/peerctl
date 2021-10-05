@@ -5,6 +5,8 @@ from fullctl.django.rest.serializers import (
     RequireContext,
     SoftRequiredValidator,
 )
+import fullctl.service_bridge.pdbctl as pdbctl_bridge
+
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
@@ -17,10 +19,6 @@ from django_peerctl.helpers import (
     get_best_policy,
 )
 
-from django_peeringdb.models.concrete import (
-    NetworkIXLan,
-    NetworkContact,
-)
 
 
 Serializers, register = serializer_registry()
@@ -122,9 +120,7 @@ class Port(ModelSerializer):
 
     @models.pdb_fallback("")
     def get_ix_name(self, instance):
-        ixlan = instance.portinfo.pdb.ixlan
-        ix = ixlan.ix
-
+        ix = models.InternetExchange.objects.get(ixlan_id=instance.portinfo.pdb.ixlan_id)
         name = f"{ix.name}: {instance.portinfo.ipaddr4}"
         return name
 
@@ -174,10 +170,11 @@ class Peer(ModelSerializer):
     info_prefixes4 = serializers.SerializerMethodField()
     info_prefixes6 = serializers.SerializerMethodField()
     ipaddr = serializers.SerializerMethodField()
+    is_rs_peer = serializers.BooleanField()
     ref_tag = "peer"
 
     class Meta:
-        model = NetworkIXLan
+        model = models.Port
         fields = [
             "id",
             "name",
@@ -217,18 +214,17 @@ class Peer(ModelSerializer):
         """
 
         if not hasattr(self, "_pocs"):
-            if isinstance(self.instance, NetworkIXLan):
+            if not isinstance(self.instance, list):
                 peers = [self.instance]
             else:
                 peers = self.instance
 
-            poc_qset = NetworkContact.objects.filter(
-                net_id__in=[i.net_id for i in peers]
-            )
+            self._pocs = [poc for poc in pdbctl_bridge.NetworkContact().objects(
+                nets=[i.net_id for i in peers],
+                require_email=True,
+                role="policy"
+            )]
 
-            self._pocs = [
-                poc for poc in PeerSessionEmailWorkflow.contact_email_qset(poc_qset)
-            ]
 
         return self._pocs
 
@@ -256,14 +252,16 @@ class Peer(ModelSerializer):
     def get_ipaddr(self, obj):
         result = []
 
-        if not hasattr(self.instance, "filter"):
-            qset = obj.ixlan.netixlan_set.filter(status="ok", net__asn=obj.net.asn)
+        if not isinstance(self.instance, list):
+            qset = pdbctl_bridge.NetworkIXLan().objects(ix=obj.ixlan_id, asn=obj.asn)
         else:
             qset = self.instance
 
+
         for netixlan in qset:
-            if netixlan.net.asn != obj.net.asn:
+            if netixlan.asn != obj.asn:
                 continue
+
             peerses = self.get_peerses(netixlan)
             result.append(
                 {
@@ -364,7 +362,7 @@ class PeerDetails(ModelSerializer):
     ref_tag = "peerdetail"
 
     class Meta:
-        model = NetworkIXLan
+        model = models.Port
         fields = [
             "id",
             "mutual_locations",

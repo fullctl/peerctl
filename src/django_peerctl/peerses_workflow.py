@@ -3,6 +3,7 @@ Classes describing the workflow of setting up a peering session
 """
 
 import reversion
+import fullctl.service_bridge.pdbctl as pdbctl_bridge
 
 from django_peerctl.email import send_mail_from_default
 
@@ -137,14 +138,6 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
     """
 
     @classmethod
-    def contact_email_qset(cls, qset):
-        return (
-            qset.filter(role="Policy", status="ok")
-            .exclude(email="")
-            .exclude(email__isnull=True)
-        )
-
-    @classmethod
     def contact_email(cls, netixlan):
         """
         Returns the contact email address for peering requests associated
@@ -153,7 +146,12 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         Will return None if no suitable contact can be found.
         """
 
-        poc = cls.contact_email_qset(netixlan.net.poc_set).first()
+        poc = pdbctl_bridge.NetworkContact().first(
+            asn=netixlan.asn,
+            require_email=True,
+            role="Policy"
+        )
+
         if not poc:
             return None
         return poc.email

@@ -2,18 +2,13 @@ from django_peerctl.exceptions import (
     PolicyMissingError,
 )
 
-from django_peeringdb.models.concrete import (
+from fullctl.service_bridge.pdbctl import (
     NetworkContact,
 )
 
 
 def get_peer_contact_email(pdb_net):
-    poc = (
-        pdb_net.poc_set.filter(status="ok", role="Policy")
-        .exclude(email="")
-        .exclude(email__isnull=True)
-        .first()
-    )
+    poc = NetworkContact().first(asn=pdb_net.asn, role="Policy", require_email=True)
     if poc:
         return poc.email
     return None
@@ -24,7 +19,7 @@ def get_net_from_contact_email(email):
     Returns Network object contains the Network contact with
     the specified email (first match)
     """
-    poc = NetworkContact.objects.filter(email=email).first()
+    poc = NetworkContact().first(email=email)
     if poc:
         return poc.net
     return None

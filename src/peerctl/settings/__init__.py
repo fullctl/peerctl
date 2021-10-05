@@ -202,7 +202,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # PEERCTL Base
 
-MIDDLEWARE += ("fullctl.django.middleware.RequestAugmentation",)
+MIDDLEWARE += (
+    "fullctl.django.middleware.CurrentRequestContext",
+    "fullctl.django.middleware.RequestAugmentation",)
 
 INSTALLED_APPS += (
     "dal",
@@ -229,14 +231,9 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login"
 LOGIN_URL = "/login"
 
-# SINGLE - exchanges are operated by single organization
-# Organizations are not automatically permissioned to be
-# allowed to create their own exchanges.
-#
-# MANY - any organization may maintain and create their
-# own exchange data
+# SERVICE BRIDGES
 
-settings_manager.set_option("PEERCTL_MODE", "MANY")
+settings_manager.set_option("PDBCTL_HOST", "")
 
 # OAUTH
 
