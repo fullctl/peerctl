@@ -7,7 +7,7 @@ To get a local repo and change into the directory:
 git clone git@github.com:fullctl/peerctl
 cd peerctl
 ```
-Ixctl is containerized with Docker. First we want to copy the example environment file:
+Peerctl is containerized with Docker. First we want to copy the example environment file:
 ```sh
 cp Ctl/dev/example.env Ctl/dev/.env
 ```
@@ -35,8 +35,7 @@ Note you will need to give users permissions (in aaactl) to the following namesp
 
 The easiest way to do that by settings the `*.{org_id}` namespace
 
-- PDB_API_USERNAME: username to use for peeringdb api auth
-- PDB_API_PASSWORD: password to use for peeringdb api auth
+- PDBCTL_HOST: pdbctl host address
 
 ### Building and starting
 
@@ -58,16 +57,17 @@ On running `compose.sh up` any subsequent time, the Django app will be able to r
 Ctl/dev/run.sh createcachetable
 ```
 
-### PeeringDB data (pre pdbctl integration)
+### PeeringDB data
 
-Currently we still need to locally sync peeringdb data, you can do so by running
-the following command.
+Peerctl uses data sourced from PeeringDB to inform its peer information.
 
-Make sure you set the `PDB_API_USERNAME` and `PDB_API_PASSWORD` env variables otherwise you will be missing all non-public network contacts.
+This is however not directly done, but will instead use a [https://github.com/fullctl/pdbctl](pdbctl) instance.
 
-```sh
-Ctl/dev/run.sh fullctl_peeringdb_sync
-```
+Pdbctl allows us to provide one coherent snapshot of peeringdb data to use in all fullctl services.
+
+Please refer to the pdbctl documentation on how to setup.
+
+Your `PDBCTL_HOST` setting should be specified to the host address of your pdbctl instance.
 
 
 ## On env variables
