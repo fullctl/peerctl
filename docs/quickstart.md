@@ -61,7 +61,7 @@ Ctl/dev/run.sh createcachetable
 
 Peerctl uses data sourced from PeeringDB to inform its peer information.
 
-This is however not directly done, but will instead use a [https://github.com/fullctl/pdbctl](pdbctl) instance.
+This is however not directly done, but will instead use a [pdbctl](https://github.com/fullctl/pdbctl) instance.
 
 Pdbctl allows us to provide one coherent snapshot of peeringdb data to use in all fullctl services.
 
