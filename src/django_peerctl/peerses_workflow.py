@@ -147,9 +147,7 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         """
 
         poc = pdbctl_bridge.NetworkContact().first(
-            asn=netixlan.asn,
-            require_email=True,
-            role="Policy"
+            asn=netixlan.asn, require_email=True, role="Policy"
         )
 
         if not poc:

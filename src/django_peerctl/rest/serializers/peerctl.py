@@ -20,7 +20,6 @@ from django_peerctl.helpers import (
 )
 
 
-
 Serializers, register = serializer_registry()
 
 
@@ -120,7 +119,9 @@ class Port(ModelSerializer):
 
     @models.pdb_fallback("")
     def get_ix_name(self, instance):
-        ix = models.InternetExchange.objects.get(ixlan_id=instance.portinfo.pdb.ixlan_id)
+        ix = models.InternetExchange.objects.get(
+            ixlan_id=instance.portinfo.pdb.ixlan_id
+        )
         name = f"{ix.name}: {instance.portinfo.ipaddr4}"
         return name
 
@@ -219,12 +220,12 @@ class Peer(ModelSerializer):
             else:
                 peers = self.instance
 
-            self._pocs = [poc for poc in pdbctl_bridge.NetworkContact().objects(
-                nets=[i.net_id for i in peers],
-                require_email=True,
-                role="policy"
-            )]
-
+            self._pocs = [
+                poc
+                for poc in pdbctl_bridge.NetworkContact().objects(
+                    nets=[i.net_id for i in peers], require_email=True, role="policy"
+                )
+            ]
 
         return self._pocs
 
@@ -257,10 +258,12 @@ class Peer(ModelSerializer):
         else:
             qset = self.instance
 
-
         for netixlan in qset:
             if netixlan.asn != obj.asn:
                 continue
+            if self.context.get("ipaddr", "all") != "all":
+                if netixlan.id != obj.id:
+                    continue
 
             peerses = self.get_peerses(netixlan)
             result.append(
@@ -383,7 +386,8 @@ class PeerDetails(ModelSerializer):
                     continue
                 for netixlan in netixlans:
                     peer = Peer(
-                        instance=netixlan, context={"port": port, "net": net}
+                        instance=netixlan,
+                        context={"port": port, "net": net, "ipaddr": "single"},
                     ).data
                     peer["port"] = port_data
                     mutual_locs.append(peer)

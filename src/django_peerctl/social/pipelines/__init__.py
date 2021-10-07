@@ -24,7 +24,6 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
             asn = int(permission.namespace[2])
             verified_asns.append(asn)
 
-
-    for netixlan in NetworkIXLan().objects(asns=verified_asns):
+    for netixlan in NetworkIXLan().objects(asns=verified_asns, join="net,ix"):
         print("Port", netixlan)
         Port.get_or_create(netixlan)

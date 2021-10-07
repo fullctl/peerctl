@@ -74,7 +74,6 @@ def pdb_lookup(pdbctl_obj, pk, field_name="id", **kwargs):
     return obj
 
 
-
 # naming::
 # handleref tag $model_$model
 # matching fks should use the tag (even tho it would usually be done as _)
@@ -258,7 +257,6 @@ class PolicyHolderMixin(models.Model):
         field_name = f"policy{ip_version}"
 
         setattr(self, field_name, policy)
-        print("policy updated", self, policy)
 
         if save:
             self.save()
@@ -588,26 +586,26 @@ class InternetExchange(Base):
 
     @classmethod
     @reversion.create_revision()
-    def get_or_create(cls, ixlan):
+    def get_or_create(cls, ix):
         """
         gets a local IX object from PeeringDB.IXLan
         returns a list, since pdb ix lans could create multiple exchanges
         """
 
-        if isinstance(ixlan, int):
-            ixlan = pdbctl_bridge.InternetExchange().object(ixlan)
+        if isinstance(ix, int):
+            ix = pdbctl_bridge.InternetExchange().object(ix)
 
         try:
-            obj = cls.objects.get(ixlan_id=ixlan.id)
+            obj = cls.objects.get(ixlan_id=ix.id)
 
         except cls.DoesNotExist:
             obj = cls.objects.create(
                 status="ok",
                 # concat ix name and lan name
-                name=f"{ixlan.ix.name} {ixlan.name}".strip(),
-                name_long=ixlan.ix.name_long,
-                country=ixlan.ix.country,
-                ixlan_id=ixlan.id,
+                name=f"{ix.name}".strip(),
+                name_long=ix.name_long,
+                country=ix.country,
+                ixlan_id=ix.id,
             )
 
         return obj
@@ -643,7 +641,9 @@ class PortInfo(Base):
     def pdb(self):
         """returns PeeringDB object"""
         if not hasattr(self, "_pdb"):
-            self._pdb = pdb_lookup(pdbctl_bridge.NetworkIXLan(), self.netixlan_id, join="net")
+            self._pdb = pdb_lookup(
+                pdbctl_bridge.NetworkIXLan(), self.netixlan_id, join="net"
+            )
 
         return self._pdb
 
@@ -969,9 +969,14 @@ class Port(PolicyHolderMixin, Base):
         # if port info with net , netixlan already
         # exists, skip
         if portinfo.exists():
-            print(portinfo)
-            port, created = Port.objects.get_or_create(portinfo=portinfo.first())
-            return port
+            try:
+                portinfo = portinfo.first()
+                port = Port.objects.get(portinfo=portinfo)
+                return port
+            except Port.DoesNotExist:
+                pass
+        else:
+            portinfo = None
 
         # common name
         name = f"netixlan{netixlan.id}"
@@ -991,14 +996,18 @@ class Port(PolicyHolderMixin, Base):
         virtport = VirtualPort.objects.create(logport=logport, vlan_id=0, status="ok")
 
         # create port info
-        portinfo = PortInfo.objects.create(
-            net=net, netixlan_id=netixlan.id, status="ok"
-        )
+        if not portinfo:
+            portinfo = PortInfo.objects.create(
+                net=net, netixlan_id=netixlan.id, status="ok"
+            )
+        else:
+            portinfo.status = "ok"
+            portinfo.save()
 
         # create port
         port = Port.objects.create(virtport=virtport, portinfo=portinfo, status="ok")
 
-        exchange = InternetExchange.get_or_create(netixlan.ixlan)
+        exchange = InternetExchange.get_or_create(netixlan.ix)
 
         return port
 
@@ -1057,8 +1066,7 @@ class Port(PolicyHolderMixin, Base):
         """
 
         query = pdbctl_bridge.NetworkIXLan().objects(
-            peers = self.portinfo.netixlan_id,
-            join = "net"
+            peers=self.portinfo.netixlan_id, join="net"
         )
 
         return [peer for peer in query]
@@ -1353,9 +1361,7 @@ class EmailTemplate(Base, TemplateBase):
         try:
             ixlan_ids = {
                 netixlan.ixlan_id
-                for netixlan in pdbctl_bridge.NetworkIXLan().objects(
-                    asn=self.net.asn
-                )
+                for netixlan in pdbctl_bridge.NetworkIXLan().objects(asn=self.net.asn)
             }
         except PdbNotFoundError:
             ixlan_ids = []
@@ -1501,7 +1507,6 @@ class AuditLog(HandleRefModel):
 
     @property
     def extra(self):
-        print(self.data)
         if self.data:
             if not hasattr(self, "_extra"):
                 self._extra = json.loads(self.data)

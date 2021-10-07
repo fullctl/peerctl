@@ -286,9 +286,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def set_max_prefix(
-        self, request, asn, net, port_pk, port, pk, *args, **kwargs
-    ):
+    def set_max_prefix(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
 
         netixlan = NetworkIXLan().object(pk, join="net")
         peer = models.Network.objects.get(asn=netixlan.asn)
@@ -329,9 +327,7 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def create(
-        self, request, asn, net, port_pk, port, netixlan_pk, *args, **kwargs
-    ):
+    def create(self, request, asn, net, port_pk, port, netixlan_pk, *args, **kwargs):
         netixlan = NetworkIXLan().object(netixlan_pk, join="net")
         workflow = PeerSessionEmailWorkflow(port, netixlan)
 
@@ -382,10 +378,10 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     def create(self, request, asn, net, port_pk, port, *args, **kwargs):
         data = request.POST.dict()
 
-        netixlan = NetworkIXLan().object(data.get("netixlan"), join="net")
+        netixlan = NetworkIXLan().object(data.get("netixlan"), join="net,ix")
 
         if data.get("through"):
-            through_netixlan = NetworkIXLan().object(data.get("through"), join="net")
+            through_netixlan = NetworkIXLan().object(data.get("through"), join="net,ix")
         else:
             through_netixlan = netixlan
 
@@ -531,7 +527,9 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             emltmpl = models.EmailTemplate.objects.get(id=pk)
 
         if "peer" in request.POST:
-            emltmpl.context["peer"] = NetworkIXLan().object(id=request.POST["peer"], join="net")
+            emltmpl.context["peer"] = NetworkIXLan().object(
+                id=request.POST["peer"], join="net"
+            )
         else:
             emltmpl.context["peer"] = NetworkIXLan().first(asn=asn, join="net")
 
