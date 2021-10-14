@@ -234,6 +234,7 @@ LOGIN_URL = "/login"
 # SERVICE BRIDGES
 
 settings_manager.set_option("PDBCTL_HOST", "")
+settings_manager.set_option("IXCTL_HOST", "")
 
 # OAUTH
 

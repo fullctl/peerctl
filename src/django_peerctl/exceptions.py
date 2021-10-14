@@ -2,13 +2,15 @@ class PeerctlException(Exception):
     """peerctl base exception"""
 
 
-class PdbNotFoundError(PeerctlException, LookupError):
-    """PDB query returned a 404 Not Found"""
+class ReferenceNotFoundError(PeerctlException, LookupError):
+    """Reference query returned a 404 Not Found"""
 
-    def __init__(self, tag, pk):
-        msg = f"pdb missing {tag}/{pk}"
+    def __init__(self, tag, pk, source):
+        msg = f"reference missing {source}:{tag}/{pk}"
         super().__init__(msg)
 
+class ReferenceSourceInvalid(PeerctlException, ValueError):
+    pass
 
 class TemplateRenderError(PeerctlException, ValueError):
     """Error that gets raised when template render fails"""

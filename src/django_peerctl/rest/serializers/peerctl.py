@@ -5,7 +5,9 @@ from fullctl.django.rest.serializers import (
     RequireContext,
     SoftRequiredValidator,
 )
-import fullctl.service_bridge.pdbctl as pdbctl_bridge
+import fullctl.service_bridge.pdbctl as pdbctl
+import fullctl.service_bridge.ixctl as ixctl
+import fullctl.service_bridge.sot as sot
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -222,8 +224,8 @@ class Peer(ModelSerializer):
 
             self._pocs = [
                 poc
-                for poc in pdbctl_bridge.NetworkContact().objects(
-                    nets=[i.net_id for i in peers], require_email=True, role="policy"
+                for poc in pdbctl.NetworkContact().objects(
+                    asns=[i.asn for i in peers], require_email=True, role="policy"
                 )
             ]
 
@@ -254,28 +256,28 @@ class Peer(ModelSerializer):
         result = []
 
         if not isinstance(self.instance, list):
-            qset = pdbctl_bridge.NetworkIXLan().objects(ix=obj.ixlan_id, asn=obj.asn)
+            qset = sot.SOURCE_MAP["member"][obj.ref_source]().objects(ix=obj.ix_id, asn=obj.asn)
         else:
             qset = self.instance
 
-        for netixlan in qset:
-            if netixlan.asn != obj.asn:
+        for member in qset:
+            if member.asn != obj.asn:
                 continue
             if self.context.get("ipaddr", "all") != "all":
-                if netixlan.id != obj.id:
+                if member.id != obj.id:
                     continue
 
-            peerses = self.get_peerses(netixlan)
+            peerses = self.get_peerses(member)
             result.append(
                 {
-                    "ipaddr4": str(netixlan.ipaddr4),
-                    "ipaddr6": str(netixlan.ipaddr6),
-                    "policy4": self.get_policy(netixlan, 4),
-                    "policy6": self.get_policy(netixlan, 6),
+                    "ipaddr4": str(member.ipaddr4),
+                    "ipaddr6": str(member.ipaddr6),
+                    "policy4": self.get_policy(member, 4),
+                    "policy6": self.get_policy(member, 6),
                     "peerses": peerses,
-                    "peerses_status": self.get_peerses_status(netixlan),
+                    "peerses_status": self.get_peerses_status(member),
                     "origin_id": obj.id,
-                    "id": netixlan.id,
+                    "id": member.id,
                 }
             )
 
@@ -381,12 +383,12 @@ class PeerDetails(ModelSerializer):
             if port.id == my_port.id:
                 continue
             port_data = Port(instance=port).data
-            for asn, netixlans in result.items():
+            for asn, members in result.items():
                 if asn == net.asn:
                     continue
-                for netixlan in netixlans:
+                for member in members:
                     peer = Peer(
-                        instance=netixlan,
+                        instance=member,
                         context={"port": port, "net": net, "ipaddr": "single"},
                     ).data
                     peer["port"] = port_data

@@ -3,7 +3,7 @@ Classes describing the workflow of setting up a peering session
 """
 
 import reversion
-import fullctl.service_bridge.pdbctl as pdbctl_bridge
+import fullctl.service_bridge.pdbctl as pdbctl
 
 from django_peerctl.email import send_mail_from_default
 
@@ -146,7 +146,7 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         Will return None if no suitable contact can be found.
         """
 
-        poc = pdbctl_bridge.NetworkContact().first(
+        poc = pdbctl.NetworkContact().first(
             asn=netixlan.asn, require_email=True, role="Policy"
         )
 

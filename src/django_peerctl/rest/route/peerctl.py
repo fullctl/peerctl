@@ -23,8 +23,8 @@ def route(viewset):
     if getattr(viewset, "require_port", False):
         prefix = f"{prefix}/(?P<port_pk>[^/]+)"
 
-    if getattr(viewset, "require_netixlan", False):
-        prefix = f"{prefix}/(?P<netixlan_pk>[^/]+)"
+    if getattr(viewset, "require_member", False):
+        prefix = f"{prefix}/(?P<member_pk>[^/]+)"
 
     router.register(prefix, viewset, basename=ref_tag)
     return viewset

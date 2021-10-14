@@ -14,9 +14,9 @@ from django_countries.fields import CountryField
 from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
 
-
-import fullctl.service_bridge.pdbctl as pdbctl_bridge
-
+import fullctl.service_bridge.sot as sot
+import fullctl.service_bridge.pdbctl as pdbctl
+import fullctl.service_bridge.ixctl as ixctl
 
 from fullctl.django.models.concrete import Instance
 
@@ -40,7 +40,8 @@ from django_grainy.decorators import (
 import reversion
 
 from django_peerctl.exceptions import (
-    PdbNotFoundError,
+    ReferenceNotFoundError,
+    ReferenceSourceInvalid,
     TemplateRenderError,
     UsageLimitError,
 )
@@ -62,15 +63,18 @@ from django_peerctl import const
 import collections
 
 
-def pdb_lookup(pdbctl_obj, pk, field_name="id", **kwargs):
-
-    if isinstance(pdbctl_obj, pdbctl_bridge.NetworkIXLan):
-        kwargs.update(join="net")
-
+def ref_lookup(source, tag, pk, field_name="id", **kwargs):
     kwargs[field_name] = pk
-    obj = pdbctl_obj.first(**kwargs)
+
+    try:
+        bridge = sot.SOURCE_MAP[tag][source]()
+    except KeyError:
+        raise ReferenceSourceInvalid()
+
+    obj = bridge.first(**kwargs)
+
     if not obj:
-        raise PdbNotFoundError(None, pk)
+        raise ReferenceNotFoundError(tag, pk, source)
     return obj
 
 
@@ -124,7 +128,7 @@ class UTC(datetime.tzinfo):
         return datetime.timedelta(seconds=0)
 
 
-class pdb_fallback:
+class ref_fallback:
 
     """
     use to decorate the value getter method targeted
@@ -141,7 +145,7 @@ class pdb_fallback:
         def wrapped(*args, **kwargs):
             try:
                 return fn(*args, **kwargs)
-            except (PdbNotFoundError, ObjectDoesNotExist):
+            except (ReferenceNotFoundError, ObjectDoesNotExist):
                 if isinstance(value, collections.Callable):
                     return value(*args)
                 return value
@@ -335,50 +339,41 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
         return obj
 
+    #@property
+    #def pdb(self):
+    #    """returns PeeringDB Network object"""
+    #
+    #   if not hasattr(self, "_pdb"):
+    #       self._pdb = ref_lookup(XXX_bridge.Network(), self.asn, "asn")
+    #
+    #   return self._pdb
+
     @property
-    def pdb(self):
-        """returns PeeringDB Network object"""
-
-        if not hasattr(self, "_pdb"):
-            self._pdb = pdb_lookup(pdbctl_bridge.Network(), self.asn, "asn")
-
-        return self._pdb
-
-    @property
-    @pdb_fallback("")
+    @ref_fallback("")
     def peer_contact_email(self):
         """returns email address suitable for peering requests"""
-        return get_peer_contact_email(self.pdb)
+        return get_peer_contact_email(self.ref)
 
     @property
-    @pdb_fallback([])
-    def internet_exchanges(self):
-        """returns InternetExchange list from PDB data"""
-        return [
-            InternetExchange.get_or_create(nil.ixlan)
-            for nil in self.pdb.netixlan_set.all()
-        ]
-
-    @property
-    @pdb_fallback("")
+    @ref_fallback("")
     def name(self):
-        return self.pdb.name
+        return self.ref.name
 
     @property
-    @pdb_fallback("")
+    @ref_fallback("")
     def website(self):
-        return self.pdb.website
+        return self.ref.website
 
     @property
-    @pdb_fallback("")
+    @ref_fallback("")
     def info_type(self):
-        return self.pdb.info_type
+        return self.ref.info_type
 
     @property
-    @pdb_fallback({})
+    @ref_fallback({})
     def contacts(self):
         contacts = {}
-        for poc in pdbctl_bridge.NetworkContact().objects(asn=self.asn):
+        for poc in pdbctl.NetworkContact().objects(asn=self.asn):
             role = poc.role.lower()
             if poc.email and role not in contacts:
                 contacts[role] = poc.email
@@ -407,10 +402,11 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         qset = self.peernet_set
         if ix_id:
             exchange = InternetExchange.objects.get(id=ix_id)
-            netixlans = [
-                n.id for n in pdbctl_bridge.NetworkIXLan().objects(ix=exchange.ixlan_id)
+            ref_source, ref_id = exchange.ref_parts
+            members = [
+                n.ref_id for n in sot.SOURCE_MAP["ix"][ref_source]().objects(ix=ref_id)
             ]
-            peerport_qset = PeerPort.objects.filter(portinfo__netixlan_id__in=netixlans)
+            peerport_qset = PeerPort.objects.filter(portinfo__ref_id__in=members)
             ids = [peerport.peernet_id for peerport in peerport_qset]
             qset = qset.filter(id__in=ids)
         return qset
@@ -420,10 +416,11 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
         if ix_id:
             exchange = InternetExchange.objects.get(id=ix_id)
-            netixlans = [
-                n.id for n in pdbctl_bridge.NetworkIXLan().objects(ix=exchange.ixlan_id)
+            ref_source, ref_id = exchange.ref_parts
+            members = [
+                n.ref_id for n in sot.SOURCE_MAP["ix"][ref_source]().objects(ix=ref_id)
             ]
-            qset = qset.filter(peerport__portinfo__netixlan_id__in=netixlans)
+            qset = qset.filter(peerport__portinfo__ref_id__in=members)
 
         return qset
 
@@ -468,19 +465,21 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
     def get_mutual_locations(self, other_asn):
         asns = [self.asn, other_asn]
-        exchanges = {}
+        exchanges = {"pdbctl":{}, "ixctl":{}}
 
-        for netixlan in pdbctl_bridge.NetworkIXLan().objects(asns=asns, join="net"):
-            if netixlan.ixlan_id not in exchanges:
-                exchanges[netixlan.ixlan_id] = {self.asn: [], other_asn: []}
+        for member in sot.InternetExchangeMember().objects(asns=asns):
+            ref_source = member.ref_source
 
-            exchanges[netixlan.ixlan_id][netixlan.asn].append(netixlan)
+            if member.ix_id not in exchanges[ref_source]:
+                exchanges[ref_source][member.ix_id] = {self.asn: [], other_asn: []}
+
+            exchanges[ref_source][member.ix_id][member.asn].append(member)
 
         mutual = {}
 
-        for ixlan_id, netixlans in list(exchanges.items()):
-            if netixlans[self.asn] and netixlans[other_asn]:
-                mutual[ixlan_id] = netixlans
+        for ix_id, members in list(exchanges.items()):
+            if members[self.asn] and members[other_asn]:
+                mutual[ix_id] = members
         return mutual
 
     def get_peer_contacts(self, ix_id=None, role="policy"):
@@ -539,7 +538,7 @@ class PeerNetwork(PolicyHolderMixin, Base):
 
         return obj
 
-    @pdb_fallback(0)
+    @ref_fallback(0)
     def info_prefixes(self, ip_version):
         field_name = f"info_prefixes{ip_version}"
         if getattr(self, field_name) is not None:
@@ -568,7 +567,8 @@ class InternetExchange(Base):
     name_long = models.CharField(max_length=254, blank=True)
     country = CountryField()
 
-    ixlan_id = models.PositiveIntegerField(unique=True)
+
+    ref_id = models.CharField(max_length=64)
 
     class HandleRef:
         tag = "ix"
@@ -577,23 +577,28 @@ class InternetExchange(Base):
         db_table = "peerctl_ix"
 
     @property
-    def pdb(self):
-        """returns PeeringDB object"""
-        if not hasattr(self, "_pdb"):
-            self._pdb = pdb_lookup(pdbctl_bridge.InternetExchange(), self.ixlan_id)
+    def ref_parts(self):
+        src, _id = self.ref_id.split(":")
+        return (src, int(id))
 
-        return self._pdb
+    def ref(self):
+        """returns pdbctl or ixctl object"""
+        if not hasattr(self, "_ref"):
+            ref_source, ref_id = self.ref_parts
+            self._ref = ref_lookup(ref_source, "ix", ref_id)
+
+        return self._ref
 
     @classmethod
     @reversion.create_revision()
-    def get_or_create(cls, ix):
+    def get_or_create(cls, ix, source):
         """
         gets a local IX object from PeeringDB.IXLan
         returns a list, since pdb ix lans could create multiple exchanges
         """
 
         if isinstance(ix, int):
-            ix = pdbctl_bridge.InternetExchange().object(ix)
+            ix = sot.SOURCE_MAP["ix"][source]().object(ix)
 
         try:
             obj = cls.objects.get(ixlan_id=ix.id)
@@ -605,7 +610,8 @@ class InternetExchange(Base):
                 name=f"{ix.name}".strip(),
                 name_long=ix.name_long,
                 country=ix.country,
-                ixlan_id=ix.id,
+                ref_id=ix.id,
+                ref_source=ix.source
             )
 
         return obj
@@ -617,16 +623,18 @@ class InternetExchange(Base):
 @reversion.register
 class PortInfo(Base):
     """
-    pdb netixlan abstraction to allow for private peering
-    if netixlan is set, uses all fields from that, if not uses local_
+    ix member abstraction to allow for private peering
+    if ref id is set, uses all fields from that, if not uses local_
     to add private peering, we will probably need to define facility as well, and abstract to this
+
+    ref_id may either point to a pdbctl netixlan object or a ixctl member object
     """
 
     net = models.ForeignKey(
         Network, on_delete=models.CASCADE, related_name="portinfo_qs"
     )
 
-    netixlan_id = models.PositiveIntegerField()
+    ref_id = models.CharField(max_length=64, null=True, blank=True)
     # ip_addr
 
     class HandleRef:
@@ -638,60 +646,58 @@ class PortInfo(Base):
         verbose_name_plural = "Port Information"
 
     @property
-    def pdb(self):
-        """returns PeeringDB object"""
-        if not hasattr(self, "_pdb"):
-            self._pdb = pdb_lookup(
-                pdbctl_bridge.NetworkIXLan(), self.netixlan_id, join="net"
-            )
-
-        return self._pdb
+    def ref_parts(self):
+        src, _id = self.ref_id.split(":")
+        return (src, int(id))
 
     @property
-    @pdb_fallback("")
+    def ref(self):
+        """returns pdbctl or ixctl object"""
+        if not hasattr(self, "_ref"):
+            ref_source, ref_id = self.ref_parts
+            self._ref = ref_lookup(ref_source, "member", ref_id)
+        return self._ref
+
+    @property
+    @ref_fallback("")
     def ipaddr4(self):
-        return self.pdb.ipaddr4
+        return self.ref.ipaddr4
 
     @property
-    @pdb_fallback("")
+    @ref_fallback("")
     def ipaddr6(self):
-        return self.pdb.ipaddr6
+        return self.ref.ipaddr6
 
     @property
-    @pdb_fallback(0)
+    @ref_fallback(0)
     def info_prefixes4(self):
-        return self.pdb.net.info_prefixes4
+        return self.ref.info_prefixes4
 
     @property
-    @pdb_fallback(0)
+    @ref_fallback(0)
     def info_prefixes6(self):
-        return self.pdb.net.info_prefixes6
+        return self.ref.info_prefixes6
 
     @property
-    @pdb_fallback(False)
+    @ref_fallback(False)
     def is_rs_peer(self):
-        return self.pdb.is_rs_peer
+        return self.ref.is_rs_peer
 
     @property
-    @pdb_fallback("")
-    def notes(self):
-        return self.pdb.notes
-
-    @property
-    @pdb_fallback(0)
+    @ref_fallback(0)
     def speed(self):
-        return self.pdb.speed
+        return self.ref.speed
 
     @property
-    @pdb_fallback("")
+    @ref_fallback("")
     def ix_name(self):
-        return pdbctl_bridge.InternetExchange().object(self.pdb.ixlan_id).name
+        return ref_lookup(self.ref_source, "ix", self.ref.ix_id).name
 
     @property
-    @pdb_fallback(None)
+    @ref_fallback(None)
     def ix(self):
         return InternetExchange.get_or_create(
-            pdbctl_bridge.InternetExchange().object(self.pdb.ixlan_id)
+            ref_lookup(self.ref_source, "ix", self.ref.ix_id)
         )
 
     def __str__(self):
@@ -752,7 +758,7 @@ class Device(Base):
         return dict(DEVICE_TYPE_CHOICES)[self.type]
 
     @property
-    @pdb_fallback(lambda o: o.name)
+    @ref_fallback(lambda o: o.name)
     def display_name(self):
         try:
             portinfo = self.port_qs.first().portinfo
@@ -760,7 +766,7 @@ class Device(Base):
             return self.name
         ixlan_id = portinfo.pdb.ixlan_id
         ix = InternetExchange.get_or_create(ixlan_id)
-        return f"{ix.name}-{portinfo.netixlan_id}"
+        return f"{ix.name}-{portinfo.ref_id}"
 
     @property
     def logport_qs(self):
@@ -779,8 +785,8 @@ class Device(Base):
     def peerses_qs(self):
         port = self.port_qs.first()
         return PeerSession.objects.filter(
-            peerport__portinfo__netixlan_id__in={
-                n.id for n in port.get_available_peers()
+            peerport__portinfo__ref_id__in={
+                n.ref_id for n in port.get_available_peers()
             }
         )
 
@@ -816,7 +822,7 @@ class Device(Base):
                 { peer_group_name : [netom0_data, ...] }
         """
 
-        netixlans = kwargs.get("netixlans")
+        members = kwargs.get("members")
 
         for name, peerses_set in list(self.peer_groups(net, ip_version).items()):
             peer_groups[name] = []
@@ -827,7 +833,7 @@ class Device(Base):
                 if not addr:
                     continue
 
-                if netixlans and peerses.peerport.portinfo.netixlan_id not in netixlans:
+                if members and peerses.peerport.portinfo.ref_id not in members:
                     continue
 
                 peer = {
@@ -960,13 +966,13 @@ class Port(PolicyHolderMixin, Base):
 
     @classmethod
     @reversion.create_revision()
-    def get_or_create(cls, netixlan):
+    def get_or_create(cls, member):
 
-        net, created = Network.objects.get_or_create(asn=netixlan.asn)
+        net, created = Network.objects.get_or_create(asn=member.asn)
 
-        portinfo = PortInfo.objects.filter(net=net, netixlan_id=netixlan.id)
+        portinfo = PortInfo.objects.filter(net=net, ref_id=member.ref_id)
 
-        # if port info with net , netixlan already
+        # if port info with net , member already
         # exists, skip
         if portinfo.exists():
             try:
@@ -979,7 +985,7 @@ class Port(PolicyHolderMixin, Base):
             portinfo = None
 
         # common name
-        name = f"netixlan{netixlan.id}"
+        name = f"member:{member.ref_id}"
 
         # create device
         device = Device.objects.create(name=name, net=net, status="ok")
@@ -998,7 +1004,7 @@ class Port(PolicyHolderMixin, Base):
         # create port info
         if not portinfo:
             portinfo = PortInfo.objects.create(
-                net=net, netixlan_id=netixlan.id, status="ok"
+                net=net, ref_id=member.ref_id, status="ok"
             )
         else:
             portinfo.status = "ok"
@@ -1007,7 +1013,7 @@ class Port(PolicyHolderMixin, Base):
         # create port
         port = Port.objects.create(virtport=virtport, portinfo=portinfo, status="ok")
 
-        exchange = InternetExchange.get_or_create(netixlan.ix)
+        exchange = InternetExchange.get_or_create(member.ix)
 
         return port
 
@@ -1043,30 +1049,32 @@ class Port(PolicyHolderMixin, Base):
             ).all()
         return self._peerses_qs_prefetched
 
-    def get_peerses(self, netixlan):
+    def get_peerses(self, member):
         """
         Returns the peering session for this port
-        and a netixlan
+        and a member
         """
 
         try:
             for peerses in self.peerses_qs_prefetched:
-                if peerses.peerport.portinfo.netixlan_id == netixlan.id:
+                if peerses.peerport.portinfo.ref_id == member.ref_id:
                     return peerses
         except PeerSession.DoesNotExist:
             return None
         return None
 
     # FIXME: should probably be a property
-    @pdb_fallback([])
+    @ref_fallback([])
     def get_available_peers(self):
         """
         Returns queryset for all available peers at
         this port
         """
 
-        query = pdbctl_bridge.NetworkIXLan().objects(
-            peers=self.portinfo.netixlan_id, join="net"
+        ref_source, ref_id = self.portinfo.ref_parts
+
+        query = sot.SOURCE_MAP["member"][ref_source].objects(
+            peers=ref_id,
         )
 
         return [peer for peer in query]
@@ -1101,17 +1109,17 @@ class PeerPort(Base):
 
     @classmethod
     @reversion.create_revision()
-    def get_or_create_from_netixlans(cls, netixlan_a, netixlan_b):
+    def get_or_create_from_members(cls, member_a, member_b):
         """
-        Creates a peerport instance using two netixlan objects
-        with `netixlan_a` being the initiator.
+        Creates a peerport instance using two member objects
+        with `member_a` being the initiator.
         """
 
-        # get ports for both netixlans
-        port_a = Port.get_or_create(netixlan_a)
-        port_b = Port.get_or_create(netixlan_b)
+        # get ports for both members
+        port_a = Port.get_or_create(member_a)
+        port_b = Port.get_or_create(member_b)
 
-        # get peernet querying for netixlan_a's network as
+        # get peernet querying for member_a's network as
         # the initiator/owner
         peernet = PeerNetwork.get_or_create(port_a.portinfo.net, port_b.portinfo.net)
 
@@ -1324,11 +1332,11 @@ class DeviceTemplate(Base, TemplateBase):
         ctx = self.context
         device = ctx.get("device")
         net = ctx.get("net")
-        netixlan = ctx.get("netixlan")
-        if netixlan:
-            netixlan = [int(netixlan)]
+        member = ctx.get("member")
+        if member:
+            member = [int(member)]
 
-        data.update(**device.peer_groups_netom0_data(net, netixlans=netixlan))
+        data.update(**device.peer_groups_netom0_data(net, members=member))
         data["device"] = {"type": device.type}
         data["ports"] = [port for port in device.port_qs]
 
@@ -1358,13 +1366,10 @@ class EmailTemplate(Base, TemplateBase):
 
         ctx = self.context
 
-        try:
-            ixlan_ids = {
-                netixlan.ixlan_id
-                for netixlan in pdbctl_bridge.NetworkIXLan().objects(asn=self.net.asn)
-            }
-        except PdbNotFoundError:
-            ixlan_ids = []
+        ix_ids = {"ixctl":[], "pdbctl":[]}
+
+        for member in sot.InternetExchangeMember().objects(asn=self.net.asn):
+            ix_ids[member.source].append(member.ix_id)
 
         data.update(
             {
@@ -1375,7 +1380,11 @@ class EmailTemplate(Base, TemplateBase):
                     "contact": self.net.peer_contact_email,
                     "description": self.net.info_type,
                     "exchanges": InternetExchange.objects.filter(
-                        ixlan_id__in=ixlan_ids
+                        ref_source="ixctl"
+                        ref_id__in=ix_ids.get("ixctl")
+                    ) + InternetExchange.objects.filter(
+                        ref_source="pdbctl",
+                        ref_id__in=ix_ids.get("pdbctl")
                     ),
                 }
             }

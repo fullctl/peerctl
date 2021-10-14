@@ -1,4 +1,4 @@
-import fullctl.django.rest.urls.service_bridge as service_bridge
+import fullctl.django.rest.urls.service_bridge_proxy as service_bridge
 from django.urls import include, path
 
 from django_peerctl.legacy.views import (

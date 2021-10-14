@@ -2,9 +2,9 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from fullctl.service_bridge.pdbctl import (
-    NetworkIXLan,
-)
+import fullctl.service_bridge.pdbctl as pdbctl
+import fullctl.service_bridge.ixctl as ixctl
+import fullctl.service_bridge.sot as sot
 
 from fullctl.django.rest.mixins import CachedObjectMixin
 from fullctl.django.auth import permissions
@@ -225,6 +225,9 @@ class Port(CachedObjectMixin, viewsets.ModelViewSet):
 # retrieve peer for port and asn
 # details peer details for port and asn
 
+def get_member(pk):
+    ref_source, ref_id = pk.split(":")
+    return sot.SOURCE_MAP["member"][ref_source]().object(pk)
 
 @route
 class Peer(CachedObjectMixin, viewsets.GenericViewSet):
@@ -252,7 +255,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def retrieve(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
-        peer = NetworkIXLan().object(pk, join="net")
+        peer = get_member(pk)
         serializer = self.serializer_class(peer, context={"port": port, "net": net})
         return Response(serializer.data)
 
@@ -261,7 +264,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def details(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
-        peer = NetworkIXLan().object(pk, join="net")
+        peer = get_member(pk)
         serializer = Serializers.peerdetail(peer, context={"port": port, "net": net})
         return Response(serializer.data)
 
@@ -270,15 +273,15 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_md5(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
-        netixlan = NetworkIXLan().object(pk, join="net")
-        peer = models.Network.objects.get(asn=netixlan.asn)
+        member = get_member(pk)
+        peer = models.Network.objects.get(asn=member.asn)
         peernet = models.PeerNetwork.get_or_create(net, peer)
 
         peernet.md5 = request.POST.get("value")
         peernet.save()
 
         serializer = self.serializer_class(
-            instance=netixlan, context={"port": port, "net": net}
+            instance=member, context={"port": port, "net": net}
         )
         return Response(serializer.data)
 
@@ -288,8 +291,8 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_max_prefix(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
 
-        netixlan = NetworkIXLan().object(pk, join="net")
-        peer = models.Network.objects.get(asn=netixlan.asn)
+        member = get_member(pk)
+        peer = models.Network.objects.get(asn=member.asn)
         peernet = models.PeerNetwork.get_or_create(net, peer)
 
         try:
@@ -302,7 +305,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
             raise serializers.ValidationError({"non_field_errors": [[str(exc)]]})
 
         serializer = self.serializer_class(
-            instance=netixlan, context={"port": port, "net": net}
+            instance=member, context={"port": port, "net": net}
         )
         return Response(serializer.data)
 
@@ -318,7 +321,7 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
     queryset = models.PeerSession.objects.all()
     require_asn = True
     require_port = True
-    require_netixlan = True
+    require_member = True
 
     ref_tag = "email_workflow"
 
@@ -327,9 +330,9 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def create(self, request, asn, net, port_pk, port, netixlan_pk, *args, **kwargs):
-        netixlan = NetworkIXLan().object(netixlan_pk, join="net")
-        workflow = PeerSessionEmailWorkflow(port, netixlan)
+    def create(self, request, asn, net, port_pk, port, member_pk, *args, **kwargs):
+        member = get_member(member_pk)
+        workflow = PeerSessionEmailWorkflow(port, member)
 
         emltmpl_id = int(request.POST.get("emltmpl", 0))
         content = request.POST.get("body")
@@ -378,15 +381,15 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     def create(self, request, asn, net, port_pk, port, *args, **kwargs):
         data = request.POST.dict()
 
-        netixlan = NetworkIXLan().object(data.get("netixlan"), join="net,ix")
+        member = get_member(data.get("member"), join="ix")
 
         if data.get("through"):
-            through_netixlan = NetworkIXLan().object(data.get("through"), join="net,ix")
+            through_member = get_member(data.get("through"), join="ix")
         else:
-            through_netixlan = netixlan
+            through_member = member
 
-        peerport = models.PeerPort.get_or_create_from_netixlans(
-            models.Port.objects.get(id=port_pk).portinfo.pdb, netixlan
+        peerport = models.PeerPort.get_or_create_from_members(
+            models.Port.objects.get(id=port_pk).portinfo.pdb, member
         )
 
         # XXX aaactl metered limiting
@@ -404,7 +407,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         models.AuditLog.log_peerses_add(instance, request.user)
 
         serializer = Serializers.peer(
-            through_netixlan, context={"port": port, "net": net}
+            through_member, context={"port": port, "net": net}
         )
         return Response(serializer.data)
 
@@ -527,11 +530,12 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             emltmpl = models.EmailTemplate.objects.get(id=pk)
 
         if "peer" in request.POST:
-            emltmpl.context["peer"] = NetworkIXLan().object(
-                id=request.POST["peer"], join="net"
+
+            emltmpl.context["peer"] = get_member(
+                request.POST["peer"]
             )
         else:
-            emltmpl.context["peer"] = NetworkIXLan().first(asn=asn, join="net")
+            emltmpl.context["peer"] = sot.InternetExchangeMember().first(asn=asn)
 
         if "peerses" in request.POST:
             emltmpl.context["sessions"] = models.PeerSession.objects.filter(
@@ -609,7 +613,7 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             net=net, pk=request.POST.get("device")
         )
 
-        devicetmpl.context["netixlan"] = request.POST.get("netixlan")
+        devicetmpl.context["member"] = request.POST.get("member")
 
         serializer = Serializers.tmplpreview(instance=devicetmpl)
         return Response(serializer.data)
