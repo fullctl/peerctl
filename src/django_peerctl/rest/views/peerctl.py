@@ -1,30 +1,21 @@
+import fullctl.service_bridge.ixctl as ixctl
+import fullctl.service_bridge.pdbctl as pdbctl
+import fullctl.service_bridge.sot as sot
+from fullctl.django.auth import permissions
+from fullctl.django.rest.core import BadRequest
+from fullctl.django.rest.decorators import billable, load_object
+from fullctl.django.rest.mixins import CachedObjectMixin
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-import fullctl.service_bridge.pdbctl as pdbctl
-import fullctl.service_bridge.ixctl as ixctl
-import fullctl.service_bridge.sot as sot
-
-from fullctl.django.rest.mixins import CachedObjectMixin
-from fullctl.django.auth import permissions
-from fullctl.django.rest.core import BadRequest
-from fullctl.django.rest.decorators import billable, load_object
-
 import django_peerctl.models as models
+from django_peerctl.const import DEVICE_TEMPLATE_TYPES, DEVICE_TYPES
+from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
+from django_peerctl.peerses_workflow import PeerSessionEmailWorkflow
 from django_peerctl.rest.decorators import grainy_endpoint
 from django_peerctl.rest.route.peerctl import route
 from django_peerctl.rest.serializers.peerctl import Serializers
-from django_peerctl.exceptions import UsageLimitError, TemplateRenderError
-
-from django_peerctl.peerses_workflow import (
-    PeerSessionEmailWorkflow,
-)
-
-from django_peerctl.const import (
-    DEVICE_TEMPLATE_TYPES,
-    DEVICE_TYPES,
-)
 
 
 @route
@@ -225,9 +216,11 @@ class Port(CachedObjectMixin, viewsets.ModelViewSet):
 # retrieve peer for port and asn
 # details peer details for port and asn
 
+
 def get_member(pk, join=None):
     ref_source, ref_id = pk.split(":")
     return sot.SOURCE_MAP["member"][ref_source]().object(ref_id, join=join)
+
 
 @route
 class Peer(CachedObjectMixin, viewsets.GenericViewSet):
@@ -531,9 +524,7 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
 
         if "peer" in request.POST:
 
-            emltmpl.context["peer"] = get_member(
-                request.POST["peer"]
-            )
+            emltmpl.context["peer"] = get_member(request.POST["peer"])
         else:
             emltmpl.context["peer"] = sot.InternetExchangeMember().first(asn=asn)
 

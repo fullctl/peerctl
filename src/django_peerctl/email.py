@@ -3,8 +3,8 @@ email related functions and utilities
 """
 
 
-from django.core.mail.message import EmailMultiAlternatives
 from django.conf import settings
+from django.core.mail.message import EmailMultiAlternatives
 
 
 def send_mail(subject, body, from_address, to_addresses, reply_to=None, **kwargs):

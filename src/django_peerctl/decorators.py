@@ -1,5 +1,5 @@
-import reversion
 import django.http
+import reversion
 
 
 class create_revision:

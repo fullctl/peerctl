@@ -1,8 +1,9 @@
-from django import template
-from django.utils.translation import ugettext_lazy as _
-from django.utils.safestring import mark_safe
-from django_countries import countries
 import datetime
+
+from django import template
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
+from django_countries import countries
 
 register = template.Library()
 

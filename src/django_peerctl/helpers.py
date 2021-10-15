@@ -1,10 +1,6 @@
-from django_peerctl.exceptions import (
-    PolicyMissingError,
-)
+from fullctl.service_bridge.pdbctl import NetworkContact
 
-from fullctl.service_bridge.pdbctl import (
-    NetworkContact,
-)
+from django_peerctl.exceptions import PolicyMissingError
 
 
 def get_peer_contact_email(asn):

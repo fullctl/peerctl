@@ -1,7 +1,8 @@
-from django.dispatch import receiver
+from allauth.account.signals import user_signed_up
 from django.conf import settings
 from django.contrib.auth.signals import user_logged_in, user_logged_out
-from allauth.account.signals import user_signed_up
+from django.dispatch import receiver
+
 from django_peerctl.email import send_mail_from_default
 from django_peerctl.models import UserSession
 

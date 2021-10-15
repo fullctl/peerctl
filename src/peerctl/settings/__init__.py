@@ -204,7 +204,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 MIDDLEWARE += (
     "fullctl.django.middleware.CurrentRequestContext",
-    "fullctl.django.middleware.RequestAugmentation",)
+    "fullctl.django.middleware.RequestAugmentation",
+)
 
 INSTALLED_APPS += (
     "dal",

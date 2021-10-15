@@ -1,66 +1,38 @@
-import os.path
+import collections
 import datetime
 import json
 import logging
+import os.path
 
-from django.db import models
+import fullctl.service_bridge.ixctl as ixctl
+import fullctl.service_bridge.pdbctl as pdbctl
+import fullctl.service_bridge.sot as sot
+import reversion
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ObjectDoesNotExist
-from django.conf import settings
-
-from django_handleref.models import HandleRefModel
-from django_countries.fields import CountryField
+from django.db import models
 from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
-
-import fullctl.service_bridge.sot as sot
-import fullctl.service_bridge.pdbctl as pdbctl
-import fullctl.service_bridge.ixctl as ixctl
-
+from django_countries.fields import CountryField
+from django_grainy.decorators import grainy_model
+from django_handleref.models import HandleRefModel
+from django_inet.models import ASNField, IPAddressField, IPPrefixField, MacAddressField
 from fullctl.django.models.concrete import Instance
+from fullctl.service_bridge.client import Relationships
+from jinja2 import DictLoader, Environment, FileSystemLoader
 
-from jinja2 import (
-    Environment,
-    FileSystemLoader,
-    DictLoader,
-)
-
-from django_inet.models import (
-    ASNField,
-    IPAddressField,
-    IPPrefixField,
-    MacAddressField,
-)
-
-from django_grainy.decorators import (
-    grainy_model,
-)
-
-import reversion
-
+from django_peerctl import const
+from django_peerctl.email import send_mail_from_default
 from django_peerctl.exceptions import (
     ReferenceNotFoundError,
     ReferenceSourceInvalid,
     TemplateRenderError,
     UsageLimitError,
 )
-
-from django_peerctl.helpers import (
-    get_peer_contact_email,
-    get_best_policy,
-)
-
-from django_peerctl.templating import (
-    make_variable_name,
-)
-
-from django_peerctl.email import (
-    send_mail_from_default,
-)
-
-from django_peerctl import const
-import collections
+from django_peerctl.helpers import get_best_policy, get_peer_contact_email
+from django_peerctl.templating import make_variable_name
 
 
 def ref_lookup(source, tag, pk, field_name="id", **kwargs):
@@ -545,8 +517,7 @@ class PeerNetwork(PolicyHolderMixin, Base):
         field_name = f"info_prefixes{ip_version}"
         if getattr(self, field_name) is not None:
             return getattr(self, field_name)
-        # XXX
-        return getattr(self.peer.ref, field_name, 0)
+        return getattr(self.peer.ref.net, field_name, 0)
 
     def set_info_prefixes(self, value, ip_version, save=True):
         if int(ip_version) not in [4, 6]:
@@ -569,7 +540,6 @@ class InternetExchange(Base):
     name = models.CharField(max_length=64)
     name_long = models.CharField(max_length=254, blank=True)
     country = CountryField()
-
 
     ref_id = models.CharField(max_length=64, blank=True, null=True, unique=True)
 
@@ -687,16 +657,12 @@ class PortInfo(Base):
     @property
     @ref_fallback(0)
     def info_prefixes4(self):
-        return 0
-        #XXX
-        return self.ref.info_prefixes4
+        return self.ref.net.info_prefixes4
 
     @property
     @ref_fallback(0)
     def info_prefixes6(self):
-        return 0
-        #XXX
-        return self.ref.info_prefixes6
+        return self.ref.net.info_prefixes6
 
     @property
     @ref_fallback(False)
@@ -716,9 +682,7 @@ class PortInfo(Base):
     @property
     @ref_fallback(None)
     def ix(self):
-        return InternetExchange.get_or_create(
-            self.ref.ix_id, self.ref_source
-        )
+        return InternetExchange.get_or_create(self.ref.ix_id, self.ref_source)
 
     def __str__(self):
         return "PortInfo({}): {} {} {}".format(
@@ -1097,7 +1061,11 @@ class Port(PolicyHolderMixin, Base):
             peers=ref_id,
         )
 
-        return [peer for peer in query]
+        peers = [peer for peer in query]
+
+        Relationships.preload("net", peers)
+
+        return peers
 
     def __str__(self):
         return f"Port({self.id}): {self.portinfo}"
@@ -1401,9 +1369,7 @@ class EmailTemplate(Base, TemplateBase):
                     "website": self.net.website,
                     "contact": self.net.peer_contact_email,
                     "description": self.net.info_type,
-                    "exchanges": InternetExchange.objects.filter(
-                        ref_id__in=ix_ids
-                    )
+                    "exchanges": InternetExchange.objects.filter(ref_id__in=ix_ids),
                 }
             }
         )
@@ -1413,7 +1379,9 @@ class EmailTemplate(Base, TemplateBase):
             mutual_locations = []
             for ix_id in self.net.get_mutual_locations(peer.asn):
                 ix_source, ix_id = ix_id.split(":")
-                mutual_locations.append(InternetExchange.get_or_create(int(ix_id), ix_source))
+                mutual_locations.append(
+                    InternetExchange.get_or_create(int(ix_id), ix_source)
+                )
             data.update(
                 {
                     "peer": {

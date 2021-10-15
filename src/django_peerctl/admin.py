@@ -1,29 +1,28 @@
 from django import forms
-from django.contrib import admin
 from django import forms as baseForms
-
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
 from django_peerctl.models import (
-    Organization,
-    Network,
-    InternetExchange,
-    PeerNetwork,
+    AuditLog,
     Device,
     DeviceTemplate,
-    LogicalPort,
-    PhysicalPort,
-    VirtualPort,
-    Port,
-    PortInfo,
-    PeerSession,
-    Wish,
-    AuditLog,
     EmailLog,
     EmailLogRecipient,
+    InternetExchange,
+    LogicalPort,
+    Network,
+    Organization,
+    PeerNetwork,
+    PeerSession,
+    PhysicalPort,
     Policy,
+    Port,
+    PortInfo,
     UserSession,
+    VirtualPort,
+    Wish,
 )
 
 

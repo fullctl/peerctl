@@ -1,11 +1,10 @@
+import fullctl.service_bridge.ixctl as ixctl
+import fullctl.service_bridge.pdbctl as pdbctl
+import fullctl.service_bridge.sot as sot
 from fullctl.django.auth import permissions
 
+from django_peerctl.models import Network, Port
 from django_peerctl.utils import get_network
-from django_peerctl.models import Port, Network
-
-import fullctl.service_bridge.pdbctl as pdbctl
-import fullctl.service_bridge.ixctl as ixctl
-import fullctl.service_bridge.sot as sot
 
 
 def create_devices(backend, details, response, uid, user, *args, **kwargs):
@@ -27,5 +26,4 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
             verified_asns.append(asn)
 
     for member in sot.InternetExchangeMember().objects(asns=verified_asns, join="ix"):
-        print("Got", member)
         Port.get_or_create(member)

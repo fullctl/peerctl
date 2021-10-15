@@ -9,8 +9,10 @@ class ReferenceNotFoundError(PeerctlException, LookupError):
         msg = f"reference missing {source}:{tag}/{pk}"
         super().__init__(msg)
 
+
 class ReferenceSourceInvalid(PeerctlException, ValueError):
     pass
+
 
 class TemplateRenderError(PeerctlException, ValueError):
     """Error that gets raised when template render fails"""

@@ -1,4 +1,5 @@
 from django.conf import settings
+
 from django_peerctl.confutil import discover_netom_templates
 
 DEVICE_TYPES = (

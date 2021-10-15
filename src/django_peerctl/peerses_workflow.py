@@ -2,20 +2,19 @@
 Classes describing the workflow of setting up a peering session
 """
 
-import reversion
 import fullctl.service_bridge.pdbctl as pdbctl
+import reversion
 
 from django_peerctl.email import send_mail_from_default
-
 from django_peerctl.models import (
-    Port,
-    PeerPort,
-    PeerSession,
-    PeerNetwork,
-    Network,
-    EmailTemplate,
     AuditLog,
     EmailLog,
+    EmailTemplate,
+    Network,
+    PeerNetwork,
+    PeerPort,
+    PeerSession,
+    Port,
 )
 
 

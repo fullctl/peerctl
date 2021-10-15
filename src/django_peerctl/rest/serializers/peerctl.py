@@ -1,3 +1,6 @@
+import fullctl.service_bridge.ixctl as ixctl
+import fullctl.service_bridge.pdbctl as pdbctl
+import fullctl.service_bridge.sot as sot
 from django.utils.translation import ugettext_lazy as _
 from fullctl.django.rest.decorators import serializer_registry
 from fullctl.django.rest.serializers import (
@@ -5,22 +8,13 @@ from fullctl.django.rest.serializers import (
     RequireContext,
     SoftRequiredValidator,
 )
-import fullctl.service_bridge.pdbctl as pdbctl
-import fullctl.service_bridge.ixctl as ixctl
-import fullctl.service_bridge.sot as sot
-
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueTogetherValidator
 
 import django_peerctl.models as models
-
+from django_peerctl.helpers import get_best_policy
 from django_peerctl.peerses_workflow import PeerSessionEmailWorkflow
-
-from django_peerctl.helpers import (
-    get_best_policy,
-)
-
 
 Serializers, register = serializer_registry()
 
@@ -127,10 +121,10 @@ class Port(ModelSerializer):
 
     @models.ref_fallback("")
     def get_ix_name(self, instance):
-        ix = models.InternetExchange.objects.get(
-            ref_id=instance.portinfo.ref_ix_id
+        ix = models.InternetExchange.objects.get(ref_id=instance.portinfo.ref_ix_id)
+        name = (
+            f"{ix.name}: {instance.portinfo.ipaddr4} [{instance.portinfo.ref_source}]"
         )
-        name = f"{ix.name}: {instance.portinfo.ipaddr4} [{instance.portinfo.ref_source}]"
         return name
 
     @models.ref_fallback(0)
@@ -160,13 +154,12 @@ class Port(ModelSerializer):
 @register
 class Peer(ModelSerializer):
 
-    #XXX
-    #scope = serializers.CharField(source="net.info_scope")
-    #type = serializers.CharField(source="net.info_type")
-    #policy_ratio = serializers.CharField(source="net.policy_ratio")
-    #policy_general = serializers.CharField(source="net.policy_general")
-    #policy_contracts = serializers.CharField(source="net.policy_contracts")
-    #policy_locations = serializers.CharField(source="net.policy_locations")
+    scope = serializers.CharField(source="net.info_scope")
+    type = serializers.CharField(source="net.info_type")
+    policy_ratio = serializers.CharField(source="net.policy_ratio")
+    policy_general = serializers.CharField(source="net.policy_general")
+    policy_contracts = serializers.CharField(source="net.policy_contracts")
+    policy_locations = serializers.CharField(source="net.policy_locations")
     name = serializers.SerializerMethodField()
     asn = serializers.IntegerField()
     peeringdb = serializers.SerializerMethodField()
@@ -192,9 +185,8 @@ class Peer(ModelSerializer):
             "name",
             "status",
             "asn",
-            #XXX
-            #"scope",
-            #"type",
+            "scope",
+            "type",
             "info_prefixes4",
             "info_prefixes6",
             "peeringdb",
@@ -202,11 +194,10 @@ class Peer(ModelSerializer):
             "peerses_status",
             "peerses_contact",
             "user",
-            #XXX
-            #"policy_general",
-            #"policy_ratio",
-            #"policy_contracts",
-            #"policy_locations",
+            "policy_general",
+            "policy_ratio",
+            "policy_contracts",
+            "policy_locations",
             "is_rs_peer",
             "md5",
             "ix_name",
@@ -271,7 +262,9 @@ class Peer(ModelSerializer):
         result = []
 
         if not isinstance(self.instance, list):
-            qset = sot.SOURCE_MAP["member"][obj.source]().objects(ix=obj.ix_id, asn=obj.asn)
+            qset = sot.SOURCE_MAP["member"][obj.source]().objects(
+                ix=obj.ix_id, asn=obj.asn
+            )
         else:
             qset = self.instance
 
@@ -363,16 +356,12 @@ class Peer(ModelSerializer):
         return self.context["port"].id
 
     def get_info_prefixes4(self, obj):
-        #XXX
-        return 0
         peernet = self.peernets.get(obj.asn)
         if peernet and peernet.info_prefixes4 is not None:
             return peernet.info_prefixes4
         return obj.net.info_prefixes4
 
     def get_info_prefixes6(self, obj):
-        #XXX
-        return 0
         peernet = self.peernets.get(obj.asn)
         if peernet and peernet.info_prefixes6 is not None:
             return peernet.info_prefixes6
