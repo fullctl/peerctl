@@ -27,4 +27,5 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
             verified_asns.append(asn)
 
     for member in sot.InternetExchangeMember().objects(asns=verified_asns, join="ix"):
+        print("Got", member)
         Port.get_or_create(member)

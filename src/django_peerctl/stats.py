@@ -6,7 +6,7 @@ from django_peerctl.models import (
 )
 
 from django_peerctl.exceptions import (
-    PdbNotFoundError,
+    ReferenceNotFoundError,
 )
 
 
@@ -59,7 +59,7 @@ def count_peers():
                 peers_by_type[typ] = []
             peers_by_scope[scope].append(peernet.net.asn)
             peers_by_type[typ].append(peernet.net.asn)
-        except PdbNotFoundError:
+        except ReferenceNotFoundError:
             pass
 
     sort = lambda x: x[0]

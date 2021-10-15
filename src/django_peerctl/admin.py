@@ -101,7 +101,7 @@ class LogicalPortAdmin(admin.ModelAdmin):
 
 @admin.register(PortInfo)
 class PortInfoAdmin(admin.ModelAdmin):
-    list_display = ("asn", "pdb", "ix", "ipaddr4", "ipaddr6")
+    list_display = ("asn", "ref_id", "ix", "ipaddr4", "ipaddr6")
     readonly_fields = ("asn", "ix", "ipaddr4", "ipaddr6")
     search_fields = ("net__asn",)
     form = status_form()
@@ -116,7 +116,7 @@ class PortInfoAdmin(admin.ModelAdmin):
         try:
             return obj.pdb.id
         except:
-            return f"PDB Missing (id={obj.netixlan_id})"
+            return f"PDB Missing (id={obj.ref_id})"
 
 
 @admin.register(DeviceTemplate)
@@ -304,7 +304,7 @@ class IXAdmin(admin.ModelAdmin):
         "name",
         "name_long",
         "country",
-        "ixlan_id",
+        "ref_id",
         "created",
         "updated",
     )

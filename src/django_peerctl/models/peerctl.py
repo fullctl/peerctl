@@ -339,20 +339,17 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
         return obj
 
-    #@property
-    #def pdb(self):
-    #    """returns PeeringDB Network object"""
-    #
-    #   if not hasattr(self, "_pdb"):
-    #       self._pdb = ref_lookup(XXX_bridge.Network(), self.asn, "asn")
-    #
-    #   return self._pdb
+    @property
+    def ref(self):
+        if not hasattr(self, "_ref"):
+            self._ref = pdbctl.Network().first(asn=self.asn)
+        return self._ref
 
     @property
     @ref_fallback("")
     def peer_contact_email(self):
         """returns email address suitable for peering requests"""
-        return get_peer_contact_email(self.ref)
+        return get_peer_contact_email(self.asn)
 
     @property
     @ref_fallback("")
@@ -463,17 +460,22 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
         return obj
 
-    def get_mutual_locations(self, other_asn):
+    def get_mutual_locations(self, other_asn, exclude=None):
         asns = [self.asn, other_asn]
-        exchanges = {"pdbctl":{}, "ixctl":{}}
+
+        exchanges = {}
 
         for member in sot.InternetExchangeMember().objects(asns=asns):
-            ref_source = member.ref_source
+            source = member.source
+            ix_ref_id = f"{source}:{member.ix_id}"
 
-            if member.ix_id not in exchanges[ref_source]:
-                exchanges[ref_source][member.ix_id] = {self.asn: [], other_asn: []}
+            if exclude and ix_ref_id in exclude:
+                continue
 
-            exchanges[ref_source][member.ix_id][member.asn].append(member)
+            if ix_ref_id not in exchanges:
+                exchanges[ix_ref_id] = {self.asn: [], other_asn: []}
+
+            exchanges[ix_ref_id][member.asn].append(member)
 
         mutual = {}
 
@@ -543,7 +545,8 @@ class PeerNetwork(PolicyHolderMixin, Base):
         field_name = f"info_prefixes{ip_version}"
         if getattr(self, field_name) is not None:
             return getattr(self, field_name)
-        return getattr(self.peer.pdb, field_name)
+        # XXX
+        return getattr(self.peer.ref, field_name, 0)
 
     def set_info_prefixes(self, value, ip_version, save=True):
         if int(ip_version) not in [4, 6]:
@@ -563,12 +566,12 @@ class InternetExchange(Base):
     """
 
     # short_name for config gen
-    name = models.CharField(max_length=64, unique=True)
+    name = models.CharField(max_length=64)
     name_long = models.CharField(max_length=254, blank=True)
     country = CountryField()
 
 
-    ref_id = models.CharField(max_length=64)
+    ref_id = models.CharField(max_length=64, blank=True, null=True, unique=True)
 
     class HandleRef:
         tag = "ix"
@@ -579,8 +582,13 @@ class InternetExchange(Base):
     @property
     def ref_parts(self):
         src, _id = self.ref_id.split(":")
-        return (src, int(id))
+        return (src, int(_id))
 
+    @property
+    def ref_source(self):
+        return self.ref_parts[0]
+
+    @property
     def ref(self):
         """returns pdbctl or ixctl object"""
         if not hasattr(self, "_ref"):
@@ -592,26 +600,25 @@ class InternetExchange(Base):
     @classmethod
     @reversion.create_revision()
     def get_or_create(cls, ix, source):
-        """
-        gets a local IX object from PeeringDB.IXLan
-        returns a list, since pdb ix lans could create multiple exchanges
-        """
 
         if isinstance(ix, int):
             ix = sot.SOURCE_MAP["ix"][source]().object(ix)
 
         try:
-            obj = cls.objects.get(ixlan_id=ix.id)
+            print("CHECKING", ix.ref_id)
+            obj = cls.objects.get(ref_id=ix.ref_id)
 
         except cls.DoesNotExist:
+            print("creating ix", ix, source)
             obj = cls.objects.create(
                 status="ok",
                 # concat ix name and lan name
                 name=f"{ix.name}".strip(),
-                name_long=ix.name_long,
-                country=ix.country,
-                ref_id=ix.id,
-                ref_source=ix.source
+                name_long=getattr(ix, "name_long", ix.name),
+                # XXX: ixctl needs to provide country for source of truth
+                # exchanges
+                country=getattr(ix, "country", "US"),
+                ref_id=ix.ref_id,
             )
 
         return obj
@@ -648,7 +655,16 @@ class PortInfo(Base):
     @property
     def ref_parts(self):
         src, _id = self.ref_id.split(":")
-        return (src, int(id))
+        return (src, int(_id))
+
+    @property
+    def ref_source(self):
+        src, _id = self.ref_parts
+        return src
+
+    @property
+    def ref_ix_id(self):
+        return f"{self.ref_source}:{self.ref.ix_id}"
 
     @property
     def ref(self):
@@ -671,11 +687,15 @@ class PortInfo(Base):
     @property
     @ref_fallback(0)
     def info_prefixes4(self):
+        return 0
+        #XXX
         return self.ref.info_prefixes4
 
     @property
     @ref_fallback(0)
     def info_prefixes6(self):
+        return 0
+        #XXX
         return self.ref.info_prefixes6
 
     @property
@@ -697,7 +717,7 @@ class PortInfo(Base):
     @ref_fallback(None)
     def ix(self):
         return InternetExchange.get_or_create(
-            ref_lookup(self.ref_source, "ix", self.ref.ix_id)
+            self.ref.ix_id, self.ref_source
         )
 
     def __str__(self):
@@ -764,8 +784,8 @@ class Device(Base):
             portinfo = self.port_qs.first().portinfo
         except AttributeError:
             return self.name
-        ixlan_id = portinfo.pdb.ixlan_id
-        ix = InternetExchange.get_or_create(ixlan_id)
+        ix_id = portinfo.ref.ix_id
+        ix = InternetExchange.get_or_create(ix_id, portinfo.ref_source)
         return f"{ix.name}-{portinfo.ref_id}"
 
     @property
@@ -1013,7 +1033,7 @@ class Port(PolicyHolderMixin, Base):
         # create port
         port = Port.objects.create(virtport=virtport, portinfo=portinfo, status="ok")
 
-        exchange = InternetExchange.get_or_create(member.ix)
+        exchange = InternetExchange.get_or_create(member.ix, member.source)
 
         return port
 
@@ -1073,7 +1093,7 @@ class Port(PolicyHolderMixin, Base):
 
         ref_source, ref_id = self.portinfo.ref_parts
 
-        query = sot.SOURCE_MAP["member"][ref_source].objects(
+        query = sot.SOURCE_MAP["member"][ref_source]().objects(
             peers=ref_id,
         )
 
@@ -1366,10 +1386,12 @@ class EmailTemplate(Base, TemplateBase):
 
         ctx = self.context
 
-        ix_ids = {"ixctl":[], "pdbctl":[]}
+        ix_ids = []
 
         for member in sot.InternetExchangeMember().objects(asn=self.net.asn):
-            ix_ids[member.source].append(member.ix_id)
+            ref_ix_id = member.ref_rel_id("ix_id")
+            if ref_ix_id not in ix_ids:
+                ix_ids.append(ref_ix_id)
 
         data.update(
             {
@@ -1380,12 +1402,8 @@ class EmailTemplate(Base, TemplateBase):
                     "contact": self.net.peer_contact_email,
                     "description": self.net.info_type,
                     "exchanges": InternetExchange.objects.filter(
-                        ref_source="ixctl"
-                        ref_id__in=ix_ids.get("ixctl")
-                    ) + InternetExchange.objects.filter(
-                        ref_source="pdbctl",
-                        ref_id__in=ix_ids.get("pdbctl")
-                    ),
+                        ref_id__in=ix_ids
+                    )
                 }
             }
         )
@@ -1393,14 +1411,15 @@ class EmailTemplate(Base, TemplateBase):
         if "peer" in ctx:
             peer = ctx.get("peer")
             mutual_locations = []
-            for ixlan_id in self.net.get_mutual_locations(peer.net.asn):
-                mutual_locations.append(InternetExchange.get_or_create(ixlan_id))
+            for ix_id in self.net.get_mutual_locations(peer.asn):
+                ix_source, ix_id = ix_id.split(":")
+                mutual_locations.append(InternetExchange.get_or_create(int(ix_id), ix_source))
             data.update(
                 {
                     "peer": {
-                        "company_name": peer.net.name,
-                        "asn": peer.net.asn,
-                        "contact": get_peer_contact_email(peer.net),
+                        "company_name": peer.name,
+                        "asn": peer.asn,
+                        "contact": get_peer_contact_email(peer.asn),
                     },
                     "mutual_locations": mutual_locations,
                 }

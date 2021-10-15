@@ -26,22 +26,22 @@ class PeerSessionWorkflow:
     All workflows should extend this
     """
 
-    def __init__(self, port, netixlan):
+    def __init__(self, port, member):
         self.port = port
-        self.netixlan = netixlan
+        self.member = member
 
     @reversion.create_revision()
-    def peerses(self, create=True, netixlan=None, port=None):
+    def peerses(self, create=True, member=None, port=None):
         """
-        Returns a peerses object from port to netixlan.
+        Returns a peerses object from port to member.
 
         Will create it if it does not exist yet
         """
-        if not netixlan:
-            netixlan = self.netixlan
+        if not member:
+            member = self.member
         if not port:
             port = self.port
-        peerport = PeerPort.get_or_create_from_netixlans(port.portinfo.pdb, netixlan)
+        peerport = PeerPort.get_or_create_from_members(port.portinfo.ref, member)
         if create:
             peerses = PeerSession.get_or_create(port, peerport, create_status="pending")
         else:
@@ -64,11 +64,11 @@ class PeerSessionWorkflow:
 
     @property
     def my_asn(self):
-        return self.port.portinfo.pdb.net.asn
+        return self.port.portinfo.ref.asn
 
     @property
     def peer_asn(self):
-        return self.netixlan.net.asn
+        return self.member.asn
 
     def progress(self, *args, **kwargs):
         peerses = self.peerses(create=False)
@@ -97,13 +97,13 @@ class PeerSessionWorkflow:
         # mutual locations
         mutual = self.port.portinfo.net.get_mutual_locations(self.peer_asn)
         all_requested = [peerses]
-        for ixlan_id, netixlans in list(mutual.items()):
-            for netixlan in netixlans[self.my_asn]:
-                for peer in netixlans[self.peer_asn]:
-                    if peer.id == self.netixlan.id:
+        for ixlan_id, members in list(mutual.items()):
+            for member in members[self.my_asn]:
+                for peer in members[self.peer_asn]:
+                    if peer.id == self.member.id:
                         continue
                     other_peerses = self.peerses(
-                        netixlan=peer, port=Port.get_or_create(netixlan)
+                        member=peer, port=Port.get_or_create(member)
                     )
                     if other_peerses.status != "pending":
                         continue
@@ -138,16 +138,16 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
     """
 
     @classmethod
-    def contact_email(cls, netixlan):
+    def contact_email(cls, member):
         """
         Returns the contact email address for peering requests associated
-        with the specified netixlan (through net.poc_set_active)
+        with the specified member (through net.poc_set_active)
 
         Will return None if no suitable contact can be found.
         """
 
         poc = pdbctl.NetworkContact().first(
-            asn=netixlan.asn, require_email=True, role="Policy"
+            asn=member.asn, require_email=True, role="Policy"
         )
 
         if not poc:
@@ -164,23 +164,23 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
                 f"Email template wrong type, '{required_type}' type required"
             )
 
-        emltmpl.context["peer"] = self.netixlan
+        emltmpl.context["peer"] = self.member
 
         return emltmpl.render()
 
     def request(self, user, emltmpl, *args, **kwargs):
-        my_asn = self.port.portinfo.pdb.net.asn
-        peer_asn = self.netixlan.net.asn
+        my_asn = self.port.portinfo.ref.asn
+        peer_asn = self.member.asn
 
         subject = "Peering request to {} (AS{}) from {} (AS{})".format(
-            self.netixlan.net.name,
-            self.netixlan.net.asn,
-            self.port.portinfo.pdb.net.name,
-            self.port.portinfo.pdb.net.asn,
+            self.member.name,
+            self.member.asn,
+            self.port.portinfo.ref.name,
+            self.port.portinfo.ref.asn,
         )
         body = self.render_email_body(emltmpl, "peer-request")
 
-        contact = self.contact_email(self.netixlan)
+        contact = self.contact_email(self.member)
 
         send_mail_from_default(
             subject,
@@ -200,20 +200,20 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         return peerses_list
 
     def config_complete(self, user, emltmpl, *args, **kwargs):
-        my_asn = self.port.portinfo.pdb.net.asn
-        peer_asn = self.netixlan.net.asn
+        my_asn = self.port.portinfo.ref.asn
+        peer_asn = self.member.asn
 
         emltmpl.context["sessions"] = [self.peerses()]
 
         subject = "Peering between {} (AS{}) and {} (AS{}) has been configured".format(
-            self.netixlan.net.name,
-            self.netixlan.net.asn,
-            self.port.portinfo.pdb.net.name,
-            self.port.portinfo.pdb.net.asn,
+            self.member.name,
+            self.member.asn,
+            self.port.portinfo.ref.name,
+            self.port.portinfo.ref.asn,
         )
         body = self.render_email_body(emltmpl, "peer-config-complete")
 
-        contact = self.contact_email(self.netixlan)
+        contact = self.contact_email(self.member)
 
         send_mail_from_default(
             subject,
@@ -231,19 +231,19 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         return peerses_list
 
     def finalize(self, user, emltmpl, *args, **kwargs):
-        my_asn = self.port.portinfo.pdb.net.asn
-        peer_asn = self.netixlan.net.asn
+        my_asn = self.port.portinfo.ref.asn
+        peer_asn = self.member.asn
 
         emltmpl.context["sessions"] = [self.peerses()]
 
         subject = "Peering between {} (AS{}) and {} (AS{}) has been enabled".format(
-            self.netixlan.net.name,
-            self.netixlan.net.asn,
-            self.port.portinfo.pdb.net.name,
-            self.port.portinfo.pdb.net.asn,
+            self.member.name,
+            self.member.asn,
+            self.port.portinfo.ref.name,
+            self.port.portinfo.ref.asn,
         )
         body = self.render_email_body(emltmpl, "peer-session-live")
-        contact = self.contact_email(self.netixlan)
+        contact = self.contact_email(self.member)
         send_mail_from_default(
             subject,
             body,

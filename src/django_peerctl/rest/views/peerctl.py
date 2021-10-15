@@ -225,9 +225,9 @@ class Port(CachedObjectMixin, viewsets.ModelViewSet):
 # retrieve peer for port and asn
 # details peer details for port and asn
 
-def get_member(pk):
+def get_member(pk, join=None):
     ref_source, ref_id = pk.split(":")
-    return sot.SOURCE_MAP["member"][ref_source]().object(pk)
+    return sot.SOURCE_MAP["member"][ref_source]().object(ref_id, join=join)
 
 @route
 class Peer(CachedObjectMixin, viewsets.GenericViewSet):
@@ -356,7 +356,7 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
             )
 
         serializer = Serializers.peer(
-            [ps.peerport.portinfo.pdb for ps in peerses],
+            [ps.peerport.portinfo.ref for ps in peerses],
             many=True,
             context={"port": port, "net": net},
         )
@@ -389,7 +389,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
             through_member = member
 
         peerport = models.PeerPort.get_or_create_from_members(
-            models.Port.objects.get(id=port_pk).portinfo.pdb, member
+            models.Port.objects.get(id=port_pk).portinfo.ref, member
         )
 
         # XXX aaactl metered limiting

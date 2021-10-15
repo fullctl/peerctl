@@ -7,8 +7,8 @@ from fullctl.service_bridge.pdbctl import (
 )
 
 
-def get_peer_contact_email(pdb_net):
-    poc = NetworkContact().first(asn=pdb_net.asn, role="Policy", require_email=True)
+def get_peer_contact_email(asn):
+    poc = NetworkContact().first(asn=asn, role="Policy", require_email=True)
     if poc:
         return poc.email
     return None

@@ -36,9 +36,9 @@ class Network(ModelSerializer):
         model = models.Network
         fields = ["id", "asn", "name", "peer_contact_email", "contacts"]
 
-    @models.pdb_fallback(lambda s, o: f"AS{o.asn}")
+    @models.ref_fallback(lambda s, o: f"AS{o.asn}")
     def get_name(self, instance):
-        return instance.pdb.name
+        return instance.ref.name
 
     def get_contacts(self, instance):
         return instance.contacts
@@ -95,6 +95,8 @@ class Port(ModelSerializer):
     policy6 = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
 
+    ref_ix_id = serializers.SerializerMethodField()
+
     class Meta:
         model = models.Port
         fields = [
@@ -108,28 +110,32 @@ class Port(ModelSerializer):
             "policy4",
             "policy6",
             "device",
+            "ref_ix_id",
         ]
 
     def get_peers(self, instance):
         return models.PeerSession.objects.filter(port=instance).count()
 
-    @models.pdb_fallback(0)
+    @models.ref_fallback(0)
     def get_ix(self, instance):
         return models.InternetExchange.objects.get(
-            ixlan_id=instance.portinfo.pdb.ixlan_id
+            ref_id=instance.portinfo.ref_ix_id
         ).id
 
-    @models.pdb_fallback("")
+    def get_ref_ix_id(self, instance):
+        return instance.portinfo.ref_ix_id
+
+    @models.ref_fallback("")
     def get_ix_name(self, instance):
         ix = models.InternetExchange.objects.get(
-            ixlan_id=instance.portinfo.pdb.ixlan_id
+            ref_id=instance.portinfo.ref_ix_id
         )
-        name = f"{ix.name}: {instance.portinfo.ipaddr4}"
+        name = f"{ix.name}: {instance.portinfo.ipaddr4} [{instance.portinfo.ref_source}]"
         return name
 
-    @models.pdb_fallback(0)
+    @models.ref_fallback(0)
     def get_speed(self, instance):
-        return instance.portinfo.pdb.speed
+        return instance.portinfo.ref.speed
 
     def get_device(self, instance):
         return Device(instance=instance.devices[0]).data
@@ -154,14 +160,15 @@ class Port(ModelSerializer):
 @register
 class Peer(ModelSerializer):
 
-    name = serializers.CharField(source="net.name")
-    asn = serializers.IntegerField(source="net.asn")
-    scope = serializers.CharField(source="net.info_scope")
-    type = serializers.CharField(source="net.info_type")
-    policy_ratio = serializers.CharField(source="net.policy_ratio")
-    policy_general = serializers.CharField(source="net.policy_general")
-    policy_contracts = serializers.CharField(source="net.policy_contracts")
-    policy_locations = serializers.CharField(source="net.policy_locations")
+    #XXX
+    #scope = serializers.CharField(source="net.info_scope")
+    #type = serializers.CharField(source="net.info_type")
+    #policy_ratio = serializers.CharField(source="net.policy_ratio")
+    #policy_general = serializers.CharField(source="net.policy_general")
+    #policy_contracts = serializers.CharField(source="net.policy_contracts")
+    #policy_locations = serializers.CharField(source="net.policy_locations")
+    name = serializers.SerializerMethodField()
+    asn = serializers.IntegerField()
     peeringdb = serializers.SerializerMethodField()
     peerses = serializers.SerializerMethodField()
     peerses_status = serializers.SerializerMethodField()
@@ -174,7 +181,9 @@ class Peer(ModelSerializer):
     info_prefixes6 = serializers.SerializerMethodField()
     ipaddr = serializers.SerializerMethodField()
     is_rs_peer = serializers.BooleanField()
+    ref_id = serializers.CharField()
     ref_tag = "peer"
+    id = serializers.CharField(source="ref_id")
 
     class Meta:
         model = models.Port
@@ -183,8 +192,9 @@ class Peer(ModelSerializer):
             "name",
             "status",
             "asn",
-            "scope",
-            "type",
+            #XXX
+            #"scope",
+            #"type",
             "info_prefixes4",
             "info_prefixes6",
             "peeringdb",
@@ -192,15 +202,17 @@ class Peer(ModelSerializer):
             "peerses_status",
             "peerses_contact",
             "user",
-            "policy_general",
-            "policy_ratio",
-            "policy_contracts",
-            "policy_locations",
+            #XXX
+            #"policy_general",
+            #"policy_ratio",
+            #"policy_contracts",
+            #"policy_locations",
             "is_rs_peer",
             "md5",
             "ix_name",
             "port_id",
             "ipaddr",
+            "ref_id",
         ]
 
     @property
@@ -249,14 +261,17 @@ class Peer(ModelSerializer):
                     self._peernets[peernet.peer.asn] = peernet
         return self._peernets
 
+    def get_name(self, obj):
+        return f"{obj.name} [{obj.source}]"
+
     def get_peeringdb(self, obj):
-        return "https://www.peeringdb.com/asn/{}".format(obj.net.asn)
+        return "https://www.peeringdb.com/asn/{}".format(obj.asn)
 
     def get_ipaddr(self, obj):
         result = []
 
         if not isinstance(self.instance, list):
-            qset = sot.SOURCE_MAP["member"][obj.ref_source]().objects(ix=obj.ix_id, asn=obj.asn)
+            qset = sot.SOURCE_MAP["member"][obj.source]().objects(ix=obj.ix_id, asn=obj.asn)
         else:
             qset = self.instance
 
@@ -276,8 +291,8 @@ class Peer(ModelSerializer):
                     "policy6": self.get_policy(member, 6),
                     "peerses": peerses,
                     "peerses_status": self.get_peerses_status(member),
-                    "origin_id": obj.id,
-                    "id": member.id,
+                    "origin_id": obj.ref_id,
+                    "id": member.ref_id,
                 }
             )
 
@@ -317,7 +332,7 @@ class Peer(ModelSerializer):
 
     def get_peerses_contact(self, obj):
         for poc in self.pocs:
-            if poc.net_id == obj.net_id:
+            if poc.asn == obj.asn:
                 return poc.email
         return None
 
@@ -328,7 +343,7 @@ class Peer(ModelSerializer):
         return None
 
     def get_md5(self, obj):
-        peernet = self.peernets.get(obj.net.asn)
+        peernet = self.peernets.get(obj.asn)
         if peernet:
             return peernet.md5
         return ""
@@ -342,19 +357,23 @@ class Peer(ModelSerializer):
         return None
 
     def get_ix_name(self, obj):
-        return self.context["port"].portinfo.ix_name
+        return self.context["port"].portinfo.ix_name + f"[{obj.source}]"
 
     def get_port_id(self, obj):
         return self.context["port"].id
 
     def get_info_prefixes4(self, obj):
-        peernet = self.peernets.get(obj.net.asn)
+        #XXX
+        return 0
+        peernet = self.peernets.get(obj.asn)
         if peernet and peernet.info_prefixes4 is not None:
             return peernet.info_prefixes4
         return obj.net.info_prefixes4
 
     def get_info_prefixes6(self, obj):
-        peernet = self.peernets.get(obj.net.asn)
+        #XXX
+        return 0
+        peernet = self.peernets.get(obj.asn)
         if peernet and peernet.info_prefixes6 is not None:
             return peernet.info_prefixes6
         return obj.net.info_prefixes6
@@ -377,8 +396,9 @@ class PeerDetails(ModelSerializer):
         net = self.context.get("net")
         my_port = self.context.get("port")
         mutual_locs = []
+        exclude = [my_port.portinfo.ref_ix_id]
 
-        for ixlan_id, result in net.get_mutual_locations(obj.asn).items():
+        for ix_id, result in net.get_mutual_locations(obj.asn, exclude=exclude).items():
             port = models.Port.get_or_create(result[net.asn][0])
             if port.id == my_port.id:
                 continue

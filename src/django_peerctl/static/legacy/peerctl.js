@@ -220,7 +220,7 @@ Peerctl.formatters = {
   },
 
   "device_name" : function(value, api_object) {
-    if(value.match(/^netixlan(\d+)$/)) {
+    if(value.match(/^member(\d+)$/)) {
       return api_object.display_name;
     }
     return value;
@@ -2830,7 +2830,7 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
           }.bind(this),
           "action" : "create",
           "data" : function(peer) {
-            return { netixlan : peer.id, through : peer.data.origin_id }
+            return { member : peer.id, through : peer.data.origin_id }
           },
           "success" : function(data, all_data, sent_data) {
             this.list.update_or_add(data[0])
@@ -3232,7 +3232,7 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
           }.bind(this),
           "action" : "create",
           "data" : function(otherpeer) {
-            return { netixlan : otherpeer.id }
+            return { member : otherpeer.id }
           },
           "success" : function(data, all_data, sent_data) {
             this.list.update_or_add(data[0])
@@ -3709,7 +3709,7 @@ Peerctl.Modals.DeviceTemplate = twentyc.cls.extend(
 
         application.api.create(
 				  path,
-          {type:type, device:device.id, netixlan:peer?peer.id:null},
+          {type:type, device:device.id, member:peer?peer.id:null},
           function(data) {
             modal.preview.html(data[0].body);
           }
@@ -3861,17 +3861,17 @@ Peerctl.Modals.BulkEmail = twentyc.cls.extend(
 Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
   "PeersesEmailWorkflow",
   {
-    "PeersesEmailWorkflow" : function(application, netixlan, port, peer_list) {
+    "PeersesEmailWorkflow" : function(application, member, port, peer_list) {
       this.form = application.elements.form_peer_request_email.clone();
-      this.netixlan = netixlan;
+      this.member = member;
 
       var modal = this, current_step = "peer-request",
           title = "Peering Request";
 
-      if(netixlan.peerses_status == "requested") {
+      if(member.peerses_status == "requested") {
         title = "Notify Configuration Complete";
         current_step = "peer-config-complete";
-      } else if(netixlan.peerses_status == "configured") {
+      } else if(member.peerses_status == "configured") {
         title = "Notify Peering Session Live";
         current_step = "peer-session-live";
       }
@@ -3882,13 +3882,13 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
         this.form
       );
 
-      if(application.selected_network_data.peer_contact_email && netixlan.peerses_contact && netixlan.peerses_status != "ok") {
+      if(application.selected_network_data.peer_contact_email && member.peerses_contact && member.peerses_status != "ok") {
         // valid contact point for peering request exists. proceed
         this.form.find('#peer_contact').
-          text(netixlan.peerses_contact).
-          attr("href", "mailto:"+netixlan.peerses_contact);
-        this.form.find("#peer_asn").text(netixlan.asn);
-        this.form.find("#peer_name").text(netixlan.name);
+          text(member.peerses_contact).
+          attr("href", "mailto:"+member.peerses_contact);
+        this.form.find("#peer_asn").text(member.asn);
+        this.form.find("#peer_name").text(member.name);
         this.template_select = this.form.find('#template')
         this.preview = this.form.find("#preview")
 
@@ -3898,7 +3898,7 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
         this.api_form = new Peerctl.Application.APIForm(
           application.api,
           "email_workflow/"+application.selected_network+"/"+
-          port+"/"+netixlan.id+"/"
+          port+"/"+member.id+"/"
         ).bind(
           this.form,
           "create",
@@ -3928,7 +3928,7 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
 
           application.api.create(
             path,
-            {type:current_step, peer:netixlan.id, peerses:netixlan.peerses},
+            {type:current_step, peer:member.id, peerses:member.peerses},
             function(data) {
               modal.preview.html(data[0].body);
             }
@@ -3958,10 +3958,10 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
       } else {
         this.form.empty();
         var msg = "";
-        if(!netixlan.peerses_contact) {
+        if(!member.peerses_contact) {
           // valid contact point for peering request does not exist. bail
           msg = "Could not find email contact for the specified peer";
-        } else if(netixlan.peerses_status == "ok") {
+        } else if(member.peerses_status == "ok") {
           msg = "You already have a peer session with this peer";
         } else if(!application.selected_network_data.peer_contact_email) {
           msg = "You do not provide a 'Policy' role contact at your peeringdb entry. It is required as it will be used as the Reply-To address for any emails sent during the peering session setup. Please add one and try again later";
