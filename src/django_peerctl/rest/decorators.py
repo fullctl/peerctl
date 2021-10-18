@@ -8,6 +8,10 @@ class grainy_endpoint(_grainy_endpoint):
         super().__init__(
             instance_class=models.Instance,
             explicit=kwargs.pop("explicit", False),
+            # apply_perms seems to collide with ? in the namespace
+            # possible grainy bug - turn off for now since we dont need
+            # this for anything at the moment
+            enable_apply_perms=True,
             *args,
             **kwargs
         )
