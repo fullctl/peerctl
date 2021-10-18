@@ -499,9 +499,9 @@ class PeerNetwork(PolicyHolderMixin, Base):
     @ref_fallback(0)
     def info_prefixes(self, ip_version):
         field_name = f"info_prefixes{ip_version}"
-        if getattr(self, field_name) is not None:
+        if getattr(self, field_name, None) is not None:
             return getattr(self, field_name)
-        return getattr(self.peer.ref.net, field_name, 0)
+        return getattr(self.peer.ref, field_name, 0)
 
     def set_info_prefixes(self, value, ip_version, save=True):
         if int(ip_version) not in [4, 6]:
