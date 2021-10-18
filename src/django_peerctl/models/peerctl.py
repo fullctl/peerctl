@@ -20,34 +20,18 @@ from django_grainy.decorators import grainy_model
 from django_handleref.models import HandleRefModel
 from django_inet.models import ASNField, IPAddressField, IPPrefixField, MacAddressField
 from fullctl.django.models.concrete import Instance
-from fullctl.service_bridge.client import Relationships
+from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
 from django_peerctl.exceptions import (
-    ReferenceNotFoundError,
     ReferenceSourceInvalid,
     TemplateRenderError,
     UsageLimitError,
 )
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.templating import make_variable_name
-
-
-def ref_lookup(source, tag, pk, field_name="id", **kwargs):
-    kwargs[field_name] = pk
-
-    try:
-        bridge = sot.SOURCE_MAP[tag][source]()
-    except KeyError:
-        raise ReferenceSourceInvalid()
-
-    obj = bridge.first(**kwargs)
-
-    if not obj:
-        raise ReferenceNotFoundError(tag, pk, source)
-    return obj
 
 
 # naming::
@@ -117,7 +101,7 @@ class ref_fallback:
         def wrapped(*args, **kwargs):
             try:
                 return fn(*args, **kwargs)
-            except (ReferenceNotFoundError, ObjectDoesNotExist):
+            except (sot.ReferenceNotFoundError, ObjectDoesNotExist):
                 if isinstance(value, collections.Callable):
                     return value(*args)
                 return value
@@ -373,7 +357,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             exchange = InternetExchange.objects.get(id=ix_id)
             ref_source, ref_id = exchange.ref_parts
             members = [
-                n.ref_id for n in sot.SOURCE_MAP["ix"][ref_source]().objects(ix=ref_id)
+                n.ref_id for n in PortInfo.ref_bridge(ref_source).objects(ix=ref_id)
             ]
             peerport_qset = PeerPort.objects.filter(portinfo__ref_id__in=members)
             ids = [peerport.peernet_id for peerport in peerport_qset]
@@ -387,7 +371,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             exchange = InternetExchange.objects.get(id=ix_id)
             ref_source, ref_id = exchange.ref_parts
             members = [
-                n.ref_id for n in sot.SOURCE_MAP["ix"][ref_source]().objects(ix=ref_id)
+                n.ref_id for n in PortInfo.ref_bridge(ref_source).objects(ix=ref_id)
             ]
             qset = qset.filter(peerport__portinfo__ref_id__in=members)
 
@@ -531,7 +515,7 @@ class PeerNetwork(PolicyHolderMixin, Base):
 
 
 @reversion.register
-class InternetExchange(Base):
+class InternetExchange(sot.ReferenceMixin, Base):
     """
     Internet Exchange model, references a PDB ix_lan
     """
@@ -549,37 +533,17 @@ class InternetExchange(Base):
     class Meta:
         db_table = "peerctl_ix"
 
-    @property
-    def ref_parts(self):
-        src, _id = self.ref_id.split(":")
-        return (src, int(_id))
-
-    @property
-    def ref_source(self):
-        return self.ref_parts[0]
-
-    @property
-    def ref(self):
-        """returns pdbctl or ixctl object"""
-        if not hasattr(self, "_ref"):
-            ref_source, ref_id = self.ref_parts
-            self._ref = ref_lookup(ref_source, "ix", ref_id)
-
-        return self._ref
-
     @classmethod
     @reversion.create_revision()
     def get_or_create(cls, ix, source):
 
         if isinstance(ix, int):
-            ix = sot.SOURCE_MAP["ix"][source]().object(ix)
+            ix = cls.ref_bridge(source).object(ix)
 
         try:
-            print("CHECKING", ix.ref_id)
             obj = cls.objects.get(ref_id=ix.ref_id)
 
         except cls.DoesNotExist:
-            print("creating ix", ix, source)
             obj = cls.objects.create(
                 status="ok",
                 # concat ix name and lan name
@@ -598,7 +562,7 @@ class InternetExchange(Base):
 
 
 @reversion.register
-class PortInfo(Base):
+class PortInfo(sot.ReferenceMixin, Base):
     """
     ix member abstraction to allow for private peering
     if ref id is set, uses all fields from that, if not uses local_
@@ -623,26 +587,8 @@ class PortInfo(Base):
         verbose_name_plural = "Port Information"
 
     @property
-    def ref_parts(self):
-        src, _id = self.ref_id.split(":")
-        return (src, int(_id))
-
-    @property
-    def ref_source(self):
-        src, _id = self.ref_parts
-        return src
-
-    @property
     def ref_ix_id(self):
         return f"{self.ref_source}:{self.ref.ix_id}"
-
-    @property
-    def ref(self):
-        """returns pdbctl or ixctl object"""
-        if not hasattr(self, "_ref"):
-            ref_source, ref_id = self.ref_parts
-            self._ref = ref_lookup(ref_source, "member", ref_id)
-        return self._ref
 
     @property
     @ref_fallback("")
@@ -677,7 +623,7 @@ class PortInfo(Base):
     @property
     @ref_fallback("")
     def ix_name(self):
-        return ref_lookup(self.ref_source, "ix", self.ref.ix_id).name
+        return InternetExchange.ref_bridge(self.ref_source).object(self.ref.ix_id).name
 
     @property
     @ref_fallback(None)
@@ -1057,9 +1003,7 @@ class Port(PolicyHolderMixin, Base):
 
         ref_source, ref_id = self.portinfo.ref_parts
 
-        query = sot.SOURCE_MAP["member"][ref_source]().objects(
-            peers=ref_id,
-        )
+        query = self.portinfo.ref_objects(peers=ref_id)
 
         peers = [peer for peer in query]
 

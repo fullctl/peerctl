@@ -262,7 +262,7 @@ class Peer(ModelSerializer):
         result = []
 
         if not isinstance(self.instance, list):
-            qset = sot.SOURCE_MAP["member"][obj.source]().objects(
+            qset = models.PortInfo.ref_bridge(obj.source).objects(
                 ix=obj.ix_id, asn=obj.asn
             )
         else:

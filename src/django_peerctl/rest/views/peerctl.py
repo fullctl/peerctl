@@ -219,7 +219,7 @@ class Port(CachedObjectMixin, viewsets.ModelViewSet):
 
 def get_member(pk, join=None):
     ref_source, ref_id = pk.split(":")
-    return sot.SOURCE_MAP["member"][ref_source]().object(ref_id, join=join)
+    return models.PortInfo.ref_bridge(ref_source).object(ref_id, join=join)
 
 
 @route
