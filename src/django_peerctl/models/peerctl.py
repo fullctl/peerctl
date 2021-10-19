@@ -1016,7 +1016,8 @@ class Port(PolicyHolderMixin, Base):
 
         source, id = self.portinfo.ref_parts
 
-        SyncMacAddress.create_task(id, mac_address)
+        if source == "ixctl":
+            SyncMacAddress.create_task(id, mac_address)
 
     def get_peerses(self, member):
         """
