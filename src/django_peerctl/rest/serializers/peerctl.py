@@ -28,7 +28,15 @@ class Network(ModelSerializer):
 
     class Meta:
         model = models.Network
-        fields = ["id", "asn", "name", "peer_contact_email", "contacts"]
+        fields = [
+            "id",
+            "asn",
+            "as_set",
+            "as_set_source",
+            "name",
+            "peer_contact_email",
+            "contacts",
+        ]
 
     @models.ref_fallback(lambda s, o: f"AS{o.asn}")
     def get_name(self, instance):
@@ -88,6 +96,7 @@ class Port(ModelSerializer):
     policy4 = serializers.SerializerMethodField()
     policy6 = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
+    mac_address = serializers.SerializerMethodField()
 
     ref_ix_id = serializers.SerializerMethodField()
 
@@ -105,7 +114,11 @@ class Port(ModelSerializer):
             "policy6",
             "device",
             "ref_ix_id",
+            "mac_address",
         ]
+
+    def get_mac_address(self, instance):
+        return f"{instance.mac_address}"
 
     def get_peers(self, instance):
         return models.PeerSession.objects.filter(port=instance).count()

@@ -3113,6 +3113,7 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
 
     "load_device_info" : function() {
       var asn = this.application.selected_network;
+      var net = this.application.networks[asn];
       var port = this.selected_port;
       var application = window.peerctl;
       this.application.api.list("port/"+asn+"/"+port+"/devices/",{},function(data){
@@ -3167,6 +3168,27 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
             }
           ).refresh(device.type).element
         );
+
+        panel.find("#mac-address").empty().append(
+          new Peerctl.Application.APIInput(
+            application.api,
+            function() {
+              return { "put": "port/"+asn+"/"+port.id+"/set_mac_address/" }
+            },
+            {}
+          ).bind($('<input>')).element.val(port.mac_address)
+        );
+
+        panel.find("#as-set").empty().append(
+          new Peerctl.Application.APIInput(
+            application.api,
+            function() {
+              return { "put": "net/"+asn+"/set_as_set/" }
+            },
+            {}
+          ).bind($('<input>')).element.val(net.as_set)
+        );
+
 
         panel.find('#device-template').empty().append(
           new Peerctl.Application.APISelect(

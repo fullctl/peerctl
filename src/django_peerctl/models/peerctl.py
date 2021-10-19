@@ -18,10 +18,12 @@ from django.utils.translation import gettext as _
 from django_countries.fields import CountryField
 from django_grainy.decorators import grainy_model
 from django_handleref.models import HandleRefModel
-from django_inet.models import ASNField, IPAddressField, IPPrefixField, MacAddressField
+from django_inet.models import ASNField, IPAddressField, IPPrefixField
+from netfields import MACAddressField
 from fullctl.django.models.concrete import Instance
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
+
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
@@ -32,6 +34,7 @@ from django_peerctl.exceptions import (
 )
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.templating import make_variable_name
+from django_peerctl.models.tasks import SyncMacAddress, SyncASSet
 
 
 # naming::
@@ -264,6 +267,8 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     # non editable
     asn = ASNField(unique=True, db_index=True)
 
+    as_set_override = models.CharField(null=True, blank=True, max_length=255)
+
     # default_policy
 
     class HandleRef:
@@ -331,6 +336,20 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             if poc.email and role not in contacts:
                 contacts[role] = poc.email
         return contacts
+
+    @property
+    def as_set(self):
+        if not self.as_set_override:
+            return self.ref.irr_as_set or ""
+        return self.as_set_override
+
+    @property
+    def as_set_source(self):
+        if self.as_set_override:
+            return "peerctl"
+        if self.ref.irr_as_set:
+            return "pdbctl"
+        return None
 
     @property
     def peerses_set(self):
@@ -457,6 +476,11 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         except:
             pass
         return r
+
+    def set_as_set(self, as_set):
+        self.as_set_override = as_set
+        self.save()
+        SyncASSet.create_task(self.asn, self.as_set_override)
 
 
 @reversion.register
@@ -864,7 +888,8 @@ class VirtualPort(Base):
     )
 
     vlan_id = models.IntegerField()
-    # mac_addr
+
+    mac_address = MACAddressField(blank=True, null=True)
 
     class HandleRef:
         tag = "virtport"
@@ -978,6 +1003,20 @@ class Port(PolicyHolderMixin, Base):
                 "peerport", "peerport__portinfo", "peerport__peernet"
             ).all()
         return self._peerses_qs_prefetched
+
+    @property
+    def mac_address(self):
+        return self.virtport.mac_address or ""
+
+    def set_mac_address(self, mac_address):
+
+        self.virtport.mac_address = mac_address
+        self.virtport.full_clean()
+        self.virtport.save()
+
+        source, id = self.portinfo.ref_parts
+
+        SyncMacAddress.create_task(id, mac_address)
 
     def get_peerses(self, member):
         """

@@ -39,6 +39,19 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
         serializer = self.serializer_class(instances, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["put"])
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def set_as_set(self, request, asn, net, *args, **kwargs):
+        as_set = request.POST.get("value")
+        try:
+            net.set_as_set(as_set)
+        except Exception as exc:
+            return BadRequest({"non_field_errors": [[str(exc)]]})
+
+        serializer = self.serializer_class(net)
+        return Response(serializer.data)
+
 
 @route
 class Device(CachedObjectMixin, viewsets.ModelViewSet):
@@ -204,6 +217,19 @@ class Port(CachedObjectMixin, viewsets.ModelViewSet):
 
         try:
             port.set_policy(policy, ip_version)
+        except Exception as exc:
+            return BadRequest({"non_field_errors": [[str(exc)]]})
+
+        serializer = self.serializer_class(port)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["put"])
+    @load_object("port", models.Port, id="pk", portinfo__net__asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def set_mac_address(self, request, asn, pk, port, *args, **kwargs):
+        mac_address = request.POST.get("value")
+        try:
+            port.set_mac_address(mac_address)
         except Exception as exc:
             return BadRequest({"non_field_errors": [[str(exc)]]})
 
