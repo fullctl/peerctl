@@ -11,4 +11,4 @@ Serializers, register = serializer_registry()
 class Network(ModelSerializer):
     class Meta:
         model = models.Network
-        fields = ["id", "name", "as_set"]
+        fields = ["id", "name", "asn", "as_set"]
