@@ -25,5 +25,8 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
             asn = int(permission.namespace[2])
             verified_asns.append(asn)
 
+    if not verified_asns:
+        return
+
     for member in sot.InternetExchangeMember().objects(asns=verified_asns, join="ix"):
         Port.get_or_create(member)
