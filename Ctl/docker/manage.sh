@@ -1,4 +1,4 @@
-SERVICE_HOME=/src/peerctl
+SERVICE_HOME=/srv/service
 VIRTUAL_ENV=venv
 
 

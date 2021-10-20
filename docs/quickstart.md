@@ -27,13 +27,10 @@ Please checkout and install https://github.com/fullctl/aaactl and once you have 
 
 Note you will need to give users permissions (in aaactl) to the following namespaces for peerctl to work correctly:
 
-- `org.{org id}`
-- `ix.{org_id}`
-- `net.{org_id}`
-- `rs.{org_id}`
-- `rsconf.{org_id}`
+- `verified.asn.{asn}.fullctl` where {asn} should be the actual asn (e.g, 63311)
 
-The easiest way to do that by settings the `*.{org_id}` namespace
+**note** - if authentication through peeringdb is provided in your aaactl instance asn verification can be done automatically by linking your peeringdb account to your aaactl account
+
 
 - PDBCTL_HOST: pdbctl host address
 

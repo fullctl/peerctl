@@ -10,7 +10,7 @@ def reset(apps, schema_editor):
     Network = apps.get_model("django_peerctl", "Network")
     InternetExchange = apps.get_model("django_peerctl", "InternetExchange")
     Network.handleref.all().delete()
-    InternetExchange.handleref.all.delete()
+    InternetExchange.handleref.all().delete()
 
 
 class Migration(migrations.Migration):
