@@ -34,7 +34,7 @@ from django_peerctl.exceptions import (
 )
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.templating import make_variable_name
-from django_peerctl.models.tasks import SyncMacAddress, SyncASSet
+from django_peerctl.models.tasks import SyncMacAddress
 
 
 # naming::
@@ -480,7 +480,6 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     def set_as_set(self, as_set):
         self.as_set_override = as_set
         self.save()
-        SyncASSet.create_task(self.asn, self.as_set_override)
 
 
 @reversion.register
