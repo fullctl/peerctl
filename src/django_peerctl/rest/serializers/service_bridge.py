@@ -9,13 +9,6 @@ Serializers, register = serializer_registry()
 
 @register
 class Network(ModelSerializer):
-
     class Meta:
         model = models.Network
-        fields = [
-            "id",
-            "name",
-            "as_set"
-        ]
-
-
+        fields = ["id", "name", "as_set"]

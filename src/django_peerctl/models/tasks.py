@@ -1,6 +1,6 @@
+import fullctl.service_bridge.ixctl as ixctl
 from fullctl.django.models.concrete import Task
 from fullctl.django.tasks import register
-import fullctl.service_bridge.ixctl as ixctl
 
 
 @register

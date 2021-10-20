@@ -19,11 +19,10 @@ from django_countries.fields import CountryField
 from django_grainy.decorators import grainy_model
 from django_handleref.models import HandleRefModel
 from django_inet.models import ASNField, IPAddressField, IPPrefixField
-from netfields import MACAddressField
 from fullctl.django.models.concrete import Instance
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
-
+from netfields import MACAddressField
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
@@ -33,9 +32,8 @@ from django_peerctl.exceptions import (
     UsageLimitError,
 )
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
-from django_peerctl.templating import make_variable_name
 from django_peerctl.models.tasks import SyncMacAddress
-
+from django_peerctl.templating import make_variable_name
 
 # naming::
 # handleref tag $model_$model

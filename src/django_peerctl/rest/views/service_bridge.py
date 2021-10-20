@@ -10,11 +10,7 @@ class Network(DataViewSet):
 
     path_prefix = "/data"
     allowed_http_methods = ["GET"]
-    valid_filters = [
-        ("q", "name__icontains"),
-        ("asn", "asn"),
-        ("asns", "asn__in")
-    ]
+    valid_filters = [("q", "name__icontains"), ("asn", "asn"), ("asns", "asn__in")]
     autocomplete = "name"
     allow_unfiltered = True
 
