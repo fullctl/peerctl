@@ -21,46 +21,36 @@ peerctl = "peerctl.cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-django-handleref = ">=0.5"
-djangorestframework = ">=3.11,<4"
-Django = ">=3.2,<4"
-django-peeringdb = "*"
-psycopg2-binary = ">2.8,<3"
-django-reversion = ">=3,<4"
-django-inet = "*"
-django-netfields = "<2"
-django-autocomplete-light = ">=3,<3.8"
-django-allauth = ">=0.45,<2"
-social-auth-app-django = "<4"
-grainy = ">=1.8.1,<2"
-django-grainy = ">=1.9.0,<2"
-pyyaml = "*"
-pip = "*"
-arouteserver = "*"
-celery = "<6,>=5"
 fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "prep-release" }
-peeringdb = "^1.1.0"
-netom = "<2.0.0"
-confu = ">=1.5,<2"
-uWSGI = "^2.0.19"
+
+# not in fullctl
+# XXX needed?
+django-allauth = ">=0.45,<2"
+pyyaml = "*"
+
+netom = { git = "https://github.com/20c/netom.git", branch = "update-deps" }
 
 [tool.poetry.dev-dependencies]
+docker-compose = "^1.29.1"
 # tests
+codecov = ">=2"
+coverage = ">=5"
 pytest = ">=6.0.1"
 pytest-django = ">=3.8.0"
 pytest-cov = "*"
 
 # linting
 bandit = "^1.6.2"
-black = "^20.8b1"
+black = {version = ">=20", allow-prereleases = true}
 isort = "^5.7.0"
 flake8 = "^3.8.4"
-docker-compose = "^1.29.1"
+pre-commit = "^2.13.0"
+pyupgrade = "^2.19.4"
 
 #ctl
 ctl = "^1.0.0"
 jinja2 = "^2.11.2"
-tmpl = "^0.3.0"
+tmpl = "^1"
 
 [tool.isort]
 profile = "black"
