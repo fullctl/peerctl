@@ -59,16 +59,7 @@ LOGIN_URL = "/login"
 
 settings_manager.set_twentyc_service()
 
-SOCIAL_AUTH_PIPELINE = (
-    "social_core.pipeline.social_auth.social_details",
-    "social_core.pipeline.social_auth.social_uid",
-    "social_core.pipeline.social_auth.social_user",
-    "social_core.pipeline.user.get_username",
-    "social_core.pipeline.user.create_user",
-    "social_core.pipeline.social_auth.associate_user",
-    "social_core.pipeline.social_auth.load_extra_data",
-    "fullctl.django.social.pipelines.sync_organizations",
-    "social_core.pipeline.user.user_details",
+SOCIAL_AUTH_PIPELINE += (
     "django_peerctl.social.pipelines.create_devices",
 )
 
