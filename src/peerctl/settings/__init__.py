@@ -11,8 +11,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "
 
 # Intialize settings manager with global variable
 settings_manager = settings.SettingsManager(globals())
-
-settings.set_release_env_v1(settings_manager)
+settings_manager.set_release_env()
 
 # look for mainsite/settings/${RELEASE_ENV}.py and load if it exists
 env_file = os.path.join(os.path.dirname(__file__), f"{RELEASE_ENV}.py")
@@ -24,10 +23,7 @@ settings_manager.set_option(
     "PACKAGE_VERSION", settings.read_file(os.path.join(BASE_DIR, "etc/VERSION")).strip()
 )
 
-settings.set_default_v1(settings_manager)
-
-# XXX SETCOM2
-AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
+settings_manager.set_default_v1()
 
 # PEERCTL Base
 
@@ -61,34 +57,7 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login"
 LOGIN_URL = "/login"
 
-# SERVICE BRIDGES
-
-
-# OAUTH
-
-# 20C
-
-settings_manager.set_option("OAUTH_TWENTYC_HOST", "https://account.20c.com")
-settings.set_service_bridges(settings_manager)
-OAUTH_TWENTYC_ACCESS_TOKEN_URL = f"{OAUTH_TWENTYC_HOST}/account/auth/o/token/"
-OAUTH_TWENTYC_AUTHORIZE_URL = f"{OAUTH_TWENTYC_HOST}/account/auth/o/authorize/"
-OAUTH_TWENTYC_PROFILE_URL = f"{OAUTH_TWENTYC_HOST}/account/auth/o/profile/"
-
-settings_manager.set_option("OAUTH_TWENTYC_KEY", "")
-settings_manager.set_option("OAUTH_TWENTYC_SECRET", "")
-
-SOCIAL_AUTH_TWENTYC_KEY = OAUTH_TWENTYC_KEY
-SOCIAL_AUTH_TWENTYC_SECRET = OAUTH_TWENTYC_SECRET
-AUTHENTICATION_BACKENDS = [
-    "fullctl.django.social.backends.twentyc.TwentycOAuth2",
-] + AUTHENTICATION_BACKENDS
-
-GRAINY_REMOTE = {
-    "url_load": f"{OAUTH_TWENTYC_HOST}/grainy/load/",
-    # "url_get": f"{OAUTH_TWENTYC_HOST}/grainy/get/" + "{}/",
-}
-
-settings_manager.set_option("SOCIAL_AUTH_REDIRECT_IS_HTTPS", True)
+settings_manager.set_twentyc_service()
 
 SOCIAL_AUTH_PIPELINE = (
     "social_core.pipeline.social_auth.social_details",
@@ -172,7 +141,7 @@ settings_manager.set_option(
 )
 
 # FINALIZE
-settings.set_default_append(settings_manager)
+settings_manager.set_default_append()
 
 # look for mainsite/settings/${RELEASE_ENV}_append.py and load if it exists
 env_file = os.path.join(os.path.dirname(__file__), f"{RELEASE_ENV}_append.py")
