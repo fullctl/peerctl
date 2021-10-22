@@ -15,7 +15,7 @@ from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
 from django_peerctl.peerses_workflow import PeerSessionEmailWorkflow
 from django_peerctl.rest.decorators import grainy_endpoint
 from django_peerctl.rest.route.peerctl import route
-from django_peerctl.rest.serializers.peerctl import Serializers
+from django_peerctl.rest.serializers.peerctl import Serializers, ValidationError
 
 
 @route
@@ -208,8 +208,8 @@ class Port(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("port", models.Port, id="pk", portinfo__net__asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_policy(self, request, asn, pk, port, *args, **kwargs):
-        ip_version = int(request.POST.get("ipv"))
-        policy_id = int(request.POST.get("value"))
+        ip_version = int(request.data.get("ipv"))
+        policy_id = int(request.data.get("value"))
         policy = None
 
         if policy_id:
@@ -266,9 +266,16 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         instances = port.get_available_peers()
 
         serializer = self.serializer_class(
-            instances, many=True, context={"port": port, "net": net}
+           instances, many=True, context={"port": port, "net": net}
         )
-        return Response(serializer.data)
+
+        unified = {}
+        for row in serializer.data:
+            if row["asn"] == int(asn):
+                continue
+            if row["asn"] not in unified:
+                unified[row["asn"]] = row
+        return Response(sorted(list(unified.values()), key=lambda x:x["name"]))
 
     @load_object("net", models.Network, asn="asn")
     @load_object("port", models.Port, id="port_pk")
@@ -286,6 +293,24 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         peer = get_member(pk)
         serializer = Serializers.peerdetail(peer, context={"port": port, "net": net})
         return Response(serializer.data)
+
+    @action(detail=True, methods=["get"])
+    @load_object("net", models.Network, asn="asn")
+    @load_object("port", models.Port, id="port_pk")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def mutual_locations(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
+        peer = get_member(pk)
+        serializer = Serializers.peerdetail(peer, context={"port": port, "net": net})
+
+        result = []
+
+        for row in serializer.data["mutual_locations"]:
+            for ip_row in row["ipaddr"]:
+                ip_row["ix_name"] = row["ix_name"]
+                ip_row["port_id"] = row["port_id"]
+            result.extend(row["ipaddr"])
+
+        return Response(result)
 
     @action(detail=True, methods=["put"])
     @load_object("net", models.Network, asn="asn")
@@ -316,12 +341,12 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
         try:
             peernet.set_info_prefixes(
-                request.POST.get("value"), request.POST.get("ipv")
+                request.data.get("value"), request.data.get("ipv")
             )
         except ValidationError as exc:
-            raise serializers.ValidationError(detail=exc.message_dict)
+            raise ValidationError(detail=exc.message_dict)
         except Exception as exc:
-            raise serializers.ValidationError({"non_field_errors": [[str(exc)]]})
+            raise ValidationError({"non_field_errors": [[str(exc)]]})
 
         serializer = self.serializer_class(
             instance=member, context={"port": port, "net": net}
@@ -368,9 +393,9 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
         try:
             peerses = workflow.progress(request.user, emltmpl)
         except TemplateRenderError as exc:
-            raise serializers.ValidationError({"non_field_errors": ["{}".format(exc)]})
+            raise ValidationError({"non_field_errors": ["{}".format(exc)]})
         except UsageLimitError as exc:
-            raise serializers.ValidationError(
+            raise ValidationError(
                 {"non_field_errors": [["usage_limit", "{}".format(exc)]]}
             )
 
@@ -398,7 +423,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, port_pk, port, *args, **kwargs):
-        data = request.POST.dict()
+        data = request.data
 
         member = get_member(data.get("member"), join="ix")
 
@@ -415,7 +440,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         # try:
         #    port.portinfo.net.validate_limits()
         # except UsageLimitError as exc:
-        #    raise serializers.ValidationError(
+        #    raise ValidationError(
         #        {"non_field_errors": [["usage_limit", "{}".format(exc)]]}
         #    )
 
@@ -438,8 +463,8 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     def set_policy(
         self, request, asn, net, port_pk, port, pk, peerses, *args, **kwargs
     ):
-        ip_version = int(request.POST.get("ipv"))
-        policy_id = int(request.POST.get("value"))
+        ip_version = int(request.data.get("ipv"))
+        policy_id = int(request.data.get("value"))
         policy = None
 
         if policy_id:
@@ -638,23 +663,33 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
     @action(detail=False)
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_available(self, request, asn, *args, **kwargs):
+        devtyp = request.GET.get("device_type")
+        instances = models.DeviceTemplate.objects.filter(status="ok", net__asn=asn)
+        if devtyp:
+            instances = instances.filter(type__startswith=f"{devtyp}-")
+
+        data = [{"id":tmpl.id, "type": tmpl.type, "custom": True, "name":tmpl.name} for tmpl in instances]
+
+
         # load default templates (netom)
-        data = [{"id": tmpl[0], "name": tmpl[1]} for tmpl in DEVICE_TEMPLATE_TYPES]
+        default = [{"id": tmpl[0], "name": tmpl[1]} for tmpl in DEVICE_TEMPLATE_TYPES]
+
 
         # if a device type is specified in url parameters we
         # only want to display template types for this device type
-        devtyp = request.GET.get("device_type")
         devtypes = dict(DEVICE_TYPES)
         if devtyp:
             devname = devtypes.get(devtyp)
             trimmed = []
-            for tmpl in data:
+            for tmpl in default:
                 if tmpl["id"].find(f"{devtyp}-") == 0:
                     # remove device type label from template label
                     # as it's redundant when specifying a device
                     tmpl["name"] = tmpl["name"].replace(devname + " ", "")
                     trimmed.append(tmpl)
-            data = trimmed
+            data += trimmed
+        else:
+            data += default
 
         serializer = Serializers.devicelist(data, many=True)
         return Response(serializer.data)

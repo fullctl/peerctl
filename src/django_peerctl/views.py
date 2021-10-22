@@ -19,6 +19,7 @@ def make_env(request, **kwargs):
 def view_instance(request, instance, **kwargs):
     env = make_env(request, instance=instance, org=instance.org)
     env["forms"] = {}
+    env["selected_asn"] = 63311
 
     return render(request, "peerctl/index.html", env)
 

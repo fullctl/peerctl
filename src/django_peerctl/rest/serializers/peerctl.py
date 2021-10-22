@@ -473,7 +473,7 @@ class DeviceTemplateList(serializers.Serializer):
 
     def get_type(self, obj):
         if isinstance(obj, dict):
-            return obj["id"]
+            return obj.get("type", obj.get("id"))
         return obj.type
 
     def get_id(self, obj):

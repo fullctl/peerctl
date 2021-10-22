@@ -11,7 +11,7 @@ urlpatterns += [
         "api/",
         include(
             ("django_peerctl.rest.urls.peerctl", "django_peerctl_api"),
-            namespace="django_peerctl_api",
+            namespace="peerctl_api",
         ),
     ),
     path("tmpl/devicetmpl/<str:template_id>/", devicetmpl_base),
