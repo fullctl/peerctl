@@ -11,11 +11,21 @@
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 {% endif %}
 <script>
-{% if select_ix and not request.GET.v2 %}
 $(fullctl.application).on("initialized", function(e, peerctl, id) {
-  peerctl.preselect_ix = {{ select_ix.id }};
+  peerctl.network = {
+    id: {{ net.id }},
+    as_set: "{{ net.as_set }}",
+    name : "{{ net.name }}"
+  }
+
+$('[data-second-tab]').on('show.bs.tab', function(e) {
+  let target = $(e.target).data('second-tab');
+  $(target)
+    .addClass('active show')
+    .siblings('.tab-pane.active')
+    .removeClass('active show')
 });
-{% endif %}
+});
 </script>
 {% endblock %}
 
@@ -44,6 +54,7 @@ $(fullctl.application).on("initialized", function(e, peerctl, id) {
       role="tab"
       aria-controls="peering-lists"
       aria-selected="true"
+      data-second-tab="#peering-lists-body"
       href="#page-peering-lists">{% trans "Peering lists" %}</a>
 
     <a class="nav-link"
@@ -51,6 +62,7 @@ $(fullctl.application).on("initialized", function(e, peerctl, id) {
       role="tab"
       aria-controls="templates"
       aria-selected="false"
+      data-second-tab="#templates-body"
       href="#page-templates">{% trans "Templates" %}</a>
   </nav>
 </div>
@@ -65,6 +77,32 @@ $(fullctl.application).on("initialized", function(e, peerctl, id) {
 {% endwith %}
 {% endblock %}
 
+{% block "header_account_panel" %}
+{% with app_id="peerctl" %}
+
+      <span class="header-control">
+        <span class="icon">
+          <img src="{% static "common/icons/icon/list.svg" %}">
+        </span>
+        <button data-element="button_asn" class="button" type="button"  id="asn-menu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        AS{{ selected_asn }}
+        </button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="asn-menu">
+          {% for asn,net in asns.items %}
+          <a class="asn dropdown-item action" data-select-asn="{{ asn }}">
+            <span class="icon icon-solid">
+              <img src="{% static "common/icons/icon/list.svg" %}">
+            </span><span>AS{{ asn }}</span></a>
+          {% endfor %}
+        </div>
+        <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+      </span>
+
+
+{{ block.super }}
+{% endwith %}
+{% endblock %}
+
 
 {% block "app_content_toolbar" %}
 
@@ -74,6 +112,7 @@ $(fullctl.application).on("initialized", function(e, peerctl, id) {
   </div>
 
   <div class="tab-pane" id="page-templates" role="tabpanel" aria-labelledby="tab-templates">
+    {% include "peerctl/tool-v2/peering-templates/nav.html" %}
   </div>
 </div>
 
@@ -86,11 +125,11 @@ $(fullctl.application).on("initialized", function(e, peerctl, id) {
 {% block "app_content_main" %}
 {% if request.GET.v2 %}
 <div class="tab-content" id="app-pages">
-  <div class="tab-pane show active" id="page-peering-lists" role="tabpanel" aria-labelledby="tab-peering-lists">
+  <div class="tab-pane show active" id="peering-lists-body" role="tabpanel" aria-labelledby="tab-peering-lists">
     {% include "peerctl/tool-v2/peering-lists/main.html" %}
   </div>
 
-  <div class="tab-pane" id="page-templates" role="tabpanel" aria-labelledby="tab-templates">
+  <div class="tab-pane" id="templates-body" role="tabpanel" aria-labelledby="tab-templates">
     {% include "peerctl/tool-v2/peering-templates/main.html" %}
   </div>
 </div>

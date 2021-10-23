@@ -5,6 +5,12 @@
   </div>
   <div class="templates">
 
+    <!-- FORMS -->
+
+    {% include "peerctl/tool-v2/peering-lists/form-md5.html" %}
+    {% include "peerctl/tool-v2/peering-lists/form-request-peering.html" %}
+    {% include "peerctl/tool-v2/peering-lists/device-config.html" %}
+
     <!-- PEERS TEMPLATE -->
 
     <div data-template="peers"
@@ -32,7 +38,7 @@
             <div class="col-xs-12 col-3">
               {% trans "ASN:" %}
               <span data-field="asn"></span>
-              <button>{% trans "MD5 Password" %}</button>
+              <button data-element="md5">{% trans "MD5 Password" %}</button>
             </div>
             <div class="col-xs-12 col-2">
               {% trans "Prefix 4:" %}
@@ -55,7 +61,7 @@
 
           <div class="row">
             <div class="col-xs-12 col-3">
-              <span data-field="pdb"></span>
+              <span data-field="peeringdb"></span>
             </div>
             <div class="col-xs-12 col-2">
               {% trans "Prefix 6:" %}
@@ -87,7 +93,7 @@
             <div class="row">
               <div class="col-12">
                 <button class="toggle-mutual-locations">{% trans "Other echange points" %}</button>
-                <button>{% trans "Request peering" %}</button>
+                <button data-element="request_peering">{% trans "Request peering" %}</button>
               </div>
             </div>
             <div class="row">
@@ -115,14 +121,12 @@
           <div class="col-xs-12 col-3">
             <button
               class="peerses-add peerses-inactive-toggled"
-              data-api-action="{% url "peerctl_api:peerses-list" asn=selected_asn port_pk="port_id" %}"
-              data-api-base="/"
+              data-api-base="{% url "peerctl_api:peerses-list" asn=selected_asn port_pk="port_id" %}"
               data-api-method="post">{% trans "Add" %}</button>
 
             <button
               class="peerses-live peerses-active-toggled"
-              data-api-action="{% url "peerctl_api:peerses-detail" asn=selected_asn port_pk="port_id"  pk="peerses_id" %}"
-              data-api-base="/"
+              data-api-base="{% url "peerctl_api:peerses-detail" asn=selected_asn port_pk="port_id"  pk="peerses_id" %}"
               data-confirm="{% trans "Remove this peering session?" %}"
               data-api-method="delete">{% trans "Live" %}</button>
 
@@ -156,7 +160,7 @@
             </div>
           </div>
           <div class="col-xs-12 col-2 right">
-            <button class="peerses-active-toggled">{% trans "Show Config" %}</button>
+            <button class="peerses-active-toggled" data-element="peerses_device_config">{% trans "Show Config" %}</button>
           </div>
         </div>
       </div>
@@ -199,10 +203,6 @@
             data-api-method="put"
             data-element="port_device_type"></select>
 
-
-
-
-
         </div>
         <div class="col-xs-12 col-4 right">
 
@@ -212,10 +212,31 @@
             data-api-base="{% url "peerctl_api:devicetmpl-list-available" asn=selected_asn %}"
             data-element="port_device_template"></select>
 
-          <button>{% trans "Show config" %}</button>
+          <button data-element="device_config">{% trans "Show config" %}</button>
 
         </div>
 
+      </div>
+      <div class="row">
+        <div class="col-xs-12 col-8">
+          {% trans "MAC Address" %}
+          <input type="text"
+            data-api-base="{% url "peerctl_api:port-set-mac-address" asn=selected_asn pk="port_id" %}"
+            data-api-method="put"
+            data-element="port_mac_address">
+
+          {% trans "AS-Set" %}
+          <input type="text"
+            data-api-base="{% url "peerctl_api:net-set-as-set" asn=selected_asn %}"
+            data-api-method="put"
+            data-element="net_as_set">
+
+        </div>
+        <div class="col-xs-12 col-4 right">
+          <!--
+          <button data-element="email_peers">{% trans "Email peers" %}</button>
+          -->
+        </div>
       </div>
     </div>
   </div>

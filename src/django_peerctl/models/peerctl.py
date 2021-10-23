@@ -1303,7 +1303,7 @@ class DeviceTemplate(Base, TemplateBase):
         net = ctx.get("net")
         member = ctx.get("member")
         if member:
-            member = [int(member)]
+            member = [member]
 
         data.update(**device.peer_groups_netom0_data(net, members=member))
         data["device"] = {"type": device.type}

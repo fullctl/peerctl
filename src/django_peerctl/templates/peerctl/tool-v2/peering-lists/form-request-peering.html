@@ -1,0 +1,34 @@
+{% load i18n %}
+<form data-template="form_request_peering"
+  data-api-base="{% url "peerctl_api:email_workflow-list" asn=selected_asn port_pk="port_id" member_pk="peer_id" %}"
+  data-api-method="post">
+
+  <div class="row">
+    <div class="col-7">
+      <div class="card">
+        <div class="card-header peer-name" data-field="name">
+          Network
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item peer-asn" data-field="asn">ASN</li>
+          <li class="list-group-item peer-email" data-field="peerses_contact">email address</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-5">
+      <div class="card">
+        <div class="card-header" data-field="name">
+        {% trans "Workflow" %}
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item peer-request" data-field="step_request">{% trans "Request" %}</li>
+          <li class="list-group-item peer-config-complete" data-field="step_configured">{% trans "Configured" %}</li>
+          <li class="list-group-item peer-session-live" data-field="step_live">{% trans "Session Live" %}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  {% include "peerctl/tool-v2/email-template-preview.html" %}
+
+</form>

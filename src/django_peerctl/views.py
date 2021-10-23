@@ -3,7 +3,7 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from fullctl.django.decorators import load_instance, require_auth
 
-from django_peerctl.models import InternetExchange
+from django_peerctl.utils import verified_asns
 
 # Create your views here.
 
@@ -18,8 +18,24 @@ def make_env(request, **kwargs):
 @load_instance()
 def view_instance(request, instance, **kwargs):
     env = make_env(request, instance=instance, org=instance.org)
+
+
+    selected_asn = int(request.GET.get("asn", 0))
+    asns = dict([(net.asn, net) for net in verified_asns(request.perms)])
+
+    net = asns.get(selected_asn)
+
+    if not net:
+        for net in asns.values():
+            break
+
+    if not net:
+        return HttpResponse(status=401);
+
     env["forms"] = {}
-    env["selected_asn"] = 63311
+    env["net"] = net
+    env["selected_asn"] = net.asn
+    env["asns"] = asns
 
     return render(request, "peerctl/index.html", env)
 

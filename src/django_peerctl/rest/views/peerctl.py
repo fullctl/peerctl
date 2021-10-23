@@ -43,7 +43,7 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_as_set(self, request, asn, net, *args, **kwargs):
-        as_set = request.POST.get("value")
+        as_set = request.data.get("value")
         try:
             net.set_as_set(as_set)
         except Exception as exc:
@@ -112,13 +112,13 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
-        serializer = self.serializer_class(data=request.POST)
+        serializer = self.serializer_class(data=request.data)
 
-        is_global4 = request.POST.get("is_global4", False)
+        is_global4 = request.data.get("is_global4", False)
         if is_global4 == "false":
             is_global4 = False
 
-        is_global6 = request.POST.get("is_global6", False)
+        is_global6 = request.data.get("is_global6", False)
         if is_global6 == "false":
             is_global6 = False
 
@@ -141,13 +141,13 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def update(self, request, asn, net, pk, policy, *args, **kwargs):
 
-        serializer = self.serializer_class(instance=policy, data=request.POST)
+        serializer = self.serializer_class(instance=policy, data=request.data)
 
-        is_global4 = request.POST.get("is_global4", False)
+        is_global4 = request.data.get("is_global4", False)
         if is_global4 == "false":
             is_global4 = False
 
-        is_global6 = request.POST.get("is_global6", False)
+        is_global6 = request.data.get("is_global6", False)
         if is_global6 == "false":
             is_global6 = False
 
@@ -227,7 +227,7 @@ class Port(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("port", models.Port, id="pk", portinfo__net__asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_mac_address(self, request, asn, pk, port, *args, **kwargs):
-        mac_address = request.POST.get("value")
+        mac_address = request.data.get("value")
         try:
             port.set_mac_address(mac_address)
         except Exception as exc:
@@ -271,8 +271,9 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
         unified = {}
         for row in serializer.data:
-            if row["asn"] == int(asn):
-                continue
+            #XXX
+            #if row["asn"] == int(asn):
+            #    continue
             if row["asn"] not in unified:
                 unified[row["asn"]] = row
         return Response(sorted(list(unified.values()), key=lambda x:x["name"]))
@@ -321,7 +322,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         peer = models.Network.objects.get(asn=member.asn)
         peernet = models.PeerNetwork.get_or_create(net, peer)
 
-        peernet.md5 = request.POST.get("value")
+        peernet.md5 = request.data.get("md5")
         peernet.save()
 
         serializer = self.serializer_class(
@@ -378,8 +379,8 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
         member = get_member(member_pk)
         workflow = PeerSessionEmailWorkflow(port, member)
 
-        emltmpl_id = int(request.POST.get("emltmpl", 0))
-        content = request.POST.get("body")
+        emltmpl_id = int(request.data.get("emltmpl", 0))
+        content = request.data.get("body")
 
         if emltmpl_id > 0:
             emltmpl = models.EmailTemplate.objects.get(id=emltmpl_id)
@@ -497,7 +498,7 @@ class UserPreferences(CachedObjectMixin, viewsets.ModelViewSet):
 
     def update(self, request, pk=None, *args, **kwargs):
         userpref = models.UserPreferences.get_or_create(request.user)
-        serializer = self.serializer_class(userpref, data=request.POST)
+        serializer = self.serializer_class(userpref, data=request.data)
         b = serializer.is_valid(raise_exception=True)
         serializer.save(user_id=request.user.id, status="ok")
         return Response(serializer.data)
@@ -538,7 +539,7 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
-        serializer = self.serializer_class(data=request.POST)
+        serializer = self.serializer_class(data=request.data)
         b = serializer.is_valid(raise_exception=True)
         serializer.save(net_id=net.id, status="ok")
         return Response(serializer.data)
@@ -546,7 +547,7 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def preview_blank(self, request, asn, net, *args, **kwargs):
+    def preview_default(self, request, asn, net, *args, **kwargs):
         return self._preview(request, asn, net, "0", *args, **kwargs)
 
     @action(detail=True, methods=["post", "get"])
@@ -567,21 +568,21 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             emltmpl = models.EmailTemplate(
                 name="Preview",
                 net=net,
-                body=request.POST.get("body"),
-                type=request.POST.get("type"),
+                body=request.data.get("body"),
+                type=request.data.get("type"),
             )
         else:
             emltmpl = models.EmailTemplate.objects.get(id=pk)
 
-        if "peer" in request.POST:
+        if "peer" in request.data:
 
-            emltmpl.context["peer"] = get_member(request.POST["peer"])
+            emltmpl.context["peer"] = get_member(request.data["peer"])
         else:
             emltmpl.context["peer"] = sot.InternetExchangeMember().first(asn=asn)
 
-        if "peerses" in request.POST:
+        if "peerses" in request.data:
             emltmpl.context["sessions"] = models.PeerSession.objects.filter(
-                id=request.POST["peerses"]
+                id=request.data["peerses"]
             )
 
         serializer = Serializers.tmplpreview(instance=emltmpl)
@@ -618,7 +619,7 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
-        serializer = self.serializer_class(data=request.POST)
+        serializer = self.serializer_class(data=request.data)
         b = serializer.is_valid(raise_exception=True)
         serializer.save(net_id=net.id, status="ok")
         return Response(serializer.data)
@@ -626,7 +627,7 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def preview_blank(self, request, asn, net, *args, **kwargs):
+    def preview_default(self, request, asn, net, *args, **kwargs):
         return self._preview(request, asn, net, "0", *args, **kwargs)
 
     @action(detail=True, methods=["post", "get"])
@@ -641,8 +642,8 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             devicetmpl = models.DeviceTemplate(
                 name="Preview",
                 net=net,
-                body=request.POST.get("body"),
-                type=request.POST.get("type"),
+                body=request.data.get("body"),
+                type=request.data.get("type"),
             )
         else:
             devicetmpl = models.DeviceTemplate.objects.get(id=pk)
@@ -652,10 +653,10 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
         devicetmpl.context["net"] = net
         # FIXME: support more than one physical port in templates (expose multiple devices?)
         devicetmpl.context["device"] = models.Device.objects.get(
-            net=net, pk=request.POST.get("device")
+            net=net, pk=request.data.get("device")
         )
 
-        devicetmpl.context["member"] = request.POST.get("member")
+        devicetmpl.context["member"] = request.data.get("member")
 
         serializer = Serializers.tmplpreview(instance=devicetmpl)
         return Response(serializer.data)
@@ -663,33 +664,23 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
     @action(detail=False)
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_available(self, request, asn, *args, **kwargs):
-        devtyp = request.GET.get("device_type")
-        instances = models.DeviceTemplate.objects.filter(status="ok", net__asn=asn)
-        if devtyp:
-            instances = instances.filter(type__startswith=f"{devtyp}-")
-
-        data = [{"id":tmpl.id, "type": tmpl.type, "custom": True, "name":tmpl.name} for tmpl in instances]
-
-
         # load default templates (netom)
-        default = [{"id": tmpl[0], "name": tmpl[1]} for tmpl in DEVICE_TEMPLATE_TYPES]
-
+        data = [{"id": tmpl[0], "name": tmpl[1]} for tmpl in DEVICE_TEMPLATE_TYPES]
 
         # if a device type is specified in url parameters we
         # only want to display template types for this device type
+        devtyp = request.GET.get("device_type")
         devtypes = dict(DEVICE_TYPES)
         if devtyp:
             devname = devtypes.get(devtyp)
             trimmed = []
-            for tmpl in default:
+            for tmpl in data:
                 if tmpl["id"].find(f"{devtyp}-") == 0:
                     # remove device type label from template label
                     # as it's redundant when specifying a device
                     tmpl["name"] = tmpl["name"].replace(devname + " ", "")
                     trimmed.append(tmpl)
-            data += trimmed
-        else:
-            data += default
+            data = trimmed
 
         serializer = Serializers.devicelist(data, many=True)
         return Response(serializer.data)

@@ -1,6 +1,6 @@
 (function($, $tc, $ctl) {
 
-$ctl.application.Peerctl = $tc.extend(
+var $peerctl = $ctl.application.Peerctl = $tc.extend(
   "Peerctl",
   {
     Peerctl: function() {
@@ -9,8 +9,22 @@ $ctl.application.Peerctl = $tc.extend(
       this.exchanges = {}
 
       this.tool("peering_lists", () => {
-        return new $ctl.application.Peerctl.PeeringLists();
+        return new $peerctl.PeeringLists();
       });
+
+      this.tool("policies", ()=> {
+        return new $peerctl.Policies();
+      });
+
+      this.tool("email_templates", ()=> {
+        return new $peerctl.EmailTemplates();
+      });
+
+      this.tool("device_templates", ()=> {
+        return new $peerctl.DeviceTemplates();
+      });
+
+
 
 
       this.$c.toolbar.widget("select_port", ($e) => {
@@ -50,6 +64,13 @@ $ctl.application.Peerctl = $tc.extend(
       });
 
       this.$t.peering_lists.activate();
+      this.$t.policies.activate();
+      this.$t.email_templates.activate();
+      this.$t.device_templates.activate();
+
+      $('a[data-select-asn]').click(function(){
+        window.location.href = "?asn="+$(this).data("select-asn");
+      });
 
     },
 
@@ -93,14 +114,18 @@ $ctl.application.Peerctl = $tc.extend(
     },
 
     sync : function() {
-      this.Application_sync();
       let port = this.port_object();
+      if(!port) {
+        return;
+      }
+      this.Application_sync();
       let port_info = this.$c.toolbar.$e.port_info
       port_info.find(".speed").text(port.speed);
       this.$t.peering_lists.$w.port_policy_4.element.val(port.policy4.id);
       this.$t.peering_lists.$w.port_policy_6.element.val(port.policy6.id);
       this.$t.peering_lists.$w.port_device_type.element.val(port.device.type);
-
+      this.$t.peering_lists.$w.port_mac_address.element.val(port.mac_address);
+      this.$t.peering_lists.$w.net_as_set.element.val(this.network.as_set);
       this.$t.peering_lists.$w.port_device_template.load();
     },
 
@@ -116,7 +141,270 @@ $ctl.application.Peerctl = $tc.extend(
   $ctl.application.Application
 );
 
-$ctl.application.Peerctl.DeviceTemplateSelect = $tc.extend(
+$peerctl.PeeringLists = $tc.extend(
+  "PeeringLists",
+  {
+    PeeringLists : function() {
+      this.Tool("peering_lists");
+    },
+
+    init: function() {
+      this.widget("peers", ($e) => {
+        return new $peerctl.PeerList(this.template("peers", $e.body));
+      });
+
+      $(this.$w.peers).on("load:after", ()=>{
+        this.$w.peers.update_counts();
+      });
+    },
+
+    sync : function() {
+      this.$w.peers.load();
+    },
+
+    menu: function() {
+      var menu = this.Tool_menu();
+      this.widget("port_policy_4", ($e) => {
+        return new $peerctl.PortPolicySelect(menu.find('[data-element="port_policy_4"]'), 4);
+      })
+
+      this.widget("port_policy_6", ($e) => {
+        return new $peerctl.PortPolicySelect(menu.find('[data-element="port_policy_6"]'), 6);
+      })
+
+      this.widget("port_device_type", ($e) => {
+        return new $peerctl.DeviceTypeSelect(menu.find('[data-element="port_device_type"]'));
+      });
+
+
+      this.widget("port_device_template", ($e) => {
+        return new $peerctl.DeviceTemplateSelect(menu.find('[data-element="port_device_template"]'));
+      });
+
+      this.widget("port_mac_address", ($e) => {
+        return new $peerctl.MacAddressInput(menu.find('[data-element="port_mac_address"]'));
+      });
+
+      this.widget("net_as_set", ($e) => {
+        return new $peerctl.ASSetInput(menu.find('[data-element="net_as_set"]'));
+      });
+
+      menu.find('[data-element="device_config"]').click(()=>{
+        new $peerctl.modals.DeviceConfig();
+      });
+
+
+      $(this.$w.port_policy_4).on("load:after", (e, select, data) => {
+        let port_object = fullctl.peerctl.port_object();
+        if(port_object) {
+          select.val(port_object.policy4.id);
+        }
+      });
+
+      $(this.$w.port_policy_6).on("load:after", (e, select) => {
+        let port_object = fullctl.peerctl.port_object();
+        if(port_object)
+          select.val(port_object.policy6.id);
+      });
+
+      $(this.$w.port_device_type).on("load:after", (e, select) => {
+        let port_object = fullctl.peerctl.port_object();
+        if(port_object)
+          select.val(port_object.device.type);
+      });
+
+      $(this.$w.port_device_type).on("api-write:after", ()=>{
+        this.$w.port_device_template.load();
+      });
+
+
+
+      return menu;
+    }
+  },
+  $ctl.application.Tool
+);
+
+$peerctl.Policies = $tc.extend(
+  "Policies",
+  {
+    Policies : function() {
+      this.Tool("policies");
+    },
+
+    init: function() {
+      this.widget("list", ($e) => {
+        return new twentyc.rest.List(this.template("policy_list", $e.list_container));
+      });
+
+      this.widget("form", ($e) => {
+        return new twentyc.rest.Form(this.template("form_policy", $e.editor));
+      });
+
+      this.$w.list.local_actions.edit_policy = (policy)=>{
+        this.$e.editor.removeClass("create");
+        this.$w.form.form_action = policy.id;
+        this.$w.form.method = "put";
+        this.$w.form.fill(policy);
+        this.$e.editor_title.text("Edit policy");
+      };
+
+      this.$w.list.formatters.row = (row, data) => {
+        var global = []
+        if(data.is_global4) {
+          global.push("v4");
+        }
+        if(data.is_global6) {
+          global.push("v6");
+        }
+        if(global.length) {
+          row.find('[data-field="is_global"]').text("Global "+global.join(" "));
+        }
+      };
+
+
+      this.$w.list.load();
+
+      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+        this.$e.editor.addClass("create");
+        this.$w.form.form_action = "";
+        this.$w.form.method = "post";
+        this.$w.form.reset();
+        this.$e.editor_title.text("Create new policy");
+      });
+
+      $(this.$w.form).on("api-write:success", ()=>{ this.$w.list.load(); });
+
+    },
+
+    sync : function() {
+      this.$w.list.load();
+    }
+  },
+  $ctl.application.Tool
+);
+
+
+$peerctl.TemplateEditor= $tc.extend(
+  "TemplateEditor",
+  {
+    TemplateEditor : function() {
+      this.Tool("email_templates");
+      this.preview_timeout = new twentyc.util.SmartTimeout(()=>{},100);
+    },
+
+    init: function() {
+      this.widget("list", ($e) => {
+        return new twentyc.rest.List(this.template("template_list", $e.list_container));
+      });
+
+      this.widget("form", ($e) => {
+        return new twentyc.rest.Form(this.template("form_template", $e.editor));
+      });
+
+      this.widget("select_type", ($e) => {
+        return new twentyc.rest.Select(this.$w.form.element.find('#type'));
+      });
+
+      this.preview_client = new twentyc.rest.Client(
+        this.$w.form.element.find("#preview").data("api-preview-default")
+      );
+
+      $(this.$w.select_type.element).on("change", ()=>{
+        let val = this.$w.select_type.element.val();
+
+        if(!val) {
+          return this.$w.form.element.find('#preview,#body').val("")
+        }
+
+        $.ajax({
+          method:'get',
+          url:'/tmpl/'+this.tag+'/'+val
+        }).done((text)=> {
+          this.$w.form.element.find('#body').val(text);
+          this.preview();
+        });
+      });
+
+      this.$w.list.local_actions.edit_template = (template)=>{
+        this.$e.editor.removeClass("create");
+        this.$w.form.form_action = template.id;
+        this.$w.form.method = "put";
+        this.$w.form.fill(template);
+        this.$e.editor_title.text("Edit template");
+        this.preview();
+      };
+
+      this.$w.list.load();
+
+      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+        this.$e.editor.addClass("create");
+        this.$w.form.form_action = "";
+        this.$w.form.method = "post";
+        this.$w.form.reset();
+        this.$e.editor_title.text("Create new template");
+        this.$w.form.element.find('#preview,#body').val("");
+      });
+
+      $(this.$w.form).on("api-write:success", ()=>{ this.$w.list.load(); });
+      this.$w.form.element.find("#body").on("input", ()=>{
+        this.preview();
+      });
+
+    },
+
+    sync : function() {
+      this.$w.list.load();
+    },
+
+    preview : function() {
+      var type =this.$w.select_type.element.val();
+      this.$w.form.element.find('#preview').prop("disabled", true);
+      this.preview_timeout.set(()=>{
+        this.preview_client.post(null, {
+          type: type,
+          body: this.$w.form.payload().body,
+          device: fullctl.peerctl.port_object().device.id
+        }).then((response)=>{
+          this.$w.form.element.find('#preview').
+            val(response.first().body).
+            prop("disabled", false);
+        });
+      },500);
+    }
+  },
+  $ctl.application.Tool
+);
+
+
+$peerctl.EmailTemplates = $tc.extend(
+  "EmailTemplates",
+  {
+    EmailTemplates : function() {
+      this.tag = "emltmpl";
+      this.Tool("email_templates");
+      this.preview_timeout = new twentyc.util.SmartTimeout(()=>{},100);
+    }
+  },
+  $peerctl.TemplateEditor
+);
+
+$peerctl.DeviceTemplates = $tc.extend(
+  "DeviceTemplates",
+  {
+    DeviceTemplates : function() {
+      this.tag = "devicetmpl";
+      this.Tool("device_templates");
+      this.preview_timeout = new twentyc.util.SmartTimeout(()=>{},100);
+    }
+  },
+  $peerctl.TemplateEditor
+);
+
+
+
+
+$peerctl.DeviceTemplateSelect = $tc.extend(
   "DeviceTemplateSelect",
   {
     load_params : function() {
@@ -129,8 +417,18 @@ $ctl.application.Peerctl.DeviceTemplateSelect = $tc.extend(
   twentyc.rest.Select
 )
 
+$peerctl.EmailTemplateSelect = $tc.extend(
+  "EmailTemplateSelect",
+  {
+    load_params : function() {
+    }
+  },
+  twentyc.rest.Select
+)
 
-$ctl.application.Peerctl.PortPolicySelect = $tc.extend(
+
+
+$peerctl.PortPolicySelect = $tc.extend(
   "PortPolicySelect",
   {
     PortPolicySelect : function(jq, ip_version) {
@@ -155,7 +453,7 @@ $ctl.application.Peerctl.PortPolicySelect = $tc.extend(
 )
 
 
-$ctl.application.Peerctl.PeerSessionPolicySelect = $tc.extend(
+$peerctl.PeerSessionPolicySelect = $tc.extend(
   "PeerSessionPolicySelect",
   {
     PeerSessionPolicySelect : function(jq, ip_version, peerses_id) {
@@ -176,10 +474,10 @@ $ctl.application.Peerctl.PeerSessionPolicySelect = $tc.extend(
       return url;
     }
   },
-  $ctl.application.Peerctl.PortPolicySelect
+  $peerctl.PortPolicySelect
 )
 
-$ctl.application.Peerctl.PeerSessionButton = $tc.extend(
+$peerctl.PeerSessionButton = $tc.extend(
   "PeerSessionButton",
   {
     PeerSessionButton: function(jq, peer_id, through_id, port_id) {
@@ -190,11 +488,8 @@ $ctl.application.Peerctl.PeerSessionButton = $tc.extend(
 
     },
     format_request_url: function(url, method) {
-      url = this.element.data("api-action");
       var peerses_id = this.element.data("peerses-id")
-
       var port = (this.port_id || fullctl.peerctl.port())
-
       return url.replace("port_id", port).replace("peerses_id", peerses_id);
     },
     payload: function() {
@@ -210,7 +505,7 @@ $ctl.application.Peerctl.PeerSessionButton = $tc.extend(
 
 
 
-$ctl.application.Peerctl.DeviceTypeSelect = $tc.extend(
+$peerctl.DeviceTypeSelect = $tc.extend(
   "DeviceTypeSelect",
   {
     payload : function() {
@@ -229,7 +524,7 @@ $ctl.application.Peerctl.DeviceTypeSelect = $tc.extend(
   twentyc.rest.Select
 )
 
-$ctl.application.Peerctl.MaxPrefixInput = $tc.extend(
+$peerctl.MaxPrefixInput = $tc.extend(
   "MaxPrefixInput",
   {
     MaxPrefixInput : function(jq, peer_id) {
@@ -250,13 +545,41 @@ $ctl.application.Peerctl.MaxPrefixInput = $tc.extend(
   twentyc.rest.Input
 );
 
-$ctl.application.Peerctl.PeerSessionList = $tc.extend(
+$peerctl.MacAddressInput = $tc.extend(
+  "MacAddressInput",
+  {
+    format_request_url : function(url, method) {
+      return url.replace("port_id", fullctl.peerctl.port());
+    },
+    payload : function() {
+      return {
+        value: this.element.val()
+      }
+    }
+  },
+  twentyc.rest.Input
+);
+
+$peerctl.ASSetInput = $tc.extend(
+  "ASSetInput",
+  {
+    payload : function() {
+      return {
+        value: this.element.val()
+      }
+    }
+  },
+  twentyc.rest.Input
+);
+
+
+$peerctl.PeerSessionList = $tc.extend(
   "PeerSessionList",
   {
     insert: function(data) {
       var list =this;
       var port_row = this.List_insert(data);
-        var button_add = new $ctl.application.Peerctl.PeerSessionButton(
+        var button_add = new $peerctl.PeerSessionButton(
           port_row.find("button.peerses-add"),
           data.id,
           data.origin_id,
@@ -264,22 +587,28 @@ $ctl.application.Peerctl.PeerSessionList = $tc.extend(
         );
 
 
-        var button_live = new $ctl.application.Peerctl.PeerSessionButton(
+        var button_live = new $peerctl.PeerSessionButton(
           port_row.find("button.peerses-live"),
           data.id,
           data.origin_id,
           data.port_id
         );
 
+        var button_show_config = port_row.find('button[data-element="peerses_device_config"]');
 
-        $(button_add).on("api-post:success", (endpoint, peerses_data)=>{
+        button_show_config.click(()=>{
+          new $peerctl.modals.DeviceConfig(data);
+        });
+
+
+        $(button_add).on("api-post:success", (ev, endpoint, sent_data, response)=>{
           port_row.addClass("peerses-active").removeClass("peerses-inactive");
           list.fill_policy_selects(port_row, data);
-          button_live.element.data("peerses-id", peerses_data.peerses);
+          button_live.element.data("peerses-id", response.first().peerses);
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
         });
 
-        $(button_live).on("api-delete:success", (endpoint, data)=>{
+        $(button_live).on("api-delete:success", ()=>{
           port_row.addClass("peerses-inactive").removeClass("peerses-active");
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
         });
@@ -296,11 +625,11 @@ $ctl.application.Peerctl.PeerSessionList = $tc.extend(
 
     },
     fill_policy_selects : function(port_row, data) {
-      new $ctl.application.Peerctl.PeerSessionPolicySelect(
+      new $peerctl.PeerSessionPolicySelect(
         port_row.find('.peerses-policy-4'), 4, data.peerses
       ).element.val(data.policy4.id);
 
-      new $ctl.application.Peerctl.PeerSessionPolicySelect(
+      new $peerctl.PeerSessionPolicySelect(
         port_row.find('.peerses-policy-6'), 6, data.peerses
       ).element.val(data.policy6.id);
 
@@ -311,7 +640,7 @@ $ctl.application.Peerctl.PeerSessionList = $tc.extend(
   twentyc.rest.List
 );
 
-$ctl.application.Peerctl.MutualLocations = $tc.extend(
+$peerctl.MutualLocations = $tc.extend(
   "MutualLocations",
   {
     MutualLocations : function(jq, peer_id) {
@@ -322,12 +651,21 @@ $ctl.application.Peerctl.MutualLocations = $tc.extend(
       return url.replace("port_id", fullctl.peerctl.port()).replace("peer_id", this.peer_id);
     }
   },
-  $ctl.application.Peerctl.PeerSessionList
+  $peerctl.PeerSessionList
 );
 
-$ctl.application.Peerctl.PeerList = $tc.extend(
+$peerctl.PeerList = $tc.extend(
   "PeerList",
   {
+
+    PeerList : function(jq) {
+      this.List(jq);
+
+      this.formatters.peeringdb = (value, data) => {
+        return $('<a>').attr('href', value).text("View on PeeringDB").addClass("external");
+      };
+    },
+
     insert : function(data) {
       var row = this.List_insert(data);
       this.render_ports(row, data);
@@ -342,7 +680,7 @@ $ctl.application.Peerctl.PeerList = $tc.extend(
             mutual_list.element.detach();
             row.data("mutual-list", null);
           } else {
-            mutual_list = new $ctl.application.Peerctl.MutualLocations(
+            mutual_list = new $peerctl.MutualLocations(
               fullctl.template("port_list").data("data-api-base", button.data("data-api-base")),
               data.id
             );
@@ -353,8 +691,16 @@ $ctl.application.Peerctl.PeerList = $tc.extend(
       });
 
 
-      new $ctl.application.Peerctl.MaxPrefixInput(row.find('input[data-field="info_prefixes4"]'), data.id);
-      new $ctl.application.Peerctl.MaxPrefixInput(row.find('input[data-field="info_prefixes6"]'), data.id);
+      new $peerctl.MaxPrefixInput(row.find('input[data-field="info_prefixes4"]'), data.id);
+      new $peerctl.MaxPrefixInput(row.find('input[data-field="info_prefixes6"]'), data.id);
+
+      row.find('[data-element="md5"]').click(()=>{
+        new $peerctl.modals.MD5(data);
+      });
+
+      row.find('[data-element="request_peering"]').click(()=>{
+        new $peerctl.modals.RequestPeering(data);
+      });
 
       return row;
     },
@@ -362,7 +708,7 @@ $ctl.application.Peerctl.PeerList = $tc.extend(
     render_ports : function(row, data) {
       var list = this;
       var list_node = fullctl.template("port_list")
-      var ports = new $ctl.application.Peerctl.PeerSessionList(list_node);
+      var ports = new $peerctl.PeerSessionList(list_node);
       $(data.ipaddr).each(function() {
         this.ix_name = data.ix_name;
         var port_row = ports.insert(this);
@@ -402,81 +748,203 @@ $ctl.application.Peerctl.PeerList = $tc.extend(
 
 
 
-$ctl.application.Peerctl.PeeringLists = $tc.extend(
-  "PeeringLists",
+
+$peerctl.TemplatePreview = $tc.extend(
+  "TemplatePreview",
   {
-    PeeringLists : function() {
-      this.Tool("peering_lists");
+    TemplatePreview: function(jq, select_widget, type) {
+      this.Form(jq);
+      this.select = new select_widget(this.element.find('select'));
+      this.editor = this.element.find('textarea');
+      this.type = type;
+
+      if(type) {
+        this.select.filter = (tmpl) => {
+          return tmpl.type == type;
+        };
+      }
+
+      $(this.select).on("load:after", ()=>{ this.preview();});
+      $(this.select.element).on("change", ()=>{ this.preview();});
+
+      this.select.load();
     },
 
-    init: function() {
-      this.widget("peers", ($e) => {
-        return new $ctl.application.Peerctl.PeerList(this.template("peers", $e.body));
-      });
-
-      $(this.$w.peers).on("load:after", ()=>{
-        this.$w.peers.update_counts();
-      });
+    preview_payload : function() {
+      return { type: this.type }
     },
 
-    sync : function() {
-      this.$w.peers.load();
-    },
+    preview : function() {
+      var tmpl_id = parseInt(this.select.element.val())
+      if(tmpl_id)
+        var url = this.editor.data("api-preview").replace("tmpl_id", tmpl_id);
+      else
+        var url = this.editor.data("api-preview-default");
+      var client = new twentyc.rest.Client(url);
 
-    menu: function() {
-      var menu = this.Tool_menu();
-      this.widget("port_policy_4", ($e) => {
-        return new $ctl.application.Peerctl.PortPolicySelect(menu.find('[data-element="port_policy_4"]'), 4);
-      })
-
-      this.widget("port_policy_6", ($e) => {
-        return new $ctl.application.Peerctl.PortPolicySelect(menu.find('[data-element="port_policy_6"]'), 6);
-      })
-
-      this.widget("port_device_type", ($e) => {
-        return new $ctl.application.Peerctl.DeviceTypeSelect(menu.find('[data-element="port_device_type"]'));
-      });
-
-
-      this.widget("port_device_template", ($e) => {
-        return new $ctl.application.Peerctl.DeviceTemplateSelect(menu.find('[data-element="port_device_template"]'));
-      });
-
-      $(this.$w.port_policy_4).on("load:after", (e, select, data) => {
-        let port_object = fullctl.peerctl.port_object();
-        if(port_object) {
-          select.val(port_object.policy4.id);
+      client.post(null, this.preview_payload()).then(
+        (response)=>{
+          this.editor.val(response.first().body);
         }
-      });
-
-      $(this.$w.port_policy_6).on("load:after", (e, select) => {
-        let port_object = fullctl.peerctl.port_object();
-        console.log("SELECT", select);
-        if(port_object)
-          select.val(port_object.policy6.id);
-      });
-
-      $(this.$w.port_device_type).on("load:after", (e, select) => {
-        let port_object = fullctl.peerctl.port_object();
-        if(port_object)
-          select.val(port_object.device.type);
-      });
-
-      $(this.$w.port_device_type).on("api-write:after", ()=>{
-        this.$w.port_device_template.load();
-      });
-
-
-
-      return menu;
+      );
     }
   },
-  $ctl.application.Tool
+  twentyc.rest.Form
 );
 
 
+$peerctl.EmailTemplatePreview = $tc.extend(
+  "EmailTemplatePreview",
+  {
+    EmailTemplatePreview: function(jq, type, peer) {
+      this.peer = peer;
+      this.TemplatePreview(jq, $peerctl.EmailTemplateSelect, type);
+    },
+
+    preview_payload: function() {
+      return {
+        type: this.type,
+        peer: this.peer.id,
+        peerses: this.peer.peerses
+      }
+    }
+  },
+  $peerctl.TemplatePreview
+);
+
+
+$peerctl.DeviceTemplatePreview = $tc.extend(
+  "DeviceTemplatePreview",
+  {
+    DeviceTemplatePreview: function(jq, device, type, peer) {
+      this.peer = peer;
+      this.device = device;
+      this.TemplatePreview(jq, $peerctl.DeviceTemplateSelect, type);
+    },
+
+    preview_payload: function() {
+      var payload = {
+        type: this.type,
+        device: this.device.id
+      }
+
+      if(this.peer) {
+        payload.member = this.peer.id;
+      }
+
+      return payload;
+    }
+  },
+  $peerctl.TemplatePreview
+);
+
+
+$peerctl.modals = {};
+
+$peerctl.modals.MD5 = $tc.extend(
+  "MD5",
+  {
+    MD5: function(peer) {
+      this.peer = peer;
+      var form = new twentyc.rest.Form(
+        $ctl.template('form_md5')
+      );
+      form.fill(peer);
+      form.format_request_url = (url) => {
+        return url.replace("port_id", fullctl.peerctl.port()).replace("peer_id", peer.id);
+      };
+
+      $(form).on("api-write:success", (ev, endpoint, data)=>{
+        this.hide();
+        peer.md5 = data.md5;
+      });
+
+
+      this.Modal("save", peer.name, form.element);
+      form.wire_submit(this.$e.button_submit);
+    }
+  },
+  $ctl.application.Modal
+);
+
+$peerctl.modals.DeviceConfig = $tc.extend(
+  "DeviceConfig",
+  {
+    DeviceConfig: function(peer) {
+      this.peer = peer;
+      var form = new $peerctl.DeviceTemplatePreview(
+        $ctl.template('device_config'),
+        fullctl.peerctl.port_object().device,
+        fullctl.peerctl.$t.peering_lists.$w.port_device_template.element.val(),
+        peer
+      );
+
+      this.Modal("save_lg", "Device Config", form.element);
+      this.$e.button_submit.text("Copy to clipboard").click(()=>{
+        form.editor.select();
+        document.execCommand("copy");
+        this.hide();
+      });
+      //form.wire_submit(this.$e.button_submit);
+    }
+  },
+  $ctl.application.Modal
+
+);
+
+$peerctl.modals.RequestPeering = $tc.extend(
+  "RequestPeering",
+  {
+    RequestPeering: function(peer) {
+      this.peer = peer;
+
+      var current_step = "peer-request";
+      var title = "Peering Request";
+
+      if(peer.peerses_status == "requested") {
+        title = "Notify Configuration Complete";
+        current_step = "peer-config-complete";
+      } else if(peer.peerses_status == "configured") {
+        title = "Notify Peering Session Live";
+        current_step = "peer-session-live";
+      }
+
+      var form = new $peerctl.EmailTemplatePreview(
+        $ctl.template('form_request_peering'),
+        current_step,
+        peer
+      );
+      form.fill(peer);
+
+      form.element.find('.'+current_step).addClass("highlight");
+
+
+      form.format_request_url = (url) => {
+        return url.replace("port_id", fullctl.peerctl.port()).replace("peer_id", peer.id);
+      };
+      $(form).on("api-write:success", (ev, endpoint, data, response)=>{
+        this.hide();
+        peer.peerses_status = response.first().peerses_status;
+        peer.peerses = response.first().peerses;
+        if(peer.peerses_status == "ok") {
+          fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(peer.id)
+        }
+      });
+
+      this.Modal("save_lg", title, form.element);
+      form.wire_submit(this.$e.button_submit);
+
+      this.$e.button_submit.text('Send');
+    }
+
+  },
+  $ctl.application.Modal
+);
+
+
+
 $(document).ready(function() {
-  $ctl.peerctl = new $ctl.application.Peerctl();
+  $ctl.peerctl = new $peerctl();
 });
 
 })(jQuery, twentyc.cls, fullctl);
