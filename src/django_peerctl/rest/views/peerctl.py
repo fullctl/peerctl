@@ -271,9 +271,8 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
         unified = {}
         for row in serializer.data:
-            #XXX
-            #if row["asn"] == int(asn):
-            #    continue
+            if row["asn"] == int(asn):
+                continue
             if row["asn"] not in unified:
                 unified[row["asn"]] = row
         return Response(sorted(list(unified.values()), key=lambda x:x["name"]))

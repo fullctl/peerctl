@@ -7,9 +7,6 @@
 <script src="{% static "common/20c/twentyc.core.min.js" %}" type="text/javascript"></script>
 <script src="{% static "common/20c/twentyc.rest.js" %}" type="text/javascript"></script>
 <script src="{% static "peerctl/peerctl.js" %}" type="text/javascript"></script>
-{% if not request.GET.v2 %}
-<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-{% endif %}
 <script>
 $(fullctl.application).on("initialized", function(e, peerctl, id) {
   peerctl.network = {
@@ -33,13 +30,7 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 {{ block.super }}
     <link href="https://fonts.googleapis.com/css?family=Fira+Sans:100,200,300,400,500,600&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css?family=Fira+Mono:100,200,300,400,500,600&display=swap" rel="stylesheet">
-
-{% if not request.GET.v2 %}
-<link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="{% static "legacy/peerctl-2.css" %}" />
-{% else %}
 <link rel="stylesheet" href="{% static "peerctl/peerctl.css" %}" />
-{% endif %}
 
 
 {% endblock %}
@@ -82,7 +73,7 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 
       <span class="header-control">
         <span class="icon">
-          <img src="{% static "common/icons/icon/list.svg" %}">
+          <span class="inner-icon icon-list dropdown-icon"></span>
         </span>
         <button data-element="button_asn" class="button" type="button"  id="asn-menu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         AS{{ selected_asn }}
@@ -90,9 +81,7 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="asn-menu">
           {% for asn,net in asns.items %}
           <a class="asn dropdown-item action" data-select-asn="{{ asn }}">
-            <span class="icon icon-solid">
-              <img src="{% static "common/icons/icon/list.svg" %}">
-            </span><span>AS{{ asn }}</span></a>
+            <span class="inner-icon icon-list dropdown-icon"></span><span>AS{{ asn }}</span></a>
           {% endfor %}
         </div>
         <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
@@ -123,7 +112,6 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 {% endblock %}
 
 {% block "app_content_main" %}
-{% if request.GET.v2 %}
 <div class="tab-content" id="app-pages">
   <div class="tab-pane show active" id="peering-lists-body" role="tabpanel" aria-labelledby="tab-peering-lists">
     {% include "peerctl/tool-v2/peering-lists/main.html" %}
@@ -133,9 +121,6 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
     {% include "peerctl/tool-v2/peering-templates/main.html" %}
   </div>
 </div>
-{% else %}
-{% include "peerctl/tool/index.html" %}
-{% endif %}
 {% endblock %}
 
 {% block "templates" %}

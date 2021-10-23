@@ -160,6 +160,9 @@ $peerctl.PeeringLists = $tc.extend(
 
     sync : function() {
       this.$w.peers.load();
+      this.$w.port_policy_4.load();
+      this.$w.port_policy_6.load();
+      this.$w.port_device_template.load();
     },
 
     menu: function() {
@@ -273,7 +276,10 @@ $peerctl.Policies = $tc.extend(
         this.$e.editor_title.text("Create new policy");
       });
 
-      $(this.$w.form).on("api-write:success", ()=>{ this.$w.list.load(); });
+      $(this.$w.form).on("api-write:success", ()=>{
+        this.$w.list.load();
+        fullctl.peerctl.sync();
+      });
 
     },
 
@@ -346,7 +352,9 @@ $peerctl.TemplateEditor= $tc.extend(
         this.$w.form.element.find('#preview,#body').val("");
       });
 
-      $(this.$w.form).on("api-write:success", ()=>{ this.$w.list.load(); });
+      $(this.$w.form).on("api-write:success", ()=>{
+        this.$w.list.load();
+      });
       this.$w.form.element.find("#body").on("input", ()=>{
         this.preview();
       });
@@ -579,6 +587,8 @@ $peerctl.PeerSessionList = $tc.extend(
     insert: function(data) {
       var list =this;
       var port_row = this.List_insert(data);
+      var peer_row = this.peer_row;
+
         var button_add = new $peerctl.PeerSessionButton(
           port_row.find("button.peerses-add"),
           data.id,
@@ -603,6 +613,8 @@ $peerctl.PeerSessionList = $tc.extend(
 
         $(button_add).on("api-post:success", (ev, endpoint, sent_data, response)=>{
           port_row.addClass("peerses-active").removeClass("peerses-inactive");
+          if(peer_row)
+            peer_row.addClass("border-active").removeClass("border-inactive");
           list.fill_policy_selects(port_row, data);
           button_live.element.data("peerses-id", response.first().peerses);
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
@@ -610,6 +622,8 @@ $peerctl.PeerSessionList = $tc.extend(
 
         $(button_live).on("api-delete:success", ()=>{
           port_row.addClass("peerses-inactive").removeClass("peerses-active");
+          if(peer_row)
+            peer_row.addClass("border-inactive").removeClass("border-active");
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
         });
 
@@ -618,9 +632,13 @@ $peerctl.PeerSessionList = $tc.extend(
         if(data.peerses_status == "ok") {
           button_live.element.data("peerses-id", data.peerses);
           port_row.addClass("peerses-active").removeClass("peerses-inactive");
+          if(peer_row)
+            peer_row.addClass("border-active").removeClass("border-inactive");
           list.fill_policy_selects(port_row, data);
         } else {
           port_row.addClass("peerses-inactive").removeClass("peerses-active");
+          if(peer_row)
+            peer_row.addClass("border-inactive").removeClass("border-active");
         }
 
     },
@@ -677,15 +695,19 @@ $peerctl.PeerList = $tc.extend(
 
           var mutual_list = row.data("mutual-list");
           if(mutual_list) {
+						button.find('.icon').removeClass('icon-caret-down').addClass('icon-caret-left');
             mutual_list.element.detach();
             row.data("mutual-list", null);
           } else {
+            var loading = $ctl.loading_animation();
+						button.find('.icon').addClass('icon-caret-down').removeClass('icon-caret-left');
             mutual_list = new $peerctl.MutualLocations(
               fullctl.template("port_list").data("data-api-base", button.data("data-api-base")),
               data.id
             );
             mutual_list.load();
-            container.append(mutual_list.element);
+            $(mutual_list).on("load:after", ()=>{ container.append(mutual_list.element); loading.detach(); });
+            container.append(loading);
             row.data("mutual-list", mutual_list);
           }
       });
@@ -709,6 +731,7 @@ $peerctl.PeerList = $tc.extend(
       var list = this;
       var list_node = fullctl.template("port_list")
       var ports = new $peerctl.PeerSessionList(list_node);
+      ports.peer_row = row;
       $(data.ipaddr).each(function() {
         this.ix_name = data.ix_name;
         var port_row = ports.insert(this);
