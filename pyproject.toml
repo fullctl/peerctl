@@ -24,8 +24,6 @@ python = "^3.7"
 fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "prep-release" }
 
 # not in fullctl
-# XXX needed?
-django-allauth = ">=0.45,<2"
 pyyaml = "*"
 
 netom = { git = "https://github.com/20c/netom.git", branch = "update-deps" }
