@@ -6,7 +6,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
     Peerctl: function() {
       this.Application("peerctl");
 
-      this.exchanges = {}
+      this.ports = {}
 
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();
@@ -32,7 +32,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         $(w).on("load:after", (event, element, data) => {
           var i;
           for(i = 0; i < data.length; i++) {
-            this.exchanges[data[i].id] = data[i];
+            this.ports[data[i].id] = data[i];
           }
           if(data.length == 0) {
             $e.select_port.attr('disabled', true);
@@ -97,7 +97,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
 
     permission_ui : function() {
       let $e = this.$c.toolbar.$e;
-      let port = this.exchanges[this.port()];
+      let port = this.ports[this.port()];
       let org = $ctl.org.id;
     },
 
@@ -106,11 +106,11 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
     },
 
     port_object: function() {
-      return this.exchanges[this.port()]
+      return this.ports[this.port()]
     },
 
     unload_port : function(id) {
-      delete this.exchanges[id];
+      delete this.ports[id];
       delete this.urlkeys[id];
       delete this.port_slugs[id];
     },
@@ -127,7 +127,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
 
     sync_url: function(id) {
 			return;
-      var port = this.exchanges[id];
+      var port = this.ports[id];
       var url = new URL(window.location)
       url.pathname = `/${fullctl.org.slug}`
       window.history.pushState({}, '', url);
@@ -247,6 +247,17 @@ $peerctl.PeeringLists = $tc.extend(
 
       $(this.$w.port_device_type).on("api-write:after", ()=>{
         this.$w.port_device_template.load();
+      });
+
+      $(this.$w.port_mac_address).on("api-write:success", (ev, endpoint, sent_data, response)=>{
+        var data = response.first();
+        fullctl.peerctl.ports[data.id] = data;
+      });
+
+
+      $(this.$w.net_as_set).on("api-write:success", (ev, endpoint, sent_data, response)=>{
+        var data = response.first();
+        fullctl.peerctl.network.as_set = data.as_set;
       });
 
 
