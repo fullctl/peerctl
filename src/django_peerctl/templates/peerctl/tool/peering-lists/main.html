@@ -283,6 +283,7 @@
           <input type="text"
             data-api-base="{% url "peerctl_api:net-set-as-set" asn=selected_asn %}"
             data-api-method="put"
+            placeholder="{{ net.ref.irr_as_set }}"
             data-element="net_as_set">
             <span class="icon icon-edit"></span>
           </div>
