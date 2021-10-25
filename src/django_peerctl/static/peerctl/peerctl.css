@@ -1,0 +1,23 @@
+div.peerses-inactive .peerses-active-toggled {
+  display: none;
+}
+
+div.peerses-active .peerses-inactive-toggled {
+  display: none;
+}
+
+button.peerses-add,
+button.peerses-live {
+	text-transform: uppercase;
+	height: 42px;
+  font-family: "Archivo Narrow";
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 0;
+  line-height: 20px;
+  margin-left: -15px;
+}
+
+div.peers-row {
+  border-left: 4px solid transparent;
+}

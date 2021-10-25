@@ -1,0 +1,29 @@
+{% load static i18n %}
+<div class="row">
+  <div class="col-6 col-md-8">
+    <div class="toolbar-control-group">
+      <span class="inline-label">{% trans "Exchange / Port" %}</span>
+      <span class="toolbar-control">
+      <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+      <select
+        data-api-load="yes"
+        data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
+        data-name-field="ix_name"
+        data-element="select_port"></select>
+      </span>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 right">
+    <div class="port-info pad-top-9" data-element="port_info">
+      <div class="toolbar-field">
+        <span class="field">Speed:</span> <span class="value speed"></span>
+      </div>
+      <div class="toolbar-field">
+        <span class="field">Active Peers:</span> <span class="value active-peers"></span>
+      </div>
+      <div class="toolbar-field">
+        <span class="field">Available Peers:</span> <span class="value available-peers"></span>
+      </div>
+    </div>
+  </div>
+</div>

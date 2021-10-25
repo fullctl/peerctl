@@ -136,7 +136,7 @@ class Port(ModelSerializer):
     def get_ix_name(self, instance):
         ix = models.InternetExchange.objects.get(ref_id=instance.portinfo.ref_ix_id)
         name = (
-            f"{ix.name}: {instance.portinfo.ipaddr4} [{instance.portinfo.ref_source}]"
+            f"{ix.name}: {instance.portinfo.ipaddr4}"
         )
         return name
 
@@ -363,7 +363,7 @@ class Peer(ModelSerializer):
         return None
 
     def get_ix_name(self, obj):
-        return self.context["port"].portinfo.ix_name + f"[{obj.source}]"
+        return self.context["port"].portinfo.ix_name
 
     def get_port_id(self, obj):
         return self.context["port"].id
@@ -473,7 +473,7 @@ class DeviceTemplateList(serializers.Serializer):
 
     def get_type(self, obj):
         if isinstance(obj, dict):
-            return obj["id"]
+            return obj.get("type", obj.get("id"))
         return obj.type
 
     def get_id(self, obj):

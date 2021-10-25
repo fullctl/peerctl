@@ -1,0 +1,29 @@
+{% load i18n %}
+<div class="peering-templates-nav">
+  <nav class="nav justify-content-center">
+
+    <a class="nav-link active"
+      id="tab-policies"
+      data-toggle="tab"
+      role="tab"
+      aria-controls="policies"
+      aria-selected="true"
+      href="#policies">{% trans "Policies" %}</a>
+
+    <a class="nav-link"
+      data-toggle="tab"
+      role="tab"
+      aria-controls="email-templates"
+      aria-selected="false"
+      href="#email-templates">{% trans "Email templates" %}</a>
+
+    <a class="nav-link"
+      data-toggle="tab"
+      role="tab"
+      aria-controls="device-templates"
+      aria-selected="false"
+      href="#device-templates">{% trans "Device templates" %}</a>
+
+  </nav>
+</div>
+

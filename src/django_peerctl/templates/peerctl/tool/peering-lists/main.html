@@ -1,0 +1,299 @@
+{% load static i18n %}
+<div class="tool" data-component="peering_lists">
+  <div data-element="menu"></div>
+  <div data-element="body" style="position:relative">
+  </div>
+  <div class="templates">
+
+    <!-- FORMS -->
+
+    {% include "peerctl/tool/peering-lists/form-md5.html" %}
+    {% include "peerctl/tool/peering-lists/form-request-peering.html" %}
+    {% include "peerctl/tool/peering-lists/device-config.html" %}
+
+    <!-- PEERS TEMPLATE -->
+
+    <div data-template="peers"
+      data-api-base="{% url "peerctl_api:peer-list" asn=selected_asn port_pk=0 %}"
+      data-api-action="">
+      <div class="list-header marg-top-lg">
+        <div class="row">
+          <div data-sort-target="name" data-sort-initial="yes" class="col-12 list-th sortable-button selected-order-header-asc">{% trans "Name" %}</div>
+        </div>
+      </div>
+      <div class="list-body marg-top-lg">
+      </div>
+      <div class="templates">
+
+        <!-- PEERS: ROW TEMPLATE -->
+
+        <div data-template="row" class="peers-row border-inactive marg-top-lg">
+          <div class="row pad-top-lg">
+            <div class="col-12">
+              <span data-field="name" class="primary-row-name highlight"></span>
+            </div>
+          </div>
+
+          <div class="row secondary marg-top-lg">
+            <div class="col-xs-12 col-3">
+              <div class="property"><div class="field">
+              {% trans "ASN:" %}
+              <span data-field="asn"></span>
+              <button data-element="md5">{% trans "MD5 Password" %}</button>
+              </div></div>
+            </div>
+            <div class="col-xs-12 col-2">
+              <div class="property"><div class="field">
+              {% trans "Prefix 4:" %}
+              <input data-field="info_prefixes4"
+                class="slim"
+                type="text"
+                data-api-action=""
+                data-api-method="put"
+                data-ip-version="4"
+                data-api-base="{% url "peerctl_api:peer-set-max-prefix" asn=selected_asn port_pk="port_pk" pk="peer_id" %}">
+              </div></div>
+            </div>
+            <div class="col-xs-12 col-2">
+              <div class="property"><div class="field">
+              {% trans "Scope:" %}<span data-field="scope"></span>
+              </div></div>
+            </div>
+            <div class="col-xs-12 col-2">
+              <div class="property"><div class="field">
+              {% trans "Peering policy:" %}<span data-field="policy_general"></span>
+              </div></div>
+            </div>
+            <div class="col-xs-12 col-3">
+              <div class="property"><div class="field">
+              {% trans "Multiple locations:" %}<span data-field="policy_locations"></span>
+              </div></div>
+            </div>
+          </div>
+
+          <div class="row secondary">
+            <div class="col-xs-12 col-3">
+              <div class="property"><div class="field">
+              <span data-field="peeringdb"></span>
+              </div></div>
+            </div>
+            <div class="col-xs-12 col-2">
+              <div class="property"><div class="field">
+              {% trans "Prefix 6:" %}
+              <input data-field="info_prefixes6"
+                class="slim"
+                type="text"
+                data-api-action=""
+                data-api-method="put"
+                data-ip-version="6"
+                data-api-base="{% url "peerctl_api:peer-set-max-prefix" asn=selected_asn port_pk="port_pk" pk="peer_id" %}">
+
+              </div></div>
+            </div>
+            <div class="col-xs-12 col-2">
+              <div class="property"><div class="field">
+              {% trans "Type:" %}<span data-field="type"></span>
+              </div></div>
+            </div>
+            <div class="col-xs-12 col-2">
+              <div class="property"><div class="field">
+              {% trans "Ratio Req.:" %}<span data-field="policy_ratio"></span>
+              </div></div>
+            </div>
+            <div class="col-xs-12 col-3">
+              <div class="property"><div class="field">
+              {% trans "Contract Req.:" %}<span data-field="policy_contracts"></span>
+              </div></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12 port-list">
+
+            </div>
+          </div>
+
+          <div class="other-exchange-points">
+            <div class="row secondary">
+              <div class="col-3 row-gap">
+                <div class="property"><div class="transparent-field">
+                  <button class="toggle-mutual-locations"><span class="icon neutral icon-caret-left"></span>{% trans "Other echange points" %}</button>
+                </div></div>
+              </div>
+              <div class="col-9">
+                <div class="property"><div class="transparent-field">
+                  <button data-element="request_peering"><span class="icon fullctl icon-mail"></span> {% trans "Request peering" %}</button>
+                </div></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 mutual-locations indent-on">
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+
+
+
+      </div>
+    </div>
+
+   <!-- PORT LIST -->
+
+    <div style="margin-top:-3px;" data-template="port_list" data-api-base="{% url "peerctl_api:peer-mutual-locations" asn=selected_asn port_pk="port_id" pk="peer_id" %}" data-api-action="">
+      <div class="list-body"></div>
+      <div class="list-no-data">No entries found</div>
+      <div class="templates">
+        <div data-template="row" class="row secondary">
+          <div class="col-xs-12 col-3 indent-toggled">
+            <button
+              class="peerses-add peerses-inactive-toggled solid-inactive"
+              data-api-base="{% url "peerctl_api:peerses-list" asn=selected_asn port_pk="port_id" %}"
+              data-api-method="post">{% trans "Add" %}</button>
+
+            <button
+              class="peerses-live peerses-active-toggled solid-active"
+              data-api-base="{% url "peerctl_api:peerses-detail" asn=selected_asn port_pk="port_id"  pk="peerses_id" %}"
+              data-confirm="{% trans "Remove this peering session?" %}"
+              data-api-method="delete">{% trans "Live" %}</button>
+
+            <span data-field="ix_name"></span>
+          </div>
+          <div class="col-xs-12 col-3">
+            <div class="property"><div class="field">
+            {% trans "IPv4:" %}
+            <span data-field="ipaddr4"></span>
+
+            <select
+              data-api-base="/"
+              data-api-method="put"
+              data-api-load="yes"
+              data-api-action="{% url "peerctl_api:peerses-set-policy" asn=selected_asn port_pk="port_id" pk="peerses_id" %}"
+              class="peerses-policy-4 peerses-active-toggled"
+              data-proxy-data=".port-policy-4"></select>
+            </div></div>
+          </div>
+          <div class="col-xs-12 col-4">
+            <div class="property"><div class="field">
+            {% trans "IPv6:" %}
+            <span data-field="ipaddr6"></span>
+
+            <select
+              data-api-base="/"
+              data-api-method="put"
+              data-api-load="yes"
+              data-api-action="{% url "peerctl_api:peerses-set-policy" asn=selected_asn port_pk="port_id" pk="peerses_id" %}"
+              class="peerses-policy-6 peerses-active-toggled"
+              data-proxy-data=".port-policy-6"></select>
+            </div></div>
+
+
+          </div>
+          <div class="col-xs-12 col-2 right">
+            <div class="property"><div class="transparent-field">
+            <button class="peerses-active-toggled" data-element="peerses_device_config">
+              <span class="icon fullctl icon-settings"></span>
+              {% trans "Show Config" %}</button>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MENU TEMPLATE -->
+
+    <div data-template="menu" class="marg-top-lg">
+      <div class="row">
+        <div class="col-xs-12 col-8">
+
+          <div class="toolbar-field">
+
+            {% trans "Policy IPv4" %}
+
+            <select
+              class="port-policy-4"
+              data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
+              data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
+              data-api-method="put"
+              data-null-option="0;{% trans "Inherit Policy" %}"
+              data-element="port_policy_4"></select>
+
+          </div>
+
+          <div class="toolbar-field">
+            {% trans "Policy IPv6" %}
+
+            <select
+              class="port-policy-6"
+              data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
+              data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
+              data-api-method="put"
+              data-null-option="0;{% trans "Inherit Policy" %}"
+              data-element="port_policy_6"></select>
+
+          </div>
+          <div class="toolbar-field">
+
+            {% trans "Device Type" %}
+
+            <select data-api-load="yes"
+              data-api-base="{% url "peerctl_api:device-list" asn=selected_asn %}"
+              data-load-type="drf-choices"
+              data-drf-name="type"
+              data-api-action="{% url "peerctl_api:device-detail" asn=selected_asn pk=0 %}"
+              data-api-method="put"
+              data-element="port_device_type"></select>
+          </div>
+
+        </div>
+        <div class="col-xs-12 col-4 right">
+
+          <div class="toolbar-field">
+            {% trans "Template" %}
+
+            <select
+              data-api-base="{% url "peerctl_api:devicetmpl-list-available" asn=selected_asn %}"
+              data-element="port_device_template"></select>
+          </div>
+
+          <button class="tool-spacing-left" data-element="device_config">
+            <span class="icon fullctl icon-settings"></span>
+            {% trans "Show config" %}</button>
+
+        </div>
+
+      </div>
+      <div class="row marg-top-lg ixctl-controls">
+        <div class="col-xs-12 col-8">
+          <div class="toolbar-field">
+          {% trans "MAC Address" %}
+          <input type="text"
+            data-api-base="{% url "peerctl_api:port-set-mac-address" asn=selected_asn pk="port_id" %}"
+            data-api-method="put"
+            data-element="port_mac_address">
+            <span class="icon icon-edit"></span>
+          </div>
+
+          <div class="toolbar-field">
+          {% trans "AS-Set" %}
+          <input type="text"
+            data-api-base="{% url "peerctl_api:net-set-as-set" asn=selected_asn %}"
+            data-api-method="put"
+            data-element="net_as_set">
+            <span class="icon icon-edit"></span>
+          </div>
+
+        </div>
+        <div class="col-xs-12 col-4 right">
+          <!--
+          <button data-element="email_peers">{% trans "Email peers" %}</button>
+          -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
