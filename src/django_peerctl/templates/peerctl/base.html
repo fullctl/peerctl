@@ -95,11 +95,11 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 
 <div class="tab-content" id="app-pages">
   <div class="tab-pane show active" id="page-peering-lists" role="tabpanel" aria-labelledby="tab-peering-lists">
-    {% include "peerctl/tool-v2/peering-lists/port-form.html" %}
+    {% include "peerctl/tool/peering-lists/port-form.html" %}
   </div>
 
   <div class="tab-pane" id="page-templates" role="tabpanel" aria-labelledby="tab-templates">
-    {% include "peerctl/tool-v2/peering-templates/nav.html" %}
+    {% include "peerctl/tool/peering-templates/nav.html" %}
   </div>
 </div>
 
@@ -112,11 +112,11 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 {% block "app_content_main" %}
 <div class="tab-content" id="app-pages">
   <div class="tab-pane show active" id="peering-lists-body" role="tabpanel" aria-labelledby="tab-peering-lists">
-    {% include "peerctl/tool-v2/peering-lists/main.html" %}
+    {% include "peerctl/tool/peering-lists/main.html" %}
   </div>
 
   <div class="tab-pane" id="templates-body" role="tabpanel" aria-labelledby="tab-templates">
-    {% include "peerctl/tool-v2/peering-templates/main.html" %}
+    {% include "peerctl/tool/peering-templates/main.html" %}
   </div>
 </div>
 {% endblock %}
