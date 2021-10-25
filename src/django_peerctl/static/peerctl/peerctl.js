@@ -115,17 +115,25 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
 
     sync : function() {
       let port = this.port_object();
+      this.$t.peering_lists.$e.menu.find(".ixctl-controls").hide();
+
       if(!port) {
         return;
       }
+
       this.Application_sync();
       let port_info = this.$c.toolbar.$e.port_info
       port_info.find(".speed").text(port.speed);
       this.$t.peering_lists.$w.port_policy_4.element.val(port.policy4.id);
       this.$t.peering_lists.$w.port_policy_6.element.val(port.policy6.id);
       this.$t.peering_lists.$w.port_device_type.element.val(port.device.type);
+
+      if(port.ref_ix_id.indexOf("ixctl:") == 0) {
+        this.$t.peering_lists.$e.menu.find(".ixctl-controls").show();
+      }
       this.$t.peering_lists.$w.port_mac_address.element.val(port.mac_address);
       this.$t.peering_lists.$w.net_as_set.element.val(this.network.as_set);
+
       this.$t.peering_lists.$w.port_device_template.load();
     },
 
