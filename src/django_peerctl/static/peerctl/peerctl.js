@@ -156,6 +156,7 @@ $peerctl.PeeringLists = $tc.extend(
       $(this.$w.peers).on("load:after", ()=>{
         this.$w.peers.update_counts();
       });
+
     },
 
     sync : function() {
@@ -897,7 +898,7 @@ $peerctl.modals.DeviceConfig = $tc.extend(
       this.peer = peer;
       var form = new $peerctl.DeviceTemplatePreview(
         $ctl.template('device_config'),
-        fullctl.peerctl.port_object().device,
+        peer ? {id:peer.device_id} : fullctl.peerctl.port_object().device,
         fullctl.peerctl.$t.peering_lists.$w.port_device_template.element.val(),
         peer
       );

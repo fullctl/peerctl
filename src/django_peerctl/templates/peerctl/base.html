@@ -4,8 +4,6 @@
 
 {% block "js" %}
 {{ block.super }}
-<script src="{% static "common/20c/twentyc.core.min.js" %}" type="text/javascript"></script>
-<script src="{% static "common/20c/twentyc.rest.js" %}" type="text/javascript"></script>
 <script src="{% static "peerctl/peerctl.js" %}" type="text/javascript"></script>
 <script>
 $(fullctl.application).on("initialized", function(e, peerctl, id) {

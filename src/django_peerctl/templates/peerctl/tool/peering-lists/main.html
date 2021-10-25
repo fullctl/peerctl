@@ -18,7 +18,7 @@
       data-api-action="">
       <div class="list-header marg-top-lg">
         <div class="row">
-          <div class="col-12 list-th">{% trans "Name" %}</div>
+          <div data-sort-target="name" data-sort-initial="yes" class="col-12 list-th sortable-button selected-order-header-asc">{% trans "Name" %}</div>
         </div>
       </div>
       <div class="list-body marg-top-lg">
@@ -127,7 +127,7 @@
               </div>
             </div>
             <div class="row">
-              <div class="col-12 mutual-locations">
+              <div class="col-12 mutual-locations indent-on">
 
               </div>
             </div>
@@ -148,7 +148,7 @@
       <div class="list-no-data">No entries found</div>
       <div class="templates">
         <div data-template="row" class="row secondary">
-          <div class="col-xs-12 col-3">
+          <div class="col-xs-12 col-3 indent-toggled">
             <button
               class="peerses-add peerses-inactive-toggled solid-inactive"
               data-api-base="{% url "peerctl_api:peerses-list" asn=selected_asn port_pk="port_id" %}"

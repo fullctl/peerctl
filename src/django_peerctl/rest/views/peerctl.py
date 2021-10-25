@@ -258,6 +258,8 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, port_pk, *args, **kwargs):
+
+
         port = (
             models.Port.objects.filter(id=port_pk)
             .prefetch_related("peerses_qs")
@@ -275,7 +277,24 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
                 continue
             if row["asn"] not in unified:
                 unified[row["asn"]] = row
-        return Response(sorted(list(unified.values()), key=lambda x:x["name"]))
+
+        # parse ordering
+        #
+        # we cannot use the existing ordering filters we have in fullctl
+        # since that expects a django queryset and we are dealing with
+        # service bridge data here
+        #
+        # TODO: make a fullctl thing for this like we already have
+        # for django-rest-framework sql queries
+        ordering = request.GET.get("ordering", "name") or "name";
+        ordering_reverse = (ordering[0] == "-")
+        if ordering_reverse:
+            ordering = ordering[1:]
+
+        if ordering not in ["name"]:
+            ordering = "name"
+
+        return Response(sorted(list(unified.values()), key=lambda x:x[ordering].lower(), reverse=ordering_reverse))
 
     @load_object("net", models.Network, asn="asn")
     @load_object("port", models.Port, id="port_pk")
@@ -308,6 +327,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
             for ip_row in row["ipaddr"]:
                 ip_row["ix_name"] = row["ix_name"]
                 ip_row["port_id"] = row["port_id"]
+                ip_row["device_id"] = row["port"]["device"]["id"]
             result.extend(row["ipaddr"])
 
         return Response(result)
