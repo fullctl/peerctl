@@ -266,7 +266,7 @@ class Peer(ModelSerializer):
         return self._peernets
 
     def get_name(self, obj):
-        return f"{obj.name} [{obj.source}]"
+        return obj.name
 
     def get_peeringdb(self, obj):
         return "https://www.peeringdb.com/asn/{}".format(obj.asn)

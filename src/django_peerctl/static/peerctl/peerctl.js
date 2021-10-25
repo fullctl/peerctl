@@ -63,6 +63,26 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         this.sync_url(this.$c.toolbar.$e.select_port.val())
       });
 
+      this.$c.toolbar.$e.toggle_active_peers.click(function() {
+        let button = $(this);
+        let stat = fullctl.peerctl.$t.peering_lists.$w.peers.toggle_active_peers();
+        if(!stat)
+          button.removeClass("fullctl").addClass("inactive");
+        else
+          button.addClass("fullctl").removeClass("inactive");
+      });
+
+
+      this.$c.toolbar.$e.toggle_available_peers.click(function() {
+        let button = $(this);
+        let stat = fullctl.peerctl.$t.peering_lists.$w.peers.toggle_available_peers();
+        if(!stat)
+          button.removeClass("fullctl").addClass("inactive");
+        else
+          button.addClass("fullctl").removeClass("inactive");
+      });
+
+
       this.$t.peering_lists.activate();
       this.$t.policies.activate();
       this.$t.email_templates.activate();
@@ -123,7 +143,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
 
       this.Application_sync();
       let port_info = this.$c.toolbar.$e.port_info
-      port_info.find(".speed").text(port.speed);
+      port_info.find(".speed").text( $ctl.formatters.pretty_speed(port.speed) );
       this.$t.peering_lists.$w.port_policy_4.element.val(port.policy4.id);
       this.$t.peering_lists.$w.port_policy_6.element.val(port.policy6.id);
       this.$t.peering_lists.$w.port_device_type.element.val(port.device.type);
@@ -689,9 +709,34 @@ $peerctl.PeerList = $tc.extend(
       this.List(jq);
 
       this.formatters.peeringdb = (value, data) => {
-        return $('<a>').attr('href', value).text("View on PeeringDB").addClass("external");
+        var icon = $('<span>').addClass("icon icon-launch icon-right fullctl");
+        var label = $('<span>').text("View on PeeringD");
+        return $('<a>').attr('href', value).append(label).append(icon).addClass("external");
       };
     },
+
+    toggle_available_peers: function() {
+      if(this.element.hasClass("hide-available-peers")) {
+        this.element.removeClass("hide-available-peers");
+        return true;
+      } else {
+        this.element.addClass("hide-available-peers");
+        return false;
+      }
+    },
+
+
+    toggle_active_peers: function() {
+      if(this.element.hasClass("hide-active-peers")) {
+        this.element.removeClass("hide-active-peers");
+        return true;
+      } else {
+        this.element.addClass("hide-active-peers");
+        return false;
+      }
+    },
+
+
 
     insert : function(data) {
       var row = this.List_insert(data);

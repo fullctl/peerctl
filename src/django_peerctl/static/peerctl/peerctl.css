@@ -6,6 +6,14 @@ div.peerses-active .peerses-inactive-toggled {
   display: none;
 }
 
+div.hide-active-peers .peers-row.border-active {
+  display: none;
+}
+
+div.hide-available-peers .peers-row.border-inactive {
+  display: none;
+}
+
 button.peerses-add,
 button.peerses-live {
 	text-transform: uppercase;
