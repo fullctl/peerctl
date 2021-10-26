@@ -776,7 +776,9 @@ class Device(Base):
         members = kwargs.get("members")
 
         for name, peerses_set in list(self.peer_groups(net, ip_version).items()):
-            peer_groups[name] = []
+            if name not in peer_groups:
+                peer_groups[name] = []
+
             for peerses in peerses_set:
                 policy = get_best_policy(peerses, ip_version)
                 addr = peerses.peerport.portinfo.ipaddr(ip_version)
