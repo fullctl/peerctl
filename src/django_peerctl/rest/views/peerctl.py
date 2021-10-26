@@ -265,10 +265,13 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
             .prefetch_related("peerses_qs")
             .first()
         )
+
+        device = port.devices[0]
+
         instances = port.get_available_peers()
 
         serializer = self.serializer_class(
-           instances, many=True, context={"port": port, "net": net}
+           instances, many=True, context={"port": port, "net": net, "device": device}
         )
 
         unified = {}
@@ -656,7 +659,6 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
         return self._preview(request, asn, net, pk, *args, **kwargs)
 
     def _preview(self, request, asn, net, pk, *args, **kwargs):
-        print("got here")
         if not pk or pk == "0":
             devicetmpl = models.DeviceTemplate(
                 name="Preview",
@@ -666,6 +668,7 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             )
         else:
             devicetmpl = models.DeviceTemplate.objects.get(id=pk)
+
 
         port = net.portinfo_qs.first().port_qs.first()
         devicetmpl.context["port"] = port

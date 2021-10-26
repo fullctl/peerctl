@@ -799,6 +799,7 @@ $peerctl.PeerList = $tc.extend(
       ports.peer_row = row;
       $(data.ipaddr).each(function() {
         this.ix_name = data.ix_name;
+        this.device_id = data.device_id;
         var port_row = ports.insert(this);
       });
 
@@ -1022,7 +1023,7 @@ $peerctl.modals.RequestPeering = $tc.extend(
       this.Modal("save_lg", title, form.element);
       form.wire_submit(this.$e.button_submit);
 
-      this.$e.button_submit.text('Send');
+      this.$e.button_submit.empty().append($('<span>').addClass("icon icon-mail fullctl")).append($('<span>').addClass("label").text('Send'));
     }
 
   },

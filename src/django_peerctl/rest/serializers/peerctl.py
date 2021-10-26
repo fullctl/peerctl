@@ -183,6 +183,7 @@ class Peer(ModelSerializer):
     md5 = serializers.SerializerMethodField()
     ix_name = serializers.SerializerMethodField()
     port_id = serializers.SerializerMethodField()
+    device_id = serializers.SerializerMethodField()
     info_prefixes4 = serializers.SerializerMethodField()
     info_prefixes6 = serializers.SerializerMethodField()
     ipaddr = serializers.SerializerMethodField()
@@ -217,6 +218,7 @@ class Peer(ModelSerializer):
             "port_id",
             "ipaddr",
             "ref_id",
+            "device_id",
         ]
 
     @property
@@ -367,6 +369,9 @@ class Peer(ModelSerializer):
 
     def get_port_id(self, obj):
         return self.context["port"].id
+
+    def get_device_id(self, obj):
+        return self.context["device"].id
 
     def get_info_prefixes4(self, obj):
         peernet = self.peernets.get(obj.asn)
