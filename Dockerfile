@@ -38,6 +38,7 @@ COPY Ctl/VERSION Ctl/
 FROM base as final
 
 ARG run_deps
+ARG run_dirs="locale media static"
 ARG uid
 ARG user
 
@@ -53,11 +54,11 @@ RUN adduser -Du $uid $user
 WORKDIR $SERVICE_HOME
 COPY --from=builder "$VIRTUAL_ENV" "$VIRTUAL_ENV"
 
-RUN mkdir -p etc locale media static
+RUN mkdir -p etc $run_dirs
 COPY Ctl/VERSION etc/
 COPY docs/ docs
 
-RUN chown -R $user:$user locale media
+RUN chown -R $user:$user $run_dirs
 
 #### entry point from final image, not tester
 FROM final
