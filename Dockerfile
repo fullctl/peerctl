@@ -11,13 +11,14 @@ ARG user=fullctl
 
 FROM python:3.9-alpine as base
 
-# env to pass to sub images
-ENV BUILD_DEPS=$build_deps
-ENV RUN_DEPS=$run_deps
+ARG virtual_env
+ARG install_to
+ARG build_deps
+ARG run_deps
+
 ENV SERVICE_HOME=$install_to
 ENV VIRTUAL_ENV=$virtual_env
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-ENV POETRY_VERSION=1.1.11
 
 
 # build container
@@ -36,6 +37,7 @@ COPY Ctl/VERSION Ctl/
 
 FROM base as final
 
+ARG run_deps
 ARG uid
 ARG user
 
@@ -44,7 +46,7 @@ ARG user
 ARG COPY_SETTINGS_FILE=mainsite/settings/dev.py
 
 # add dependencies
-RUN apk add $RUN_DEPS
+RUN apk add $run_deps
 
 RUN adduser -Du $uid $user
 
