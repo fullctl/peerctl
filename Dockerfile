@@ -1,4 +1,3 @@
-FROM python:3.9-alpine as base
 
 ARG virtual_env=/venv
 ARG install_to=/srv/service
@@ -9,6 +8,8 @@ ARG run_deps=" \
     "
 ARG uid=6300
 ARG user=fullctl
+
+FROM python:3.9-alpine as base
 
 # env to pass to sub images
 ENV BUILD_DEPS=$build_deps
