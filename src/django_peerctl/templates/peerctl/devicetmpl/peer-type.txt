@@ -1,0 +1,1 @@
+Device Type: {{device.type}}

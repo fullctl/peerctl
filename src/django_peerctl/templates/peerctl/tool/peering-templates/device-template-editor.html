@@ -1,0 +1,94 @@
+{% load i18n static %}
+    <table class="table"
+      data-api-base="{% url "peerctl_api:devicetmpl-list" asn=selected_asn %}"
+      data-template="template_list">
+
+      <tbody class="list-body"></tbody>
+
+      <tbody class="templates"><
+        <tr data-template="row">
+          <td data-field="name" class="highlight"></td>
+          <td data-field="controls" class="right">
+            <div class="row">
+            <div class="col-xs-12 col-lg-6">
+              <a data-action="edit_template"><span class="icon peerctl icon-edit"></span><span class="label peerctl"></span></a>
+            </div>
+            <div class="col-xs-12 col-lg-6">
+          <a
+            data-api-action="{id}"
+            data-api-callback="remove"
+            data-confirm="Remove template?"
+            data-api-method="DELETE"><span class="icon peerctl icon-delete"></span><span class="peerctl label"></span></a>
+            </div>
+          </td>
+        </tr>
+        <tr data-template="row" class="secondary">
+          <td colspan="2" class="property">
+            <div class="row">
+              <div class="col-12 field">
+              <span data-field="type"></span>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+<form
+  data-api-base="{% url "peerctl_api:devicetmpl-list" asn=selected_asn %}"
+  data-api-method="post"
+  data-api-action=""
+  data-template="form_template">
+
+  <div class="row form-group">
+    <div class="col-6" data-api-submit="yes">
+      <label for="name">{% trans "Name" %}</label>
+      <input class="form-control" type="text" id="name" name="name">
+    </div>
+    <div class="col-6" data-api-submit="yes">
+      <label for="type">{% trans "Type" %}</label>
+      <select class="form-control"
+        data-api-base="{% url "peerctl_api:devicetmpl-list" asn=selected_asn  %}"
+        data-drf-name="type"
+        data-api-load="yes"
+        data-null-option=";-- Select Type --"
+        data-load-type="drf-choices"
+        id="type"
+        name="type">
+      </select>
+    </div>
+  </div>
+
+
+
+  <div class="row form-group">
+    <div class="col-12" data-api-submit="yes">
+      <label for="body">{% trans "Body" %}</label>
+      <textarea class="form-control template-editor" name="body" id="body"></textarea>
+    </div>
+  </div>
+
+  <div class="row form-group">
+    <div class="col-12">
+      <label for="preview">{% trans "Preview" %}</label>
+      <textarea class="form-control template-editor"
+        data-api-preview-default="{% url "peerctl_api:devicetmpl-preview-default" asn=selected_asn %}"
+      name="preview" id="preview"></textarea>
+    </div>
+  </div>
+
+
+
+  <div class="row">
+    <div class="col-6">
+      <a class="edit-toggled btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+    <div class="right col-6">
+      <button class="submit">
+        <Span class="icon icon-edit fullctl"></span>
+        <span class="label">{% trans "Save" %}</span>
+      </button>
+    </div>
+  </div>
+
+</form>

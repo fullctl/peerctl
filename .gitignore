@@ -1,0 +1,13 @@
+.*.sw*
+*.egg
+*.egg-info
+*.log
+*.py[cod]
+*.pyc
+*.sqlite3
+*.sql
+*.egg-info
+.pytest-cache
+Ctl/.state/
+Ctl/dev/.env
+build/

@@ -1,0 +1,402 @@
+html {
+  font-family: Arial, Verdana, Helvetica;
+}
+
+body {
+  background-color: #fff;
+  color: #505052;
+}
+
+.center {
+  text-align: center;
+}
+
+.right {
+  text-align: right;
+}
+
+.left {
+  text-align: left;
+}
+
+img.icon32 {
+  width: 32px;
+  height: 32px;
+}
+
+img.icon16 {
+  width: 16px;
+  height: 16px;
+}
+
+.marg-top-md {
+  margin-top: 50px;
+}
+
+.marg-top-s {
+  margin-top: 25px;
+}
+
+.marg-right-xs {
+  margin-right: 5px;
+}
+
+.pad-xs {
+  padding: 5px;
+}
+
+.pad-s {
+  padding: 25px;
+}
+
+.scroll-300 {
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+
+a img {
+  border: none;
+}
+
+.peering {
+  background-color: #ccf3c6;
+}
+
+.bg-success .bg-toggled.bg-toggled-normal {
+  display: none;
+}
+
+.bg-normal .bg-toggled.bg-toggled-success {
+  display: none;
+}
+
+.table-striped>tbody>tr.bg-success:nth-of-type(odd) {
+  background-color: #d0e0c9;
+}
+
+.policy-inherited {
+}
+.policy-inherited::before {
+  content: "\21b3 ";
+}
+
+.holder {
+  position: relative;
+}
+
+.holder-inline select {
+  display: inline;
+  width: auto;
+}
+
+.dropdown-menu .holder {
+  padding: 0px 15px 5px 15px;
+}
+
+.dropdown-menu .holder .input-wide {
+  min-width: 200px;
+}
+
+
+.holder div.loading-shim > div {
+  padding-top: 3px !important;
+  font-size: 12px;
+}
+
+.holder div.loading-shim img {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.tab-close {
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+td > small {
+  color: #989696;
+}
+
+
+td > div.subcol,
+th > span.subhead,
+th > small {
+  display: block;
+  font-size: 12px;
+  opacity: 0.8;
+}
+th {
+  vertical-align: top !important;
+}
+
+
+/* sortable */
+
+*[data-sort-target] {
+  cursor: pointer;
+}
+
+*[data-sort-target] > span.asc,
+*[data-sort-target] > span.desc {
+  display: none;
+}
+
+*[data-sort-target].sort-asc > span.asc,
+*[data-sort-target].sort-desc > span.desc {
+  display: inline;
+}
+
+/* tabs */
+
+ul.nav-tabs a {
+  cursor: pointer;
+}
+
+/* tables */
+
+@keyframes new_item_animation {
+  from {background-color: rgba(190,255,191,1);}
+  to {background-color: rgba(0,0,0,0);}
+}
+
+table tr.new {
+  animation-name: new_item_animation;
+  animation-duration: 2s;
+}
+
+@keyframes updated_item_animation {
+  from {background-color: rgba(190,255,191,1);}
+  to {background-color: rgba(0,0,0,0);}
+}
+
+table tr.updated {
+  animation-name: updated_item_animation;
+  animation-duration: 2s;
+}
+
+table a.action {
+  cursor: pointer;
+}
+
+
+/* peerctl */
+
+div.peerctl {
+}
+
+/* peerctl - content */
+
+div.peerctl.content {
+}
+
+/* peerctl - content - login */
+
+div.peerctl.content .login img {
+  width: 250px;
+}
+
+/*
+ * peerctl - content - site
+ * unauthenticated view
+ */
+
+div.peerctl.content div.site {
+}
+
+div.peerctl.content div.site img.logo {
+  width: 100%;
+}
+
+/* peerctl - content - header */
+
+div.peerctl.content div.header {
+  color: #ccc;
+}
+
+div.peerctl.content div.header img.logo {
+  width: 100%;
+}
+
+div.peerctl.content div.header div.header-message {
+  color: #666;
+  padding: 5px;
+}
+
+div.peerctl.content div.header div.menu {
+  padding-top: 15px;
+}
+
+div.peerctl.content div.header div.menu span.selected-target h4 {
+  display: inline;
+}
+
+/* peerctl - content - footer */
+
+div.peerctl.content div.footer {
+  font-size: 11px;
+}
+
+div.peerctl.content div.footer img.sponsor {
+  width: 200px;
+}
+
+/* peerctl - component */
+
+div.peerctl.content div.application-grid div.component {
+  padding: 5px;
+  min-height: 300px;
+  position: relative;
+}
+
+div.peerctl.content div.application-grid div.component div.loading-shim {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  background-color: rgba(255,255,255,0.5);
+}
+
+div.peerctl.content div.application-grid div.component div.loading-shim > div {
+  padding-top: 50px;
+  text-align: center;
+  font-weight: bold;
+  text-shadow: 0px 0px 3px white;
+}
+
+div.peerctl.content div.application-grid div.component div.loading-shim img {
+  width: 32px;
+  height: 32px;
+}
+
+div.peerctl.content div.application-grid div.component h4.title {
+  color: #fff;
+  background-color:#7fbad3;
+  margin: 0px;
+  padding: 5px;
+}
+
+div.peerctl.content div.application-grid div.component h4.title select {
+  color: #fff;
+  background-color: #7ebbd3;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+
+div.peerctl.content div.application-grid div.component h4.title > div.buttons {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+div.peerctl.content div.application-grid div.component div.buttons li a {
+  cursor: pointer;
+}
+
+
+
+
+div.peerctl.content div.application-grid div.component div.body {
+  background-color: #fff;
+  border-bottom: 1px #ccc solid;
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+div.peerctl.content div.application-grid div.component div.tab-pane {
+  padding-top: 5px;
+  height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+div.peerctl.content div.application-grid div.component div.component-info-read {
+  padding: 5px;
+  border-bottom: 1px #d6d6d6 dashed;
+  margin: 2px;
+}
+div.peerctl.content div.application-grid div.component div.component-info-edit {
+  padding: 5px;
+  margin: 2px;
+}
+div.peerctl.content div.application-grid div.component div.component-info-read span {
+  margin-right: 8px;
+}
+div.peerctl.content div.application-grid div.component div.component-info-edit span {
+  margin-right: 8px;
+}
+
+
+div.peerctl.content div.application-grid div.component div.component-info table td,
+div.peerctl.content div.application-grid div.component div.component-info table th {
+}
+div.modal textarea.emltmpl-body,
+div.modal textarea.devicetmpl-body,
+div.peerctl.content textarea.emltmpl-body,
+div.peerctl.content textarea.devicetmpl-body {
+  height: 230px;
+}
+
+div.modal div.emltmpl-preview,
+div.modal div.devicetmpl-preview,
+div.modal textarea.devicetmpl-preview,
+div.peerctl.content div.emltmpl-preview,
+div.peerctl.content div.devicetmpl-preview {
+  white-space: pre-wrap;
+  border: 1px #bdbdbd solid;
+  padding: 3px;
+  background-color: #f2f2f3;
+  min-height: 230px;
+  max-height: 500px;
+  overflow-y: scroll;
+}
+
+div.modal textarea.devicetmpl-preview {
+  width: 100%;
+}
+
+div.peerses-workflow {
+  color: #aaa;
+}
+
+
+div.peerses-workflow p.current-step {
+  font-weight: bold;
+  color: #000;
+}
+
+
+span#role,
+span#replyto,
+span#count {
+  font-weight: 800;
+}
+
+
+div.api-input-indicator {
+  position: absolute;
+  right: 15px;
+  top: 0px;
+  height: 30px;
+  line-height: 24px;
+  padding: 3px;
+  border-radius: 0px 3px 3px 0px;
+}
+
+div.api-input-saved {
+  background-color: #7fbad3;
+  color: #fff;
+}
+
+.holder-inline {
+  display: inline-block;
+}
+
+.holder-inline div.api-input-indicator {
+  right: 0px;
+}

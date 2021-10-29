@@ -1,0 +1,11 @@
+Dear {{ peer.company_name }},
+
+We would like to advise you that we have configured and the following sessions:
+
+{% for session in sessions %}{{ session.ip4 }} {{ session.ip6 }} - {{ session.peer_ip4 }} {{ session.peer_ip6 }}
+{% endfor %}
+Please let us know if you have any questions or concerns.
+
+Thanks for peering!
+
+{{ my.company_name }} Peering
