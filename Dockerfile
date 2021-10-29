@@ -7,8 +7,8 @@ ARG run_deps=" \
     libgcc \
     postgresql-libs \
     "
-
-
+ARG uid=6300
+ARG user=fullctl
 
 # env to pass to sub images
 ENV BUILD_DEPS=$build_deps
@@ -35,8 +35,8 @@ COPY Ctl/VERSION Ctl/
 
 FROM base as final
 
-ARG uid=5002
-ARG USER=acctsvc
+ARG uid
+ARG user
 
 # extra settings file if needed
 # TODO keep in until final production deploy
@@ -45,7 +45,7 @@ ARG COPY_SETTINGS_FILE=mainsite/settings/dev.py
 # add dependencies
 RUN apk add $RUN_DEPS
 
-RUN adduser -Du $uid $USER
+RUN adduser -Du $uid $user
 
 WORKDIR $SERVICE_HOME
 COPY --from=builder "$VIRTUAL_ENV" "$VIRTUAL_ENV"
@@ -54,10 +54,12 @@ RUN mkdir -p etc locale media static
 COPY Ctl/VERSION etc/
 COPY docs/ docs
 
-RUN chown -R $USER:$USER locale media
+RUN chown -R $user:$user locale media
 
 #### entry point from final image, not tester
 FROM final
+
+ARG uid
 
 COPY src/ main/
 COPY Ctl/docker/entrypoint.sh .
@@ -70,7 +72,7 @@ COPY Ctl/docker/manage.sh /usr/bin/manage
 
 ENV UWSGI_SOCKET=127.0.0.1:6002
 
-USER $USER
+USER $uid
 
 ENTRYPOINT ["/entrypoint"]
 CMD ["runserver"]
