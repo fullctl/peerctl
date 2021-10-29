@@ -135,9 +135,7 @@ class Port(ModelSerializer):
     @models.ref_fallback("")
     def get_ix_name(self, instance):
         ix = models.InternetExchange.objects.get(ref_id=instance.portinfo.ref_ix_id)
-        name = (
-            f"{ix.name}: {instance.portinfo.ipaddr4}"
-        )
+        name = f"{ix.name}: {instance.portinfo.ipaddr4}"
         return name
 
     @models.ref_fallback(0)
@@ -152,7 +150,7 @@ class Port(ModelSerializer):
         if policy:
             return {
                 "id": policy.id,
-                "inherited": getattr(instance, "policy{}_inherited".format(version)),
+                "inherited": getattr(instance, f"policy{version}_inherited"),
                 "name": policy.name,
             }
         return {}
@@ -271,7 +269,7 @@ class Peer(ModelSerializer):
         return obj.name
 
     def get_peeringdb(self, obj):
-        return "https://www.peeringdb.com/asn/{}".format(obj.asn)
+        return f"https://www.peeringdb.com/asn/{obj.asn}"
 
     def get_ipaddr(self, obj):
         result = []
@@ -314,9 +312,7 @@ class Peer(ModelSerializer):
                 return {
                     "id": policy.id,
                     "name": policy.name,
-                    "inherited": getattr(
-                        obj.peerses, "policy{}_inherited".format(version)
-                    ),
+                    "inherited": getattr(obj.peerses, f"policy{version}_inherited"),
                 }
         return {}
 

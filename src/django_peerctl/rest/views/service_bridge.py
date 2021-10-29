@@ -1,17 +1,25 @@
 from django.db.models import Q
 from fullctl.django.rest.route.service_bridge import route
-from fullctl.django.rest.views.service_bridge import DataViewSet, Exclude, HeartbeatViewSet, StatusViewSet
+from fullctl.django.rest.views.service_bridge import (
+    DataViewSet,
+    Exclude,
+    HeartbeatViewSet,
+    StatusViewSet,
+)
 
 import django_peerctl.models.peerctl as models
 from django_peerctl.rest.serializers.service_bridge import Serializers
+
 
 @route
 class Status(StatusViewSet):
     checks = ("bridge_aaactl", "bridge_ixctl", "bridge_pdbctl")
 
+
 @route
 class Heartbeat(HeartbeatViewSet):
     pass
+
 
 @route
 class Network(DataViewSet):

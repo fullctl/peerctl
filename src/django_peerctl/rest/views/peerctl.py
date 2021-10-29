@@ -259,7 +259,6 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, port_pk, *args, **kwargs):
 
-
         port = (
             models.Port.objects.filter(id=port_pk)
             .prefetch_related("peerses_qs")
@@ -271,7 +270,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         instances = port.get_available_peers()
 
         serializer = self.serializer_class(
-           instances, many=True, context={"port": port, "net": net, "device": device}
+            instances, many=True, context={"port": port, "net": net, "device": device}
         )
 
         unified = {}
@@ -289,15 +288,21 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         #
         # TODO: make a fullctl thing for this like we already have
         # for django-rest-framework sql queries
-        ordering = request.GET.get("ordering", "name") or "name";
-        ordering_reverse = (ordering[0] == "-")
+        ordering = request.GET.get("ordering", "name") or "name"
+        ordering_reverse = ordering[0] == "-"
         if ordering_reverse:
             ordering = ordering[1:]
 
         if ordering not in ["name"]:
             ordering = "name"
 
-        return Response(sorted(list(unified.values()), key=lambda x:x[ordering].lower(), reverse=ordering_reverse))
+        return Response(
+            sorted(
+                list(unified.values()),
+                key=lambda x: x[ordering].lower(),
+                reverse=ordering_reverse,
+            )
+        )
 
     @load_object("net", models.Network, asn="asn")
     @load_object("port", models.Port, id="port_pk")
@@ -416,11 +421,9 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
         try:
             peerses = workflow.progress(request.user, emltmpl)
         except TemplateRenderError as exc:
-            raise ValidationError({"non_field_errors": ["{}".format(exc)]})
+            raise ValidationError({"non_field_errors": [f"{exc}"]})
         except UsageLimitError as exc:
-            raise ValidationError(
-                {"non_field_errors": [["usage_limit", "{}".format(exc)]]}
-            )
+            raise ValidationError({"non_field_errors": [["usage_limit", f"{exc}"]]})
 
         serializer = Serializers.peer(
             [ps.peerport.portinfo.ref for ps in peerses],
@@ -668,7 +671,6 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             )
         else:
             devicetmpl = models.DeviceTemplate.objects.get(id=pk)
-
 
         port = net.portinfo_qs.first().port_qs.first()
         devicetmpl.context["port"] = port

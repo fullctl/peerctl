@@ -19,9 +19,8 @@ def make_env(request, **kwargs):
 def view_instance(request, instance, **kwargs):
     env = make_env(request, instance=instance, org=instance.org)
 
-
     selected_asn = int(request.GET.get("asn", 0))
-    asns = dict([(net.asn, net) for net in verified_asns(request.perms)])
+    asns = {net.asn: net for net in verified_asns(request.perms)}
 
     net = asns.get(selected_asn)
 
@@ -30,7 +29,7 @@ def view_instance(request, instance, **kwargs):
             break
 
     if not net:
-        return HttpResponse(status=401);
+        return HttpResponse(status=401)
 
     env["forms"] = {}
     env["net"] = net

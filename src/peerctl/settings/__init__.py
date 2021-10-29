@@ -3,7 +3,6 @@ import sys
 
 from fullctl.django import settings
 
-
 SERVICE_TAG = "peerctl"
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -28,7 +27,7 @@ settings_manager.set_default_v1()
 # PEERCTL Base
 
 MIDDLEWARE += (
-# in fullctl    "fullctl.django.middleware.CurrentRequestContext",
+    # in fullctl    "fullctl.django.middleware.CurrentRequestContext",
     "fullctl.django.middleware.RequestAugmentation",
 )
 
@@ -59,9 +58,7 @@ LOGIN_URL = "/login"
 
 settings_manager.set_twentyc_service()
 
-SOCIAL_AUTH_PIPELINE += (
-    "django_peerctl.social.pipelines.create_devices",
-)
+SOCIAL_AUTH_PIPELINE += ("django_peerctl.social.pipelines.create_devices",)
 
 # allow propagation of user field changes during oauth process
 # with exception of id fields
