@@ -367,6 +367,8 @@ class Peer(ModelSerializer):
         return self.context["port"].id
 
     def get_device_id(self, obj):
+        if "device" not in self.context:
+            self.context["device"] = self.context["port"].devices[0]
         return self.context["device"].id
 
     def get_info_prefixes4(self, obj):
