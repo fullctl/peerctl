@@ -47,6 +47,15 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
       href="#page-peering-lists">{% trans "Peering lists" %}</a>
 
     <a class="nav-link"
+      id="tab-live-sessions"
+      data-toggle="tab"
+      role="tab"
+      aria-controls="live-sessions"
+      aria-selected="false"
+      data-second-tab="#live-sessions-body"
+      href="#page-live-sessions">{% trans "Live Sessions" %}</a>
+
+    <a class="nav-link"
       data-toggle="tab"
       role="tab"
       aria-controls="templates"
@@ -98,6 +107,10 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
     {% include "peerctl/tool/peering-lists/port-form.html" %}
   </div>
 
+  <div class="tab-pane" id="page-live-sessions" role="tabpanel" aria-labelledby="tab-live-sessions">
+    {% include "peerctl/tool/peering-live-sessions/port-filter.html" %}
+  </div>
+
   <div class="tab-pane" id="page-templates" role="tabpanel" aria-labelledby="tab-templates">
     {% include "peerctl/tool/peering-templates/nav.html" %}
   </div>
@@ -113,6 +126,10 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 <div class="tab-content" id="app-pages">
   <div class="tab-pane show active" id="peering-lists-body" role="tabpanel" aria-labelledby="tab-peering-lists">
     {% include "peerctl/tool/peering-lists/main.html" %}
+  </div>
+
+  <div class="tab-pane" id="live-sessions-body" role="tabpanel" aria-labelledby="tab-live-sessions">
+    {% include "peerctl/tool/peering-live-sessions/main.html" %}
   </div>
 
   <div class="tab-pane" id="templates-body" role="tabpanel" aria-labelledby="tab-templates">
