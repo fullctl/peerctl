@@ -424,9 +424,54 @@ class PeerDetails(ModelSerializer):
 
 @register
 class PeerSession(ModelSerializer):
+    policy6 = serializers.SerializerMethodField()
+    policy4 = serializers.SerializerMethodField()
+    asn = serializers.SerializerMethodField()
+    devices = serializers.SerializerMethodField()
+    port_display_name = serializers.SerializerMethodField()
+    ref_tag = "peerses"
+
     class Meta:
         model = models.PeerSession
-        fields = ["id", "port", "peerport"]
+        fields = [
+            "id", 
+            "port", 
+            "peerport", 
+            "policy6", 
+            "policy4" , 
+            "asn", 
+            "devices",
+            "port_display_name",
+            "status"
+        ]
+
+
+    def get_policy(self, obj, version):
+        if obj and obj.status == "ok":
+            policy = get_best_policy(obj, version, raise_error=False)
+            if policy:
+                return {
+                    "id": policy.id,
+                    "name": policy.name,
+                    "inherited": getattr(obj, f"policy{version}_inherited"),
+                }
+        return {}
+    
+    def get_policy4(self, obj):
+        return self.get_policy(obj, 4)
+
+    def get_policy6(self, obj):
+        return self.get_policy(obj, 6)
+
+    def get_asn(self, obj):
+        return obj.peerport.peernet.peer.asn
+
+    def get_devices(self, obj):
+        return obj.devices[0].display_name
+
+    def get_port_display_name(self, obj):
+        return obj.port.portinfo.ix_name + " " + obj.port.portinfo.ipaddr4
+
 
 
 @register

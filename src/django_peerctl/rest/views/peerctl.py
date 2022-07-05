@@ -249,6 +249,42 @@ def get_member(pk, join=None):
 
 
 @route
+class LiveSessionsPeerSessions(CachedObjectMixin, viewsets.GenericViewSet):
+
+    serializer_class = Serializers.peerses
+    require_asn = True
+    optional_port = True
+    ref_tag = "live_sessions"
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list(self, request, asn, net, *args, **kwargs):
+        instances = net.peerses_set.filter(status="ok")
+
+        serializer = self.serializer_class(
+            instances, many=True
+        )
+
+        return Response(
+            serializer.data
+        )
+
+    @action(detail=False, methods=["get"], url_path="filter_by_port/(?P<port_pk>[^/]+)")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list_by_port(self, request, asn, net, port_pk, *args, **kwargs):
+        port = models.Port.objects.get(id=port_pk)
+        instances = port.peerses_qs_prefetched.filter(status="ok")
+
+        serializer = self.serializer_class(
+            instances, many=True
+        )
+
+        return Response(
+            serializer.data
+        )
+
+@route
 class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
     serializer_class = Serializers.peer

@@ -27,6 +27,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       });
 
       this.$t.peering_lists.activate();
+      this.$t.live_sessions.activate();
       this.$t.policies.activate();
       this.$t.email_templates.activate();
       this.$t.device_templates.activate();
@@ -125,7 +126,6 @@ $peerctl.PeeringLists = $tc.extend(
       });
 
       $(this.$w.select_port.element).on("change", () => {
-        console.log(this.$w.select_port.element.val());
         this.sync(); // TODO : update this.sync
         //this.sync_url(this.$w.select_port.element.val())
       });
@@ -295,10 +295,30 @@ $peerctl.LiveSessions = $tc.extend(
         return w
       });
 
-      $(this.$w.select_port.element).on("change", () => {
-        this.sync(); // TODO : update this.sync
-        //this.sync_url(this.$w.select_port.element.val())
+      $(this.$w.select_port).one("load:after", () => {
+        this.sync();
       });
+
+      this.widget("list_peer_sessions", ($e) => {
+        var w = new twentyc.rest.List($('#live-sessions-body table'));
+        w.formatters.policy4 = (value, data) => {return data.policy4.name;}
+        w.formatters.policy6 = (value, data) => {return data.policy4.name;}
+        return w;
+      });
+
+      $(this.$w.select_port.element).on("change", () => {
+        this.sync();
+      });
+
+    },
+
+    sync: function() {
+      let port_filter = this.$w.select_port.element.val();
+      if (port_filter == "all")
+        this.$w.list_peer_sessions.action = "";
+      else
+        this.$w.list_peer_sessions.action = "filter_by_port/" + port_filter;
+      this.$w.list_peer_sessions.load();
     }
   },
   $ctl.application.Tool

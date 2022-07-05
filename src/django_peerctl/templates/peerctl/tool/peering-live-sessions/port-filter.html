@@ -8,6 +8,7 @@
         <select
           data-api-load="yes"
           data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
+          data-null-option="all;{% trans "All" %}"
           data-name-field="ix_name"
           data-element="select_port"></select>
       </span>
