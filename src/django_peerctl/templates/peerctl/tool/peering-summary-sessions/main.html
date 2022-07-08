@@ -1,10 +1,10 @@
 {% load static i18n %}
-<div class="tool" data-component="peering_live-sessions">
+<div class="tool" data-component="peering_summary-sessions">
   <div data-element="menu"></div>
   <table
   class="table list-table"
   data-api-load="yes"
-  data-api-base="{% url "peerctl_api:live_sessions-list" asn=selected_asn %}"
+  data-api-base="{% url "peerctl_api:summary_sessions-list" asn=selected_asn %}"
   data-template="list">
   <thead>
       <tr>
