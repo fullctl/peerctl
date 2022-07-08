@@ -10,8 +10,8 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return new $peerctl.PeeringLists();
       });
 
-      this.tool("live_sessions", () => {
-        return new $peerctl.LiveSessions();
+      this.tool("summary_sessions", () => {
+        return new $peerctl.SummarySessions();
       });
 
       this.tool("policies", ()=> {
@@ -27,7 +27,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       });
 
       this.$t.peering_lists.activate();
-      this.$t.live_sessions.activate();
+      this.$t.summary_sessions.activate();
       this.$t.policies.activate();
       this.$t.email_templates.activate();
       this.$t.device_templates.activate();
@@ -270,29 +270,20 @@ $peerctl.PeeringLists = $tc.extend(
   $ctl.application.Tool
 );
 
-$peerctl.LiveSessions = $tc.extend(
-  "LiveSessions",
+$peerctl.SummarySessions = $tc.extend(
+  "SummarySessions",
   {
-    LiveSessions : function() {
-      this.Tool("peering_live-sessions");
+    SummarySessions : function() {
+      this.Tool("peering_summary-sessions");
 
       this.ports = {};
 
       this.widget("select_port", ($e) => {
-        let select_port = $('#page-live-sessions select[data-element="select_port"]');
-        var w = new twentyc.rest.Select(select_port);
-        $(w).on("load:after", (event, element, data) => {
-          var i;
-          for(i = 0; i < data.length; i++) {
-            this.ports[data[i].id] = data[i];
-          }
-          if(data.length == 0) {
-            select_port.attr('disabled', true);
-          } else {
-            select_port.attr('disabled', false)
-          }
-        });
-        return w
+        return this.setup_select_filter('#page-summary-sessions select[data-element="select_port"]');
+      });
+
+      this.widget("select_device", ($e) => {
+        return this.setup_select_filter('#page-summary-sessions select[data-element="select_device"]');
       });
 
       $(this.$w.select_port).one("load:after", () => {
@@ -300,7 +291,7 @@ $peerctl.LiveSessions = $tc.extend(
       });
 
       this.widget("list_peer_sessions", ($e) => {
-        var w = new twentyc.rest.List($('#live-sessions-body table'));
+        var w = new twentyc.rest.List($('#summary-sessions-body table'));
         w.formatters.policy4 = (value, data) => {return data.policy4.name;}
         w.formatters.policy6 = (value, data) => {return data.policy4.name;}
         return w;
@@ -310,16 +301,39 @@ $peerctl.LiveSessions = $tc.extend(
         this.sync();
       });
 
+      $(this.$w.select_device.element).on("change", () => {
+        this.sync();
+      });
+
     },
 
     sync: function() {
       let port_filter = this.$w.select_port.element.val();
-      if (port_filter == "all")
-        this.$w.list_peer_sessions.action = "";
-      else
+      let device_filter = this.$w.select_device.element.val();
+      this.$w.list_peer_sessions.action = "";
+      if (port_filter && port_filter != "all")
         this.$w.list_peer_sessions.action = "filter_by_port/" + port_filter;
+      if (device_filter && device_filter != "all")
+        this.$w.list_peer_sessions.action += "/filter_by_device/" + device_filter;
       this.$w.list_peer_sessions.load();
-    }
+    },
+
+    setup_select_filter : function(selector) {
+      let jq = $(selector);
+      var w = new twentyc.rest.Select(jq);
+      $(w).on("load:after", (event, element, data) => {
+        var i;
+        for(i = 0; i < data.length; i++) {
+          this.ports[data[i].id] = data[i];
+        }
+        if(data.length == 0) {
+          jq.attr('disabled', true);
+        } else {
+          jq.attr('disabled', false)
+        }
+      });
+      return w
+    },
   },
   $ctl.application.Tool
 );

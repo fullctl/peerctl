@@ -428,6 +428,7 @@ class PeerSession(ModelSerializer):
     policy4 = serializers.SerializerMethodField()
     asn = serializers.SerializerMethodField()
     devices = serializers.SerializerMethodField()
+    device_id = serializers.SerializerMethodField()
     port_display_name = serializers.SerializerMethodField()
     ref_tag = "peerses"
 
@@ -441,6 +442,7 @@ class PeerSession(ModelSerializer):
             "policy4" , 
             "asn", 
             "devices",
+            "device_id",
             "port_display_name",
             "status"
         ]
@@ -468,6 +470,9 @@ class PeerSession(ModelSerializer):
 
     def get_devices(self, obj):
         return obj.devices[0].display_name
+
+    def get_device_id(self, obj):
+        return obj.devices[0].id
 
     def get_port_display_name(self, obj):
         return obj.port.portinfo.ix_name + " " + obj.port.portinfo.ipaddr4
