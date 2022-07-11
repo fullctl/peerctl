@@ -269,7 +269,7 @@ class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
             serializer.data
         )
 
-    @action(detail=False, methods=["get"], url_path="filter_by_port/(?P<port_pk>[^/]+)")
+    @action(detail=False, methods=["get"], url_path="port/(?P<port_pk>[^/]+)")
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_port(self, request, asn, net, port_pk, *args, **kwargs):
@@ -284,7 +284,7 @@ class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
             serializer.data
         )
 
-    @action(detail=False, methods=["get"], url_path="filter_by_device/(?P<device_pk>[^/]+)")
+    @action(detail=False, methods=["get"], url_path="device/(?P<device_pk>[^/]+)")
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_device(self, request, asn, net, device_pk, *args, **kwargs):
@@ -299,7 +299,7 @@ class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
             serializer.data
         )
 
-    @action(detail=False, methods=["get"], url_path="filter_by_port/(?P<port_pk>[^/]+)/filter_by_device/(?P<device_pk>[^/]+)")
+    @action(detail=False, methods=["get"], url_path="port/(?P<port_pk>[^/]+)/device/(?P<device_pk>[^/]+)")
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_port_and_device(self, request, asn, net, port_pk, device_pk, *args, **kwargs):

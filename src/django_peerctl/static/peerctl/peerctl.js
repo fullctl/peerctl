@@ -312,9 +312,9 @@ $peerctl.SummarySessions = $tc.extend(
       let device_filter = this.$w.select_device.element.val();
       this.$w.list_peer_sessions.action = "";
       if (port_filter && port_filter != "all")
-        this.$w.list_peer_sessions.action = "filter_by_port/" + port_filter;
+        this.$w.list_peer_sessions.action = "port/" + port_filter;
       if (device_filter && device_filter != "all")
-        this.$w.list_peer_sessions.action += "/filter_by_device/" + device_filter;
+        this.$w.list_peer_sessions.action += "/device/" + device_filter;
       this.$w.list_peer_sessions.load();
     },
 
