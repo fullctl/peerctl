@@ -22,9 +22,15 @@ def count_peer_session():
     count_ip4 = 0
     count_ip6 = 0
     for peer_session in qset:
-        if peer_session.peer_port.port_info.ipaddr6 and peer_session.port.port_info.ipaddr6:
+        if (
+            peer_session.peer_port.port_info.ipaddr6
+            and peer_session.port.port_info.ipaddr6
+        ):
             count_ip6 += 1
-        if peer_session.peer_port.port_info.ipaddr4 and peer_session.port.port_info.ipaddr4:
+        if (
+            peer_session.peer_port.port_info.ipaddr4
+            and peer_session.port.port_info.ipaddr4
+        ):
             count_ip4 += 1
         count += 1
     return {"all": count, "ip4": count_ip4, "ip6": count_ip6}

@@ -42,7 +42,9 @@ class PeerSessionWorkflow:
             port = self.port
         peer_port = PeerPort.get_or_create_from_members(port.port_info.ref, member)
         if create:
-            peer_session = PeerSession.get_or_create(port, peer_port, create_status="pending")
+            peer_session = PeerSession.get_or_create(
+                port, peer_port, create_status="pending"
+            )
         else:
             try:
                 peer_session = PeerSession.objects.get(port=port, peer_port=peer_port)
@@ -189,7 +191,9 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
             debug_address=user.email,
         )
 
-        EmailLog.log_peer_session_workflow(my_asn, peer_asn, user, contact, subject, body)
+        EmailLog.log_peer_session_workflow(
+            my_asn, peer_asn, user, contact, subject, body
+        )
 
         peer_session_list = super().request()
 
@@ -222,7 +226,9 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
             debug_address=user.email,
         )
 
-        EmailLog.log_peer_session_workflow(my_asn, peer_asn, user, contact, subject, body)
+        EmailLog.log_peer_session_workflow(
+            my_asn, peer_asn, user, contact, subject, body
+        )
 
         peer_session_list = super().config_complete()
         for peer_session in peer_session_list:
@@ -251,7 +257,9 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
             debug_address=user.email,
         )
 
-        EmailLog.log_peer_session_workflow(my_asn, peer_asn, user, contact, subject, body)
+        EmailLog.log_peer_session_workflow(
+            my_asn, peer_asn, user, contact, subject, body
+        )
 
         peer_session_list = super().finalize()
         for peer_session in peer_session_list:

@@ -29,7 +29,9 @@ from django_peerctl.stats import site_stats
 def email_template_base(request, template_id):
     try:
         email_template = models.EmailTemplate(type=template_id)
-        path = os.path.join(email_template.template_loader_paths[0], email_template.template_path)
+        path = os.path.join(
+            email_template.template_loader_paths[0], email_template.template_path
+        )
         with open(path) as fh:
             template_text = fh.read()
     except KeyError:

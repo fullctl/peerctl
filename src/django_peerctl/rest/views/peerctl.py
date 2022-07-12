@@ -82,7 +82,8 @@ class DevicePort(CachedObjectMixin, viewsets.ModelViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, device_pk, device, *args, **kwargs):
         instances = Port.objects.filter(
-            virtual_port__logical_port__physical_port_qs__in=device.physical_port_qs.all(), status="ok"
+            virtual_port__logical_port__physical_port_qs__in=device.physical_port_qs.all(),
+            status="ok",
         )
 
         serializer = self.serializer_class(instances, many=True)
@@ -261,13 +262,9 @@ class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
     def list(self, request, asn, net, *args, **kwargs):
         instances = net.peer_session_set.filter(status="ok")
 
-        serializer = self.serializer_class(
-            instances, many=True
-        )
+        serializer = self.serializer_class(instances, many=True)
 
-        return Response(
-            serializer.data
-        )
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"], url_path="filter_by_port/(?P<port_pk>[^/]+)")
     @load_object("net", models.Network, asn="asn")
@@ -276,48 +273,45 @@ class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
         port = models.Port.objects.get(id=port_pk)
         instances = port.peer_session_qs_prefetched.filter(status="ok")
 
-        serializer = self.serializer_class(
-            instances, many=True
-        )
+        serializer = self.serializer_class(instances, many=True)
 
-        return Response(
-            serializer.data
-        )
+        return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], url_path="filter_by_device/(?P<device_pk>[^/]+)")
+    @action(
+        detail=False, methods=["get"], url_path="filter_by_device/(?P<device_pk>[^/]+)"
+    )
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_device(self, request, asn, net, device_pk, *args, **kwargs):
         device = models.Device.objects.get(id=device_pk)
         instances = device.peer_session_qs.filter(status="ok")
 
-        serializer = self.serializer_class(
-            instances, many=True
-        )
+        serializer = self.serializer_class(instances, many=True)
 
-        return Response(
-            serializer.data
-        )
+        return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], url_path="filter_by_port/(?P<port_pk>[^/]+)/filter_by_device/(?P<device_pk>[^/]+)")
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="filter_by_port/(?P<port_pk>[^/]+)/filter_by_device/(?P<device_pk>[^/]+)",
+    )
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def list_by_port_and_device(self, request, asn, net, port_pk, device_pk, *args, **kwargs):
+    def list_by_port_and_device(
+        self, request, asn, net, port_pk, device_pk, *args, **kwargs
+    ):
         port = models.Port.objects.get(id=port_pk)
         instances = port.peer_session_qs_prefetched.filter(status="ok")
 
-        serializer = self.serializer_class(
-            instances, many=True
-        )
+        serializer = self.serializer_class(instances, many=True)
 
         intersection = []
         for row in serializer.data:
-            if str(row['device_id']) == device_pk:
+            if str(row["device_id"]) == device_pk:
                 intersection.append(row)
 
-        return Response(
-            intersection
-        )
+        return Response(intersection)
+
 
 @route
 class Peer(CachedObjectMixin, viewsets.GenericViewSet):
@@ -555,7 +549,9 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["put"])
     @load_object("net", models.Network, asn="asn")
     @load_object("port", models.Port, id="port_pk")
-    @load_object("peer_session", models.PeerSession, id="pk", port__port_info__net__asn="asn")
+    @load_object(
+        "peer_session", models.PeerSession, id="pk", port__port_info__net__asn="asn"
+    )
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_policy(
         self, request, asn, net, port_pk, port, pk, peer_session, *args, **kwargs
@@ -577,9 +573,13 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
     @load_object("net", models.Network, asn="asn")
     @load_object("port", models.Port, id="port_pk")
-    @load_object("peer_session", models.PeerSession, id="pk", port__port_info__net__asn="asn")
+    @load_object(
+        "peer_session", models.PeerSession, id="pk", port__port_info__net__asn="asn"
+    )
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def destroy(self, request, asn, net, port_pk, port, pk, peer_session, *args, **kwargs):
+    def destroy(
+        self, request, asn, net, port_pk, port, pk, peer_session, *args, **kwargs
+    ):
         r = super().destroy(request, asn, port, pk)
         # XXX: fullctl auditlog covers this
         models.AuditLog.log_peer_session_del(peer_session, request.user)

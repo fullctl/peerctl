@@ -461,7 +461,9 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         peer_session_qset = (
             self.peer_session_at_ix(ix_id)
             .filter(status="ok")
-            .select_related("peer_port", "peer_port__peer_net", "peer_port__peer_net__peer")
+            .select_related(
+                "peer_port", "peer_port__peer_net", "peer_port__peer_net__peer"
+            )
         )
         r = list(
             {
@@ -741,7 +743,9 @@ class Device(Base):
 
         groups = {}
 
-        for peer_session in self.peer_session_qs.filter(peer_port__peer_net__net=net, status="ok"):
+        for peer_session in self.peer_session_qs.filter(
+            peer_port__peer_net__net=net, status="ok"
+        ):
             policy = get_best_policy(peer_session, ip_version)
             name = policy.peer_group
             if name not in groups:
@@ -791,7 +795,9 @@ class Device(Base):
                     "neighbor_address": addr,
                     "local_as": peer_session.peer_port.peer_net.net.asn,
                     "auth_password": peer_session.peer_port.peer_net.md5,
-                    "max_prefixes": peer_session.peer_port.peer_net.info_prefixes(ip_version),
+                    "max_prefixes": peer_session.peer_port.peer_net.info_prefixes(
+                        ip_version
+                    ),
                     "import_policy": policy.import_policy,
                     "export_policy": policy.export_policy,
                 }
@@ -948,7 +954,9 @@ class Port(PolicyHolderMixin, Base):
         )
 
         # create virtual port
-        virtual_port = VirtualPort.objects.create(logical_port=logical_port, vlan_id=0, status="ok")
+        virtual_port = VirtualPort.objects.create(
+            logical_port=logical_port, vlan_id=0, status="ok"
+        )
 
         # create port info
         if not port_info:
@@ -960,7 +968,9 @@ class Port(PolicyHolderMixin, Base):
             port_info.save()
 
         # create port
-        port = Port.objects.create(virtual_port=virtual_port, port_info=port_info, status="ok")
+        port = Port.objects.create(
+            virtual_port=virtual_port, port_info=port_info, status="ok"
+        )
 
         exchange = InternetExchange.get_or_create(member.ix, member.source)
 
@@ -1054,7 +1064,9 @@ class PeerPort(Base):
     # owner network
     # net = models.ForeignKey(Network) #, on_delete=models.CASCADE, related_name='+')
 
-    peer_net = models.ForeignKey(PeerNetwork, on_delete=models.CASCADE, related_name="+")
+    peer_net = models.ForeignKey(
+        PeerNetwork, on_delete=models.CASCADE, related_name="+"
+    )
     #    virtual_port = models.ForeignKey(VirtualPort, on_delete=models.CASCADE, related_name='+')
     port_info = models.ForeignKey(PortInfo, on_delete=models.CASCADE, related_name="+")
 
@@ -1070,7 +1082,9 @@ class PeerPort(Base):
         try:
             obj = cls.objects.get(port_info=port_info, peer_net=peer_net)
         except cls.DoesNotExist:
-            obj = cls.objects.create(port_info=port_info, peer_net=peer_net, status="ok")
+            obj = cls.objects.create(
+                port_info=port_info, peer_net=peer_net, status="ok"
+            )
         return obj
 
     @classmethod
@@ -1108,7 +1122,9 @@ class PeerSession(PolicyHolderMixin, Base):
     port going to a Peer with 2 physical ports (with different IPs)
     """
 
-    port = models.ForeignKey(Port, on_delete=models.CASCADE, related_name="peer_session_qs")
+    port = models.ForeignKey(
+        Port, on_delete=models.CASCADE, related_name="peer_session_qs"
+    )
     peer_port = models.ForeignKey(PeerPort, on_delete=models.CASCADE, related_name="+")
 
     class Meta:
@@ -1125,7 +1141,9 @@ class PeerSession(PolicyHolderMixin, Base):
             obj = cls.objects.get(port=port, peer_port=peer_port)
 
         except cls.DoesNotExist:
-            obj = cls.objects.create(port=port, peer_port=peer_port, status=create_status)
+            obj = cls.objects.create(
+                port=port, peer_port=peer_port, status=create_status
+            )
 
         return obj
 

@@ -312,7 +312,9 @@ class Peer(ModelSerializer):
                 return {
                     "id": policy.id,
                     "name": policy.name,
-                    "inherited": getattr(obj.peer_session, f"policy{version}_inherited"),
+                    "inherited": getattr(
+                        obj.peer_session, f"policy{version}_inherited"
+                    ),
                 }
         return {}
 
@@ -435,18 +437,17 @@ class PeerSession(ModelSerializer):
     class Meta:
         model = models.PeerSession
         fields = [
-            "id", 
-            "port", 
-            "peer_port", 
-            "policy6", 
-            "policy4" , 
-            "asn", 
+            "id",
+            "port",
+            "peer_port",
+            "policy6",
+            "policy4",
+            "asn",
             "devices",
             "device_id",
             "port_display_name",
-            "status"
+            "status",
         ]
-
 
     def get_policy(self, obj, version):
         if obj and obj.status == "ok":
@@ -458,7 +459,7 @@ class PeerSession(ModelSerializer):
                     "inherited": getattr(obj, f"policy{version}_inherited"),
                 }
         return {}
-    
+
     def get_policy4(self, obj):
         return self.get_policy(obj, 4)
 
@@ -476,7 +477,6 @@ class PeerSession(ModelSerializer):
 
     def get_port_display_name(self, obj):
         return obj.port.port_info.ix_name + " " + obj.port.port_info.ipaddr4
-
 
 
 @register
