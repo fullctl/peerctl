@@ -499,7 +499,7 @@ $peerctl.EmailTemplates = $tc.extend(
   "EmailTemplates",
   {
     EmailTemplates : function() {
-      this.tag = "emltmpl";
+      this.tag = "email_template";
       this.Tool("email_templates");
       this.preview_timeout = new twentyc.util.SmartTimeout(()=>{},100);
     }
@@ -511,7 +511,7 @@ $peerctl.DeviceTemplates = $tc.extend(
   "DeviceTemplates",
   {
     DeviceTemplates : function() {
-      this.tag = "devicetmpl";
+      this.tag = "device_template";
       this.Tool("device_templates");
       this.preview_timeout = new twentyc.util.SmartTimeout(()=>{},100);
     }
@@ -574,9 +574,9 @@ $peerctl.PortPolicySelect = $tc.extend(
 $peerctl.PeerSessionPolicySelect = $tc.extend(
   "PeerSessionPolicySelect",
   {
-    PeerSessionPolicySelect : function(jq, ip_version, peerses_id) {
+    PeerSessionPolicySelect : function(jq, ip_version, peer_session_id) {
       this.PortPolicySelect(jq, ip_version);
-      this.peerses_id = peerses_id;
+      this.peer_session_id = peer_session_id;
     },
     payload : function() {
       return {
@@ -587,7 +587,7 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
     format_request_url: function(url,method) {
       if(method == "put") {
         url = this.element.data("api-action");
-        return url.replace("port_id", fullctl.peerctl.port()).replace("peerses_id", this.peerses_id);
+        return url.replace("port_id", fullctl.peerctl.port()).replace("peer_session_id", this.peer_session_id);
       }
       return url;
     }
@@ -606,9 +606,9 @@ $peerctl.PeerSessionButton = $tc.extend(
 
     },
     format_request_url: function(url, method) {
-      var peerses_id = this.element.data("peerses-id")
+      var peer_session_id = this.element.data("peer_session-id")
       var port = (this.port_id || fullctl.peerctl.port())
-      return url.replace("port_id", port).replace("peerses_id", peerses_id);
+      return url.replace("port_id", port).replace("peer_session_id", peer_session_id);
     },
     payload: function() {
       return {
@@ -700,7 +700,7 @@ $peerctl.PeerSessionList = $tc.extend(
       var peer_row = this.peer_row;
 
         var button_add = new $peerctl.PeerSessionButton(
-          port_row.find("button.peerses-add"),
+          port_row.find("button.peer_session-add"),
           data.id,
           data.origin_id,
           data.port_id
@@ -708,13 +708,13 @@ $peerctl.PeerSessionList = $tc.extend(
 
 
         var button_live = new $peerctl.PeerSessionButton(
-          port_row.find("button.peerses-live"),
+          port_row.find("button.peer_session-live"),
           data.id,
           data.origin_id,
           data.port_id
         );
 
-        var button_show_config = port_row.find('button[data-element="peerses_device_config"]');
+        var button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
 
         button_show_config.click(()=>{
           new $peerctl.modals.DeviceConfig(data);
@@ -722,16 +722,16 @@ $peerctl.PeerSessionList = $tc.extend(
 
 
         $(button_add).on("api-post:success", (ev, endpoint, sent_data, response)=>{
-          port_row.addClass("peerses-active").removeClass("peerses-inactive");
+          port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
           if(peer_row)
             peer_row.addClass("border-active").removeClass("border-inactive");
           list.fill_policy_selects(port_row, data);
-          button_live.element.data("peerses-id", response.first().peerses);
+          button_live.element.data("peer_session-id", response.first().peer_session);
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
         });
 
         $(button_live).on("api-delete:success", ()=>{
-          port_row.addClass("peerses-inactive").removeClass("peerses-active");
+          port_row.addClass("peer_session-inactive").removeClass("peer_session-active");
           if(peer_row)
             peer_row.addClass("border-inactive").removeClass("border-active");
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
@@ -739,14 +739,14 @@ $peerctl.PeerSessionList = $tc.extend(
 
 
 
-        if(data.peerses_status == "ok") {
-          button_live.element.data("peerses-id", data.peerses);
-          port_row.addClass("peerses-active").removeClass("peerses-inactive");
+        if(data.peer_session_status == "ok") {
+          button_live.element.data("peer_session-id", data.peer_session);
+          port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
           if(peer_row)
             peer_row.addClass("border-active").removeClass("border-inactive");
           list.fill_policy_selects(port_row, data);
         } else {
-          port_row.addClass("peerses-inactive").removeClass("peerses-active");
+          port_row.addClass("peer_session-inactive").removeClass("peer_session-active");
           if(peer_row)
             peer_row.addClass("border-inactive").removeClass("border-active");
         }
@@ -754,11 +754,11 @@ $peerctl.PeerSessionList = $tc.extend(
     },
     fill_policy_selects : function(port_row, data) {
       new $peerctl.PeerSessionPolicySelect(
-        port_row.find('.peerses-policy-4'), 4, data.peerses
+        port_row.find('.peer_session-policy-4'), 4, data.peer_session
       ).element.val(data.policy4.id);
 
       new $peerctl.PeerSessionPolicySelect(
-        port_row.find('.peerses-policy-6'), 6, data.peerses
+        port_row.find('.peer_session-policy-6'), 6, data.peer_session
       ).element.val(data.policy6.id);
 
     }
@@ -884,7 +884,7 @@ $peerctl.PeerList = $tc.extend(
       var active = 0;
       var available = 0;
       this.element.find('.peers-row').each(function() {
-        if(!$(this).find('.peerses-active').length)
+        if(!$(this).find('.peer_session-active').length)
           available += 1
         else
           active +=1
@@ -964,7 +964,7 @@ $peerctl.EmailTemplatePreview = $tc.extend(
       return {
         type: this.type,
         peer: this.peer.id,
-        peerses: this.peer.peerses
+        peer_session: this.peer.peer_session
       }
     }
   },
@@ -1060,10 +1060,10 @@ $peerctl.modals.RequestPeering = $tc.extend(
       var current_step = "peer-request";
       var title = "Peering Request";
 
-      if(peer.peerses_status == "requested") {
+      if(peer.peer_session_status == "requested") {
         title = "Notify Configuration Complete";
         current_step = "peer-config-complete";
-      } else if(peer.peerses_status == "configured") {
+      } else if(peer.peer_session_status == "configured") {
         title = "Notify Peering Session Live";
         current_step = "peer-session-live";
       }
@@ -1083,9 +1083,9 @@ $peerctl.modals.RequestPeering = $tc.extend(
       };
       $(form).on("api-write:success", (ev, endpoint, data, response)=>{
         this.hide();
-        peer.peerses_status = response.first().peerses_status;
-        peer.peerses = response.first().peerses;
-        if(peer.peerses_status == "ok") {
+        peer.peer_session_status = response.first().peer_session_status;
+        peer.peer_session = response.first().peer_session;
+        if(peer.peer_session_status == "ok") {
           fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(peer.id)
         }
       });

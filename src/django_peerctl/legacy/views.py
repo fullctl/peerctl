@@ -26,10 +26,10 @@ from django_peerctl import const, models
 from django_peerctl.stats import site_stats
 
 
-def emltmpl_base(request, template_id):
+def email_template_base(request, template_id):
     try:
-        emltmpl = models.EmailTemplate(type=template_id)
-        path = os.path.join(emltmpl.template_loader_paths[0], emltmpl.template_path)
+        email_template = models.EmailTemplate(type=template_id)
+        path = os.path.join(email_template.template_loader_paths[0], email_template.template_path)
         with open(path) as fh:
             template_text = fh.read()
     except KeyError:
@@ -37,7 +37,7 @@ def emltmpl_base(request, template_id):
     return HttpResponse(template_text)
 
 
-def devicetmpl_base(request, template_id):
+def device_template_base(request, template_id):
     try:
         path = os.path.join(
             dj_settings.NETOM_TEMPLATE_DIR, const.DEVICE_TEMPLATES[template_id]

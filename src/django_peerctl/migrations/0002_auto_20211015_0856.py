@@ -52,5 +52,5 @@ class Migration(migrations.Migration):
                 ],
             ),
         ),
-        migrations.RunPython(reset),
+        migrations.RunPython(reset, reset),
     ]
