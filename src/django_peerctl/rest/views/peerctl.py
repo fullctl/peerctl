@@ -249,6 +249,77 @@ def get_member(pk, join=None):
 
 
 @route
+class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
+
+    serializer_class = Serializers.peerses
+    require_asn = True
+    optional_port = True
+    ref_tag = "summary_sessions"
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list(self, request, asn, net, *args, **kwargs):
+        instances = net.peerses_set.filter(status="ok")
+
+        serializer = self.serializer_class(
+            instances, many=True
+        )
+
+        return Response(
+            serializer.data
+        )
+
+    @action(detail=False, methods=["get"], url_path="filter_by_port/(?P<port_pk>[^/]+)")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list_by_port(self, request, asn, net, port_pk, *args, **kwargs):
+        port = models.Port.objects.get(id=port_pk)
+        instances = port.peerses_qs_prefetched.filter(status="ok")
+
+        serializer = self.serializer_class(
+            instances, many=True
+        )
+
+        return Response(
+            serializer.data
+        )
+
+    @action(detail=False, methods=["get"], url_path="filter_by_device/(?P<device_pk>[^/]+)")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list_by_device(self, request, asn, net, device_pk, *args, **kwargs):
+        device = models.Device.objects.get(id=device_pk)
+        instances = device.peerses_qs.filter(status="ok")
+
+        serializer = self.serializer_class(
+            instances, many=True
+        )
+
+        return Response(
+            serializer.data
+        )
+
+    @action(detail=False, methods=["get"], url_path="filter_by_port/(?P<port_pk>[^/]+)/filter_by_device/(?P<device_pk>[^/]+)")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list_by_port_and_device(self, request, asn, net, port_pk, device_pk, *args, **kwargs):
+        port = models.Port.objects.get(id=port_pk)
+        instances = port.peerses_qs_prefetched.filter(status="ok")
+
+        serializer = self.serializer_class(
+            instances, many=True
+        )
+
+        intersection = []
+        for row in serializer.data:
+            if str(row['device_id']) == device_pk:
+                intersection.append(row)
+
+        return Response(
+            intersection
+        )
+
+@route
 class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
     serializer_class = Serializers.peer
