@@ -103,7 +103,7 @@ class ref_fallback:
             try:
                 return fn(*args, **kwargs)
             except (sot.ReferenceNotFoundError, ObjectDoesNotExist):
-                if isinstance(value, collections.Callable):
+                if isinstance(value, collections.abc.Callable):
                     return value(*args)
                 return value
 
