@@ -44,9 +44,9 @@ pre-commit = ">=2.13"
 pyupgrade = ">=2.19"
 
 # docs
-#markdown = "*"
-#markdown-include = ">=0.5,<1"
-#mkdocs = "^1.2.3"
+markdown = "*"
+markdown-include = ">=0.5,<1"
+mkdocs = "^1.2.3"
 
 # ctl
 ctl = ">=1"
