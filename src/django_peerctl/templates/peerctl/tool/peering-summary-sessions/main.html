@@ -1,0 +1,35 @@
+{% load static i18n %}
+<div class="tool" data-component="peering_summary-sessions">
+  <div data-element="menu"></div>
+  <table
+  class="table list-table"
+  data-api-load="yes"
+  data-api-base="{% url "peerctl_api:summary_sessions-list" asn=selected_asn %}"
+  data-template="list">
+  <thead>
+      <tr>
+      <th>{% trans "ASN" %}</th>
+      <th>{% trans "Policy IPv4" %}</th>
+      <th>{% trans "Policy IPv6" %}</th>
+      <th>{% trans "Port" %}</th>
+      <th>{% trans "Device" %}</th>
+      </tr>
+  </thead>
+
+  <tbody class="list-body">
+  </tbody>
+
+  <tbody class="templates">
+      <tr data-template="row" class="with-border">
+        <td data-field="asn"></td>
+        <td data-field="policy4"></td>
+        <td data-field="policy6"></td>
+        <td data-field="port_display_name"></td>
+        <td data-field="devices"></td>
+      </tr>
+  </tbody>
+  </table>
+  <div class="templates">
+    <div data-template="menu"></div>
+  </div>
+</div>

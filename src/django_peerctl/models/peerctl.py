@@ -734,12 +734,7 @@ class Device(Base):
 
     @property
     def peerses_qs(self):
-        port = self.port_qs.first()
-        return PeerSession.objects.filter(
-            peerport__portinfo__ref_id__in={
-                n.ref_id for n in port.get_available_peers()
-            }
-        )
+        return PeerSession.objects.filter(port__in=self.port_qs)
 
     def peer_groups(self, net, ip_version):
         """return collection of peer groups"""
