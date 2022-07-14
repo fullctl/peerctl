@@ -2,7 +2,7 @@
 [tool.poetry]
 name = "peerctl"
 repository = "https://github.com/fullctl/peerctl"
-version = "1.0.0-rc6"
+version = "1.0.0-rc7"
 description = "ix control"
 authors = ["20C <code@20c.com>"]
 license = "Apache-2.0"
@@ -26,7 +26,6 @@ fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "prep-relea
 netom = { git = "https://github.com/20c/netom.git", branch = "update-deps" }
 
 [tool.poetry.dev-dependencies]
-docker-compose = "^1.29.1"
 # tests
 codecov = ">=2"
 coverage = ">=5"
@@ -35,17 +34,25 @@ pytest-django = ">=3.8.0"
 pytest-cov = "*"
 
 # linting
-bandit = "^1.6.2"
-black = {version = ">=20", allow-prereleases = true}
-isort = "^5.7.0"
-flake8 = "^3.8.4"
-pre-commit = "^2.13.0"
-pyupgrade = "^2.19.4"
+# bandit = ">=1.6.2"
+black = ">=20"
+isort = ">=5.7"
+flake8 = ">=3.8"
+mypy = ">=0.950"
+pre-commit = ">=2.13"
+pyupgrade = ">=2.19"
 
-#ctl
-ctl = "^1.0.0"
+# docs
+markdown = "*"
+markdown-include = ">=0.5,<1"
+mkdocs = "^1.2.3"
+
+# ctl
+ctl = ">=1"
 jinja2 = "^3"
-tmpl = "^1"
+tmpl = ">=1"
+# v4 released 2022-03-31
+twine = "^3.3.0"
 
 [tool.isort]
 profile = "black"
