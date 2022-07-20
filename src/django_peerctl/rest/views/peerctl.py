@@ -266,7 +266,7 @@ class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
 
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], url_path="filter_by_port/(?P<port_pk>[^/]+)")
+    @action(detail=False, methods=["get"], url_path="port/(?P<port_pk>[^/]+)")
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_port(self, request, asn, net, port_pk, *args, **kwargs):
@@ -277,9 +277,7 @@ class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
 
         return Response(serializer.data)
 
-    @action(
-        detail=False, methods=["get"], url_path="filter_by_device/(?P<device_pk>[^/]+)"
-    )
+    @action(detail=False, methods=["get"], url_path="device/(?P<device_pk>[^/]+)")
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_device(self, request, asn, net, device_pk, *args, **kwargs):
@@ -290,28 +288,25 @@ class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
 
         return Response(serializer.data)
 
-    @action(
-        detail=False,
-        methods=["get"],
-        url_path="filter_by_port/(?P<port_pk>[^/]+)/filter_by_device/(?P<device_pk>[^/]+)",
-    )
+    @action(detail=False, methods=["get"], url_path="port/(?P<port_pk>[^/]+)/device/(?P<device_pk>[^/]+)")
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def list_by_port_and_device(
-        self, request, asn, net, port_pk, device_pk, *args, **kwargs
-    ):
+    def list_by_port_and_device(self, request, asn, net, port_pk, device_pk, *args, **kwargs):
         port = models.Port.objects.get(id=port_pk)
         instances = port.peer_session_qs_prefetched.filter(status="ok")
 
-        serializer = self.serializer_class(instances, many=True)
+        serializer = self.serializer_class(
+            instances, many=True
+        )
 
         intersection = []
         for row in serializer.data:
-            if str(row["device_id"]) == device_pk:
+            if str(row['device_id']) == device_pk:
                 intersection.append(row)
 
-        return Response(intersection)
-
+        return Response(
+            intersection
+        )
 
 @route
 class Peer(CachedObjectMixin, viewsets.GenericViewSet):
