@@ -4,8 +4,8 @@
     <label for="template">{% trans "Template" %}</label>
     <select
       id="template"
-      data-api-base="{% url "peerctl_api:emltmpl-list" asn=selected_asn %}"
-      name="emltmpl"
+      data-api-base="{% url "peerctl_api:email_template-list" asn=selected_asn %}"
+      name="email_template"
       data-null-option="0;Default"
       class="form-control"></select>
   </div>
@@ -14,8 +14,8 @@
   <div class="col-12" data-api-submit="yes">
     <textarea
       name="body"
-      data-api-preview="{% url "peerctl_api:emltmpl-preview" asn=selected_asn pk="tmpl_id" %}"
-      data-api-preview-default="{% url "peerctl_api:emltmpl-preview-default" asn=selected_asn %}"
+      data-api-preview="{% url "peerctl_api:email_template-preview" asn=selected_asn pk="tmpl_id" %}"
+      data-api-preview-default="{% url "peerctl_api:email_template-preview-default" asn=selected_asn %}"
       class="form-control template-editor"></textarea>
   </div>
 </div>

@@ -14,7 +14,7 @@ from rest_framework.validators import UniqueTogetherValidator
 
 import django_peerctl.models as models
 from django_peerctl.helpers import get_best_policy
-from django_peerctl.peerses_workflow import PeerSessionEmailWorkflow
+from django_peerctl.peer_session_workflow import PeerSessionEmailWorkflow
 
 Serializers, register = serializer_registry()
 
@@ -86,8 +86,8 @@ class Policy(ModelSerializer):
 @register
 class Port(ModelSerializer):
 
-    net = serializers.IntegerField(source="portinfo.net.id", read_only=True)
-    asn = serializers.IntegerField(source="portinfo.net.asn", read_only=True)
+    net = serializers.IntegerField(source="port_info.net.id", read_only=True)
+    asn = serializers.IntegerField(source="port_info.net.asn", read_only=True)
     peers = serializers.SerializerMethodField()
 
     ix = serializers.SerializerMethodField()
@@ -126,21 +126,21 @@ class Port(ModelSerializer):
     @models.ref_fallback(0)
     def get_ix(self, instance):
         return models.InternetExchange.objects.get(
-            ref_id=instance.portinfo.ref_ix_id
+            ref_id=instance.port_info.ref_ix_id
         ).id
 
     def get_ref_ix_id(self, instance):
-        return instance.portinfo.ref_ix_id
+        return instance.port_info.ref_ix_id
 
     @models.ref_fallback("")
     def get_ix_name(self, instance):
-        ix = models.InternetExchange.objects.get(ref_id=instance.portinfo.ref_ix_id)
-        name = f"{ix.name}: {instance.portinfo.ipaddr4}"
+        ix = models.InternetExchange.objects.get(ref_id=instance.port_info.ref_ix_id)
+        name = f"{ix.name}: {instance.port_info.ipaddr4}"
         return name
 
     @models.ref_fallback(0)
     def get_speed(self, instance):
-        return instance.portinfo.ref.speed
+        return instance.port_info.ref.speed
 
     def get_device(self, instance):
         return Device(instance=instance.devices[0]).data
@@ -174,9 +174,9 @@ class Peer(ModelSerializer):
     name = serializers.SerializerMethodField()
     asn = serializers.IntegerField()
     peeringdb = serializers.SerializerMethodField()
-    peerses = serializers.SerializerMethodField()
-    peerses_status = serializers.SerializerMethodField()
-    peerses_contact = serializers.SerializerMethodField()
+    peer_session = serializers.SerializerMethodField()
+    peer_session_status = serializers.SerializerMethodField()
+    peer_session_contact = serializers.SerializerMethodField()
     user = serializers.SerializerMethodField()
     md5 = serializers.SerializerMethodField()
     ix_name = serializers.SerializerMethodField()
@@ -202,9 +202,9 @@ class Peer(ModelSerializer):
             "info_prefixes4",
             "info_prefixes6",
             "peeringdb",
-            "peerses",
-            "peerses_status",
-            "peerses_contact",
+            "peer_session",
+            "peer_session_status",
+            "peer_session_contact",
             "user",
             "policy_general",
             "policy_ratio",
@@ -248,7 +248,7 @@ class Peer(ModelSerializer):
         return self._pocs
 
     @property
-    def peernets(self):
+    def peer_nets(self):
         """
         Returns all peer networks at the port specified in
         the serializer context
@@ -256,14 +256,14 @@ class Peer(ModelSerializer):
         Will be cached in order to speed up serialization
         times
         """
-        if not hasattr(self, "_peernets"):
-            self._peernets = {}
-            ix = self.context["port"].portinfo.ix
+        if not hasattr(self, "_peer_nets"):
+            self._peer_nets = {}
+            ix = self.context["port"].port_info.ix
             if ix:
-                _peernets = self.context["net"].peernets_at_ix(ix.id)
-                for peernet in _peernets:
-                    self._peernets[peernet.peer.asn] = peernet
-        return self._peernets
+                _peer_nets = self.context["net"].peer_nets_at_ix(ix.id)
+                for peer_net in _peer_nets:
+                    self._peer_nets[peer_net.peer.asn] = peer_net
+        return self._peer_nets
 
     def get_name(self, obj):
         return obj.name
@@ -288,15 +288,15 @@ class Peer(ModelSerializer):
                 if member.id != obj.id:
                     continue
 
-            peerses = self.get_peerses(member)
+            peer_session = self.get_peer_session(member)
             result.append(
                 {
                     "ipaddr4": str(member.ipaddr4),
                     "ipaddr6": str(member.ipaddr6),
                     "policy4": self.get_policy(member, 4),
                     "policy6": self.get_policy(member, 6),
-                    "peerses": peerses,
-                    "peerses_status": self.get_peerses_status(member),
+                    "peer_session": peer_session,
+                    "peer_session_status": self.get_peer_session_status(member),
                     "origin_id": obj.ref_id,
                     "id": member.ref_id,
                 }
@@ -305,14 +305,16 @@ class Peer(ModelSerializer):
         return result
 
     def get_policy(self, obj, version):
-        peerses = getattr(obj, "peerses", None)
-        if peerses and peerses.status == "ok":
-            policy = get_best_policy(obj.peerses, version, raise_error=False)
+        peer_session = getattr(obj, "peer_session", None)
+        if peer_session and peer_session.status == "ok":
+            policy = get_best_policy(obj.peer_session, version, raise_error=False)
             if policy:
                 return {
                     "id": policy.id,
                     "name": policy.name,
-                    "inherited": getattr(obj.peerses, f"policy{version}_inherited"),
+                    "inherited": getattr(
+                        obj.peer_session, f"policy{version}_inherited"
+                    ),
                 }
         return {}
 
@@ -322,46 +324,46 @@ class Peer(ModelSerializer):
     def get_policy6(self, obj):
         return self.get_policy(obj, 6)
 
-    def get_peerses(self, obj):
-        if getattr(obj, "peerses", None):
-            return obj.peerses.id
-        peerses = self.port.get_peerses(obj)
+    def get_peer_session(self, obj):
+        if getattr(obj, "peer_session", None):
+            return obj.peer_session.id
+        peer_session = self.port.get_peer_session(obj)
 
-        # cache peerses on obj, so we can re-use during `get_user`
-        # `get_peerses_status`
-        obj.peerses = peerses
-        if peerses:
-            return peerses.id
+        # cache peer_session on obj, so we can re-use during `get_user`
+        # `get_peer_session_status`
+        obj.peer_session = peer_session
+        if peer_session:
+            return peer_session.id
         return 0
 
-    def get_peerses_contact(self, obj):
+    def get_peer_session_contact(self, obj):
         for poc in self.pocs:
             if poc.asn == obj.asn:
                 return poc.email
         return None
 
-    def get_peerses_status(self, obj):
-        peerses = getattr(obj, "peerses", None)
-        if peerses:
-            return peerses.status
+    def get_peer_session_status(self, obj):
+        peer_session = getattr(obj, "peer_session", None)
+        if peer_session:
+            return peer_session.status
         return None
 
     def get_md5(self, obj):
-        peernet = self.peernets.get(obj.asn)
-        if peernet:
-            return peernet.md5
+        peer_net = self.peer_nets.get(obj.asn)
+        if peer_net:
+            return peer_net.md5
         return ""
 
     def get_user(self, obj):
-        peerses = getattr(obj, "peerses", None)
-        if peerses:
-            user = peerses.user
+        peer_session = getattr(obj, "peer_session", None)
+        if peer_session:
+            user = peer_session.user
             if user:
                 return user.username
         return None
 
     def get_ix_name(self, obj):
-        return self.context["port"].portinfo.ix_name
+        return self.context["port"].port_info.ix_name
 
     def get_port_id(self, obj):
         return self.context["port"].id
@@ -372,15 +374,15 @@ class Peer(ModelSerializer):
         return self.context["device"].id
 
     def get_info_prefixes4(self, obj):
-        peernet = self.peernets.get(obj.asn)
-        if peernet and peernet.info_prefixes4 is not None:
-            return peernet.info_prefixes4
+        peer_net = self.peer_nets.get(obj.asn)
+        if peer_net and peer_net.info_prefixes4 is not None:
+            return peer_net.info_prefixes4
         return obj.net.info_prefixes4
 
     def get_info_prefixes6(self, obj):
-        peernet = self.peernets.get(obj.asn)
-        if peernet and peernet.info_prefixes6 is not None:
-            return peernet.info_prefixes6
+        peer_net = self.peer_nets.get(obj.asn)
+        if peer_net and peer_net.info_prefixes6 is not None:
+            return peer_net.info_prefixes6
         return obj.net.info_prefixes6
 
 
@@ -401,7 +403,7 @@ class PeerDetails(ModelSerializer):
         net = self.context.get("net")
         my_port = self.context.get("port")
         mutual_locs = []
-        exclude = [my_port.portinfo.ref_ix_id]
+        exclude = [my_port.port_info.ref_ix_id]
 
         for ix_id, result in net.get_mutual_locations(obj.asn, exclude=exclude).items():
             port = models.Port.get_or_create(result[net.asn][0])
@@ -430,23 +432,22 @@ class PeerSession(ModelSerializer):
     devices = serializers.SerializerMethodField()
     device_id = serializers.SerializerMethodField()
     port_display_name = serializers.SerializerMethodField()
-    ref_tag = "peerses"
+    ref_tag = "peer_session"
 
     class Meta:
         model = models.PeerSession
         fields = [
-            "id", 
-            "port", 
-            "peerport", 
-            "policy6", 
-            "policy4" , 
-            "asn", 
+            "id",
+            "port",
+            "peer_port",
+            "policy6",
+            "policy4",
+            "asn",
             "devices",
             "device_id",
             "port_display_name",
-            "status"
+            "status",
         ]
-
 
     def get_policy(self, obj, version):
         if obj and obj.status == "ok":
@@ -458,7 +459,7 @@ class PeerSession(ModelSerializer):
                     "inherited": getattr(obj, f"policy{version}_inherited"),
                 }
         return {}
-    
+
     def get_policy4(self, obj):
         return self.get_policy(obj, 4)
 
@@ -466,7 +467,7 @@ class PeerSession(ModelSerializer):
         return self.get_policy(obj, 6)
 
     def get_asn(self, obj):
-        return obj.peerport.peernet.peer.asn
+        return obj.peer_port.peer_net.peer.asn
 
     def get_devices(self, obj):
         return obj.devices[0].display_name
@@ -475,8 +476,7 @@ class PeerSession(ModelSerializer):
         return obj.devices[0].id
 
     def get_port_display_name(self, obj):
-        return obj.port.portinfo.ix_name + " " + obj.port.portinfo.ipaddr4
-
+        return obj.port.port_info.ix_name + " " + obj.port.port_info.ipaddr4
 
 
 @register

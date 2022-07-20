@@ -29,8 +29,8 @@ netom = { git = "https://github.com/20c/netom.git", branch = "update-deps" }
 # tests
 codecov = ">=2"
 coverage = ">=5"
-pytest = ">=6.0.1"
-pytest-django = ">=3.8.0"
+pytest = ">=6"
+pytest-django = ">=3.8"
 pytest-cov = "*"
 
 # linting

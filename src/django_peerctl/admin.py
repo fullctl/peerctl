@@ -132,9 +132,9 @@ class DeviceAdmin(admin.ModelAdmin):
 class PortAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "portinfo",
+        "port_info",
         "asn",
-        "virtport_id",
+        "virtual_port_id",
         "policy4",
         "policy6",
         "created",
@@ -144,7 +144,7 @@ class PortAdmin(admin.ModelAdmin):
     form = status_form()
 
     def asn(self, obj):
-        return obj.portinfo.net.asn
+        return obj.port_info.net.asn
 
 
 @admin.register(Wish)
@@ -155,7 +155,7 @@ class WishAdmin(admin.ModelAdmin):
 
 @admin.register(PeerSession)
 class PeerSessionAdmin(admin.ModelAdmin):
-    search_fields = ("peerport__peernet__net__asn", "peerport__peernet__peer__asn")
+    search_fields = ("peer_port__peer_net__net__asn", "peer_port__peer_net__peer__asn")
     list_display = (
         "id",
         "net",
@@ -181,28 +181,28 @@ class PeerSessionAdmin(admin.ModelAdmin):
     readonly_fields = ("net", "peer", "policy4", "policy6")
 
     def net(self, obj):
-        return obj.peerport.peernet.net
+        return obj.peer_port.peer_net.net
 
     def peer(self, obj):
-        return obj.peerport.peernet.peer
+        return obj.peer_port.peer_net.peer
 
     def ix_id(self, obj):
-        return obj.port.portinfo.ix.id
+        return obj.port.port_info.ix.id
 
     def ix_name(self, obj):
-        return obj.port.portinfo.ix.name
+        return obj.port.port_info.ix.name
 
     def ipaddr4(self, obj):
-        return obj.port.portinfo.ipaddr4
+        return obj.port.port_info.ipaddr4
 
     def ipaddr6(self, obj):
-        return obj.port.portinfo.ipaddr6
+        return obj.port.port_info.ipaddr6
 
     def peer_ipaddr4(self, obj):
-        return obj.peerport.portinfo.ipaddr4
+        return obj.peer_port.port_info.ipaddr4
 
     def peer_ipaddr6(self, obj):
-        return obj.peerport.portinfo.ipaddr6
+        return obj.peer_port.port_info.ipaddr6
 
 
 class OrganizationForm(forms.ModelForm):

@@ -335,18 +335,18 @@ div.peerctl.content div.application-grid div.component div.component-info-edit s
 div.peerctl.content div.application-grid div.component div.component-info table td,
 div.peerctl.content div.application-grid div.component div.component-info table th {
 }
-div.modal textarea.emltmpl-body,
-div.modal textarea.devicetmpl-body,
-div.peerctl.content textarea.emltmpl-body,
-div.peerctl.content textarea.devicetmpl-body {
+div.modal textarea.email_template-body,
+div.modal textarea.device_template-body,
+div.peerctl.content textarea.email_template-body,
+div.peerctl.content textarea.device_template-body {
   height: 230px;
 }
 
-div.modal div.emltmpl-preview,
-div.modal div.devicetmpl-preview,
-div.modal textarea.devicetmpl-preview,
-div.peerctl.content div.emltmpl-preview,
-div.peerctl.content div.devicetmpl-preview {
+div.modal div.email_template-preview,
+div.modal div.device_template-preview,
+div.modal textarea.device_template-preview,
+div.peerctl.content div.email_template-preview,
+div.peerctl.content div.device_template-preview {
   white-space: pre-wrap;
   border: 1px #bdbdbd solid;
   padding: 3px;
@@ -356,16 +356,16 @@ div.peerctl.content div.devicetmpl-preview {
   overflow-y: scroll;
 }
 
-div.modal textarea.devicetmpl-preview {
+div.modal textarea.device_template-preview {
   width: 100%;
 }
 
-div.peerses-workflow {
+div.peer_session-workflow {
   color: #aaa;
 }
 
 
-div.peerses-workflow p.current-step {
+div.peer_session-workflow p.current-step {
   font-weight: bold;
   color: #000;
 }
