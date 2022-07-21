@@ -10,8 +10,8 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return new $peerctl.PeeringLists();
       });
 
-      this.tool("summary_sessions", () => {
-        return new $peerctl.SummarySessions();
+      this.tool("sessions_summary", () => {
+        return new $peerctl.SessionsSummary();
       });
 
       this.tool("policies", ()=> {
@@ -27,7 +27,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       });
 
       this.$t.peering_lists.activate();
-      this.$t.summary_sessions.activate();
+      this.$t.sessions_summary.activate();
       this.$t.policies.activate();
       this.$t.email_templates.activate();
       this.$t.device_templates.activate();
@@ -279,10 +279,10 @@ $peerctl.PeeringLists = $tc.extend(
   $ctl.application.Tool
 );
 
-$peerctl.SummarySessions = $tc.extend(
-  "SummarySessions",
+$peerctl.SessionsSummary = $tc.extend(
+  "SessionsSummary",
   {
-    SummarySessions : function() {
+    SessionsSummary : function() {
       this.Tool("peering_summary-sessions");
 
       this.ports = {};
