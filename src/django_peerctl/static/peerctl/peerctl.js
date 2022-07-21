@@ -67,6 +67,15 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       window.history.pushState({}, '', url);
     },
 
+    sync_except: function(tool) {
+      var i, app = this;
+      for(i in this.$t) {
+        if(this.$t[i].active && this.$t[i] != tool) {
+          this.$t[i].sync(app);
+        }
+      }
+    },
+
     refresh : function() {
       return this.refresh_select_port();
     },
@@ -728,6 +737,7 @@ $peerctl.PeerSessionList = $tc.extend(
           list.fill_policy_selects(port_row, data);
           button_live.element.data("peer_session-id", response.first().peer_session);
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
+          fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
         });
 
         $(button_live).on("api-delete:success", ()=>{
@@ -735,6 +745,7 @@ $peerctl.PeerSessionList = $tc.extend(
           if(peer_row)
             peer_row.addClass("border-inactive").removeClass("border-active");
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
+          fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
         });
 
 
