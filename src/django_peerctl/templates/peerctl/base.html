@@ -38,6 +38,15 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
   <nav class="nav justify-content-center">
 
     <a class="nav-link active"
+      id="tab-summary-sessions"
+      data-toggle="tab"
+      role="tab"
+      aria-controls="summary-sessions"
+      aria-selected="false"
+      data-second-tab="#summary-sessions-body"
+      href="#page-summary-sessions">{% trans "Summary" %}</a>
+
+    <a class="nav-link"
       id="tab-peering-lists"
       data-toggle="tab"
       role="tab"
@@ -94,7 +103,11 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 {% block "app_content_toolbar" %}
 
 <div class="tab-content" id="app-pages">
-  <div class="tab-pane show active" id="page-peering-lists" role="tabpanel" aria-labelledby="tab-peering-lists">
+  <div class="tab-pane show active" id="page-summary-sessions" role="tabpanel" aria-labelledby="tab-summary-sessions">
+    {% include "peerctl/tool/peering-summary-sessions/sessions-filter.html" %}
+  </div>
+
+  <div class="tab-pane" id="page-peering-lists" role="tabpanel" aria-labelledby="tab-peering-lists">
     {% include "peerctl/tool/peering-lists/port-form.html" %}
   </div>
 
@@ -111,7 +124,11 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 
 {% block "app_content_main" %}
 <div class="tab-content" id="app-pages">
-  <div class="tab-pane show active" id="peering-lists-body" role="tabpanel" aria-labelledby="tab-peering-lists">
+  <div class="tab-pane show active" id="summary-sessions-body" role="tabpanel" aria-labelledby="tab-summary-sessions">
+    {% include "peerctl/tool/peering-summary-sessions/main.html" %}
+  </div>
+
+  <div class="tab-pane" id="peering-lists-body" role="tabpanel" aria-labelledby="tab-peering-lists">
     {% include "peerctl/tool/peering-lists/main.html" %}
   </div>
 

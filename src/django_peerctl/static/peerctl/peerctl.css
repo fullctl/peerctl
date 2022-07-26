@@ -1,8 +1,8 @@
-div.peerses-inactive .peerses-active-toggled {
+div.peer_session-inactive .peer_session-active-toggled {
   display: none;
 }
 
-div.peerses-active .peerses-inactive-toggled {
+div.peer_session-active .peer_session-inactive-toggled {
   display: none;
 }
 
@@ -14,8 +14,8 @@ div.hide-available-peers .peers-row.border-inactive {
   display: none;
 }
 
-button.peerses-add,
-button.peerses-live {
+button.peer_session-add,
+button.peer_session-live {
 	text-transform: uppercase;
 	height: 42px;
   font-family: "Archivo Narrow";

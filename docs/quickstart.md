@@ -19,7 +19,7 @@ peerctl requires a fullctl aaactl instance to use as an authentication and accou
 
 Please checkout and install https://github.com/fullctl/aaactl and once you have done so, set the following environment variables in your `.env` file
 
-- OAUTH_TWENTYC_HOST: the url of your aaactl instance (e.g, https://localhost:8001)
+- OAUTH_TWENTYC_URL: the url of your aaactl instance (e.g, https://localhost:8001)
 - OAUTH_TWENTYC_KEY: the oauth application client id
 - OAUTH_TWENTYC_SECRET: the oauth application client secret
 
@@ -32,7 +32,7 @@ Note you will need to give users permissions (in aaactl) to the following namesp
 **note** - if authentication through peeringdb is provided in your aaactl instance asn verification can be done automatically by linking your peeringdb account to your aaactl account
 
 
-- PDBCTL_HOST: pdbctl host address
+- PDBCTL_URL: pdbctl host address
 
 ### Building and starting
 
@@ -64,7 +64,7 @@ Pdbctl allows us to provide one coherent snapshot of peeringdb data to use in al
 
 Please refer to the pdbctl documentation on how to setup.
 
-Your `PDBCTL_HOST` setting should be specified to the host address of your pdbctl instance.
+Your `PDBCTL_URL` setting should be specified to the host address of your pdbctl instance.
 
 
 ## On env variables

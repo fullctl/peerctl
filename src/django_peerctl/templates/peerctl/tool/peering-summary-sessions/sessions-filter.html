@@ -1,0 +1,31 @@
+{% load static i18n %}
+<div class="row">
+  <div class="col-6">
+    <div class="toolbar-control-group">
+      <span class="inline-label">{% trans "Exchange / Port" %}</span>
+      <span class="toolbar-control">
+        <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+        <select
+          data-api-load="yes"
+          data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
+          data-null-option="all;{% trans "All" %}"
+          data-name-field="ix_name"
+          data-element="select_port"></select>
+      </span>
+    </div>
+  </div>
+  <div class="col-6 right">
+    <div class="toolbar-control-group">
+      <span class="inline-label">{% trans "Device" %}</span>
+      <span class="toolbar-control">
+        <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+        <select
+          data-api-load="yes"
+          data-api-base="{% url "peerctl_api:device-list" asn=selected_asn %}"
+          data-null-option="all;{% trans "All" %}"
+          data-name-field="display_name"
+          data-element="select_device"></select>
+      </span>
+    </div>
+  </div>
+</div>

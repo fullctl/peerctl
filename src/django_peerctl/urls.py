@@ -2,7 +2,7 @@ import fullctl.django.rest.urls.service_bridge_proxy as service_bridge
 from django.urls import include, path
 
 import django_peerctl.views as views
-from django_peerctl.legacy.views import devicetmpl_base, emltmpl_base
+from django_peerctl.legacy.views import device_template_base, email_template_base
 
 urlpatterns = service_bridge.urlpatterns(["aaactl", "devicectl"])
 
@@ -14,8 +14,8 @@ urlpatterns += [
             namespace="peerctl_api",
         ),
     ),
-    path("tmpl/devicetmpl/<str:template_id>/", devicetmpl_base),
-    path("tmpl/emltmpl/<str:template_id>/", emltmpl_base),
+    path("tmpl/device_template/<str:template_id>/", device_template_base),
+    path("tmpl/email_template/<str:template_id>/", email_template_base),
     path("<str:org_tag>/", views.view_instance, name="peerctl-home"),
     path("", views.org_redirect),
 ]

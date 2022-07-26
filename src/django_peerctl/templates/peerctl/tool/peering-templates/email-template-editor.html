@@ -1,6 +1,6 @@
 {% load i18n static %}
     <table class="table"
-      data-api-base="{% url "peerctl_api:emltmpl-list" asn=selected_asn %}"
+      data-api-base="{% url "peerctl_api:email_template-list" asn=selected_asn %}"
       data-template="template_list">
 
       <tbody class="list-body"></tbody>
@@ -35,7 +35,7 @@
     </table>
 
 <form
-  data-api-base="{% url "peerctl_api:emltmpl-list" asn=selected_asn %}"
+  data-api-base="{% url "peerctl_api:email_template-list" asn=selected_asn %}"
   data-api-method="post"
   data-api-action=""
   data-template="form_template">
@@ -48,7 +48,7 @@
     <div class="col-6" data-api-submit="yes">
       <label for="type">{% trans "Type" %}</label>
       <select class="form-control"
-        data-api-base="{% url "peerctl_api:emltmpl-list" asn=selected_asn  %}"
+        data-api-base="{% url "peerctl_api:email_template-list" asn=selected_asn  %}"
         data-drf-name="type"
         data-api-load="yes"
         data-null-option=";-- Select Type --"
@@ -72,7 +72,7 @@
     <div class="col-12">
       <label for="preview">{% trans "Preview" %}</label>
       <textarea class="form-control template-editor"
-        data-api-preview-default="{% url "peerctl_api:emltmpl-preview-default" asn=selected_asn %}"
+        data-api-preview-default="{% url "peerctl_api:email_template-preview-default" asn=selected_asn %}"
       name="preview" id="preview"></textarea>
     </div>
   </div>

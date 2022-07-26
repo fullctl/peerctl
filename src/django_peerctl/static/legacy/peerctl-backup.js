@@ -1753,22 +1753,22 @@ Peerctl.NetworkApplication = twentyc.cls.extend(
       this.Application();
       window.peerctl = this;
       this.networks = {};
-      this.navmenu_add("User", "Preferences", function() { this.userpref.show() }.bind(this), "cog");
+      this.navmenu_add("User", "Preferences", function() { this.user.show() }.bind(this), "cog");
       this.selected_network = 0;
       this.load_networks();
       this.devices = new Peerctl.NetworkApplication.DeviceComponent(this, "component_net_device");
       this.policies = new Peerctl.NetworkApplication.PolicyComponent(this, "component_net_policy");
       this.ports= new Peerctl.NetworkApplication.PortComponent(this, "component_net_port");
       this.peers= new Peerctl.NetworkApplication.PeerComponent(this, "component_net_peer");
-      this.emltmpls = new Peerctl.NetworkApplication.EmailTemplateComponent(this, "component_net_emltmpl");
-      this.devicetmpls = new Peerctl.NetworkApplication.DeviceTemplateComponent(this, "component_net_devicetmpl");
+      this.email_templates = new Peerctl.NetworkApplication.EmailTemplateComponent(this, "component_net_email_template");
+      this.device_templates = new Peerctl.NetworkApplication.DeviceTemplateComponent(this, "component_net_device_template");
       this.make_a_wish = new Peerctl.Modals.MakeAWish(this);
-      this.userpref = new Peerctl.Modals.UserPreferences(this);
+      this.user = new Peerctl.Modals.UserPreferences(this);
       this.make_a_wish.bind(this.devices);
       this.make_a_wish.bind(this.ports);
       this.make_a_wish.bind(this.peers);
-      this.make_a_wish.bind(this.emltmpls);
-      this.make_a_wish.bind(this.devicetmpls);
+      this.make_a_wish.bind(this.email_templates);
+      this.make_a_wish.bind(this.device_templates);
       this.make_a_wish.bind(this.policies);
     },
 
@@ -1788,8 +1788,8 @@ Peerctl.NetworkApplication = twentyc.cls.extend(
       this.devices.refresh();
       this.policies.refresh();
       this.ports.refresh();
-      this.emltmpls.refresh();
-      this.devicetmpls.refresh();
+      this.email_templates.refresh();
+      this.device_templates.refresh();
       document.location.href = "#"+asn;
       $(this).trigger('network_change', [asn]);
     },
@@ -1916,7 +1916,7 @@ Peerctl.NetworkApplication.DeviceComponent = twentyc.cls.extend(
       ).dynamic_options(
         "configure", function(optionize, api_object) {
           application.api.list(
-            "devicetmpl/"+application.selected_network+"/list_available/",
+            "device_template/"+application.selected_network+"/list_available/",
             {device_type:api_object.type},
             function(data) {
               $(data).each(function() {
@@ -2235,7 +2235,7 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
       ).formatter(
         "policy", $fmt.policy
       ).formatter(
-        "peerses_status", function(value, api_object) {
+        "peer_session_status", function(value, api_object) {
           if(value == "ok")
             return "live"
           else if(value == "" || !value)
@@ -2248,7 +2248,7 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
         {
           "path" : function() {
             return "net/"+this.application.selected_network+
-                   "/port/"+this.selected_port+"/peerses/";
+                   "/port/"+this.selected_port+"/peer_session/";
           }.bind(this),
           "action" : "create",
           "data" : function(peer) {
@@ -2263,7 +2263,7 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
         {
           "path" : function(peer) {
             return "net/"+this.application.selected_network+
-                   "/port/"+this.selected_port+"/peerses/"+(peer.data.peerses);
+                   "/port/"+this.selected_port+"/peer_session/"+(peer.data.peer_session);
           }.bind(this),
           "action" : "delete",
           "success" : function(data, all_data, sent_data) {
@@ -2303,12 +2303,12 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
         }.bind(this)
       ).formatter(
         "row", function(row, api_object) {
-          if(api_object.peerses_status == "ok") {
+          if(api_object.peer_session_status == "ok") {
             row.addClass("bg-success").removeClass("bg-normal");
           } else {
             row.removeClass("bg-success").addClass("bg-normal");
           }
-          row.find("td.filters").attr("data-filter-value-peerses", api_object.peerses);
+          row.find("td.filters").attr("data-filter-value-peer_session", api_object.peer_session);
         }
       ).option(
         "Stop Session",
@@ -2325,9 +2325,9 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
         function(peer, api_list) {
           return "net/"+application.selected_network+
                  "/port/"+this.selected_port+
-                 "/peerses/"+peer.peerses+"/set_policy/";
+                 "/peer_session/"+peer.peer_session+"/set_policy/";
         }.bind(this),
-        function(peerses, peer, api_list) {
+        function(peer_session, peer, api_list) {
           api_list.refresh_item(peer.id)
         }.bind(this)
       ).formatter(
@@ -2448,7 +2448,7 @@ Peerctl.NetworkApplication.PeerComponent = twentyc.cls.extend(
           new Peerctl.Application.APISelect(
             application.api,
             function() {
-              return { get: "devicetmpl/"+asn+"/list_available/" }
+              return { get: "device_template/"+asn+"/list_available/" }
             },
             {
               param: {
@@ -2699,7 +2699,7 @@ Peerctl.NetworkApplication.DeviceTemplateComponent = twentyc.cls.extend(
   "DeviceTemplateComponent",
   {
     "DeviceTemplateComponent" : function(application, component_name) {
-      this.TemplateEditorComponent(application, component_name, "devicetmpl");
+      this.TemplateEditorComponent(application, component_name, "device_template");
     }
   },
   Peerctl.NetworkApplication.TemplateEditorComponent
@@ -2721,7 +2721,7 @@ Peerctl.NetworkApplication.EmailTemplateComponent = twentyc.cls.extend(
   "EmailTemplateComponent",
   {
     "EmailTemplateComponent" : function(application, component_name) {
-      this.TemplateEditorComponent(application, component_name, "emltmpl");
+      this.TemplateEditorComponent(application, component_name, "email_template");
     }
   },
   Peerctl.NetworkApplication.TemplateEditorComponent
@@ -2790,7 +2790,7 @@ Peerctl.Modals.DeviceTemplate = twentyc.cls.extend(
     "DeviceTemplate" : function(application, device, type) {
       var modal = this;
 
-      this.form = application.elements.form_devicetmpl_view.clone();
+      this.form = application.elements.form_device_template_view.clone();
       this.Base(
         application.elements.modal_display,
         "Device Template "+device.id+" "+type,
@@ -2804,7 +2804,7 @@ Peerctl.Modals.DeviceTemplate = twentyc.cls.extend(
 
       this.template_select.on("change", function() {
         application.api.create(
-          "net/"+application.selected_network+"/devicetmpl/"+$(this).val()+"/preview/",
+          "net/"+application.selected_network+"/device_template/"+$(this).val()+"/preview/",
           {type:type, device:device.id},
           function(data) {
             modal.preview.html(data[0].body);
@@ -2814,7 +2814,7 @@ Peerctl.Modals.DeviceTemplate = twentyc.cls.extend(
 
       // fetch templates
       application.api.list(
-        "net/"+application.selected_network+"/devicetmpl/",
+        "net/"+application.selected_network+"/device_template/",
         {},
         function(data) {
           var i = 0;
@@ -2849,10 +2849,10 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
       var modal = this, current_step = "peer-request",
           title = "Peering Request";
 
-      if(netixlan.peerses_status == "requested") {
+      if(netixlan.peer_session_status == "requested") {
         title = "Notify Configuration Complete";
         current_step = "peer-config-complete";
-      } else if(netixlan.peerses_status == "configured") {
+      } else if(netixlan.peer_session_status == "configured") {
         title = "Notify Peering Session Live";
         current_step = "peer-session-live";
       }
@@ -2863,11 +2863,11 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
         this.form
       );
 
-      if(application.selected_network_data.peer_contact_email && netixlan.peerses_contact && netixlan.peerses_status != "ok") {
+      if(application.selected_network_data.peer_contact_email && netixlan.peer_session_contact && netixlan.peer_session_status != "ok") {
         // valid contact point for peering request exists. proceed
         this.form.find('#peer_contact').
-          text(netixlan.peerses_contact).
-          attr("href", "mailto:"+netixlan.peerses_contact);
+          text(netixlan.peer_session_contact).
+          attr("href", "mailto:"+netixlan.peer_session_contact);
         this.form.find("#peer_asn").text(netixlan.asn);
         this.form.find("#peer_name").text(netixlan.name);
         this.template_select = this.form.find('#template')
@@ -2888,7 +2888,7 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
             if(peer_list) {
               var i;
               for(i = 0; i<data.length; i++)
-                peer_list.update(data[i], (data[i].peerses_status!="ok"));
+                peer_list.update(data[i], (data[i].peer_session_status!="ok"));
             }
           }.bind(this),
           null,
@@ -2898,8 +2898,8 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
 
         this.template_select.on("change", function() {
           application.api.create(
-            "emltmpl/"+application.selected_network+"/"+$(this).val()+"/preview/",
-            {type:current_step, peer:netixlan.id, peerses:netixlan.peerses},
+            "email_template/"+application.selected_network+"/"+$(this).val()+"/preview/",
+            {type:current_step, peer:netixlan.id, peer_session:netixlan.peer_session},
             function(data) {
               modal.preview.html(data[0].body);
             }
@@ -2908,7 +2908,7 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
 
         // fetch templates
         application.api.list(
-          "emltmpl/"+application.selected_network+"/",
+          "email_template/"+application.selected_network+"/",
           {},
           function(data) {
             var i = 0;
@@ -2929,10 +2929,10 @@ Peerctl.Modals.PeersesEmailWorkflow = twentyc.cls.extend(
       } else {
         this.form.empty();
         var msg = "";
-        if(!netixlan.peerses_contact) {
+        if(!netixlan.peer_session_contact) {
           // valid contact point for peering request does not exist. bail
           msg = "Could not find email contact for the specified peer";
-        } else if(netixlan.peerses_status == "ok") {
+        } else if(netixlan.peer_session_status == "ok") {
           msg = "You already have a peer session with this peer";
         } else if(!application.selected_network_data.peer_contact_email) {
           msg = "You do not provide a 'Policy' role contact at your peeringdb entry. It is required as it will be used as the Reply-To address for any emails sent during the peering session setup. Please add one and try again later";
@@ -2984,8 +2984,8 @@ Peerctl.Modals.MakeAWish = twentyc.cls.extend(
       this.api_form.fill(this.form, {path:component}, {fields:{path:{choices:[
         { value : "port", display_name : "Ports" },
         { value : "peer", display_name : "Peers" },
-        { value : "emltmpl", display_name : "Email Templates" },
-        { value : "devicetmpl", display_name : "Device Templates" },
+        { value : "email_template", display_name : "Email Templates" },
+        { value : "device_template", display_name : "Device Templates" },
         { value : "policy", display_name : "Policies" },
         { value : "device", display_name : "Devices" }
       ]}}});
@@ -3013,7 +3013,7 @@ Peerctl.Modals.UserPreferences = twentyc.cls.extend(
   "UserPreferences",
   {
     "UserPreferences" : function(application) {
-      this.form = application.elements.form_userpref.clone();
+      this.form = application.elements.form_user.clone();
       this.api = application.api;
       this.Base(
         application.elements.modal_submission,
@@ -3023,12 +3023,12 @@ Peerctl.Modals.UserPreferences = twentyc.cls.extend(
 
       this.api_form = new Peerctl.Application.APIForm(
         application.api,
-        "userpref/0/"
+        "user/0/"
       ).bind(this.form, "update", function() { this.hide() }.bind(this),  null, this.modal.find('.btn-submit'))
     },
 
     "show" : function() {
-      this.api.list("userpref/", {}, function(data) {
+      this.api.list("user/", {}, function(data) {
         this.api_form.fill(this.form, data[0], {});
         this.Base_show();
       }.bind(this));

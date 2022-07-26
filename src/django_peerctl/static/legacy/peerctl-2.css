@@ -622,7 +622,7 @@ div.content div.component span.uneditable .info-value {
   padding: 8px 16px;
 }
 
-#peer-list .bg-normal div.peerses-active {
+#peer-list .bg-normal div.peer_session-active {
 }
 
 #peer-list .bg-normal .other-exchange-points {
@@ -669,69 +669,69 @@ div.content div.component span.uneditable .info-value {
 
 
 
-#peer-list div.item-info.peerses {
+#peer-list div.item-info.peer_session {
   margin-top: 16px;
 }
 
-#peer-list .bg-normal > div > div > div.peerses > span.peerses-active,
-#peer-list .peerses-list .bg-success span.peerses-inactive,
-#peer-list .peerses-list .bg-normal span.peerses-active,
-#peer-list .bg-success > div > div > div.peerses > span.peerses-inactive {
+#peer-list .bg-normal > div > div > div.peer_session > span.peer_session-active,
+#peer-list .peer_session-list .bg-success span.peer_session-inactive,
+#peer-list .peer_session-list .bg-normal span.peer_session-active,
+#peer-list .bg-success > div > div > div.peer_session > span.peer_session-inactive {
   display: none;
 }
 
 
-#peer-list .peerses-list .bg-success span.peerses-active,
-#peer-list .peerses-list .bg-normal span.peerses-inactive,
-#peer-list .bg-success > div > div > div.peerses > span.peerses-active,
-#peer-list .bg-normal > div > div > div.peerses > span.peerses-inactive {
+#peer-list .peer_session-list .bg-success span.peer_session-active,
+#peer-list .peer_session-list .bg-normal span.peer_session-inactive,
+#peer-list .bg-success > div > div > div.peer_session > span.peer_session-active,
+#peer-list .bg-normal > div > div > div.peer_session > span.peer_session-inactive {
   display: inline;
 }
 
-#peer-list .peerses-list > .row {
+#peer-list .peer_session-list > .row {
   position: relative;
   border-left: 4px transparent solid;
   left: 1px;
 }
 
-#peer-list .peerses-list > .row.bg-normal {
+#peer-list .peer_session-list > .row.bg-normal {
   border-color: #434f5d;
 }
 
-#peer-list .peerses-list > .row.bg-success {
+#peer-list .peer_session-list > .row.bg-success {
   border-color: #7dd27f;
 }
 
 
-#peer-list .peerses-list > .row .ix_name {
+#peer-list .peer_session-list > .row .ix_name {
   position: relative;
   top: 6px;
 }
 
-#peer-list .peerses-list > .row .uneditable {
+#peer-list .peer_session-list > .row .uneditable {
   display:inline-block;
   padding-top: 8px;
   padding-bottom: 8px;
 }
 
-#peer-list .peerses-list > .row .editable {
+#peer-list .peer_session-list > .row .editable {
   display:inline-block;
   margin-top: 5px;
   margin-bottom: 8px;
 }
 
 
-#peer-list .peerses-list > .row .uneditable span {
+#peer-list .peer_session-list > .row .uneditable span {
   vertical-align: sub;
 }
 
-#peer-list .peerses-list span.btn-peerses {
+#peer-list .peer_session-list span.btn-peer_session {
   position: relative;
   left: -5px;
   top: 8px;
 }
 
-#peer-list span.peerses-active {
+#peer-list span.peer_session-active {
   border-radius: 4px;
   background-color: #7DD27F;
   color: #FFFFFF;
@@ -743,7 +743,7 @@ div.content div.component span.uneditable .info-value {
   margin-left: -14px;
 }
 
-#peer-list span.peerses-inactive {
+#peer-list span.peer_session-inactive {
   border-radius: 4px;
   background-color: #5C6467;
   color: #FFFFFF;
@@ -1397,7 +1397,7 @@ div.content div.component div.item-upper {
 
 
 #peer-list .ipaddr-container .editable,
-#peer-list .peerses-list > .row .editable {
+#peer-list .peer_session-list > .row .editable {
   margin-bottom: 3px;
   display: block;
 }
@@ -1410,8 +1410,8 @@ div.content div.component div.item-upper {
   margin-right: 12px;
 }
 
-#peer-list #mutual-loc .peerses > span.interactive,
-#peer-list .peerses-list span.btn-peerses {
+#peer-list #mutual-loc .peer_session > span.interactive,
+#peer-list .peer_session-list span.btn-peer_session {
   position: absolute;
   left: 10px;
   bottom: 0px;
@@ -1419,7 +1419,7 @@ div.content div.component div.item-upper {
 }
 
 
-#peer-list #mutual-loc .peerses > span.interactive{
+#peer-list #mutual-loc .peer_session > span.interactive{
   top: 5px;
   bottom: 8px;
   left: 15px;

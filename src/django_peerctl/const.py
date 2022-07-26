@@ -19,15 +19,15 @@ DEVICE_TEMPLATES, DEVICE_TEMPLATE_TYPES = discover_netom_templates(
 )
 
 AUDIT_EVENTS = (
-    ("peerses-request", "Peering Request"),
-    ("peerses-add", "Session Add"),
-    ("peerses-del", "Session Delete"),
-    ("peerses-mod", "Session Modify"),
+    ("peer_session-request", "Peering Request"),
+    ("peer_session-add", "Session Add"),
+    ("peer_session-del", "Session Delete"),
+    ("peer_session-mod", "Session Modify"),
     ("policy-mod", "Policy Modify"),
     ("email", "Email"),
 )
 
 EMAIL_ORIGIN = (
-    ("peerses-workflow", "Peering Session Workflow"),
+    ("peer_session-workflow", "Peering Session Workflow"),
     ("bulk-email", "Notification Email"),
 )
