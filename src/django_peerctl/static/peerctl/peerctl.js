@@ -10,8 +10,8 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return new $peerctl.PeeringLists();
       });
 
-      this.tool("summary_sessions", () => {
-        return new $peerctl.SummarySessions();
+      this.tool("sessions_summary", () => {
+        return new $peerctl.SessionsSummary();
       });
 
       this.tool("policies", ()=> {
@@ -27,7 +27,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       });
 
       this.$t.peering_lists.activate();
-      this.$t.summary_sessions.activate();
+      this.$t.sessions_summary.activate();
       this.$t.policies.activate();
       this.$t.email_templates.activate();
       this.$t.device_templates.activate();
@@ -65,6 +65,15 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       var url = new URL(window.location)
       url.pathname = `/${fullctl.org.slug}`
       window.history.pushState({}, '', url);
+    },
+
+    sync_except: function(tool) {
+      var i, app = this;
+      for(i in this.$t) {
+        if(this.$t[i].active && this.$t[i] != tool) {
+          this.$t[i].sync(app);
+        }
+      }
     },
 
     refresh : function() {
@@ -270,10 +279,10 @@ $peerctl.PeeringLists = $tc.extend(
   $ctl.application.Tool
 );
 
-$peerctl.SummarySessions = $tc.extend(
-  "SummarySessions",
+$peerctl.SessionsSummary = $tc.extend(
+  "SessionsSummary",
   {
-    SummarySessions : function() {
+    SessionsSummary : function() {
       this.Tool("peering_summary-sessions");
 
       this.ports = {};
@@ -728,6 +737,7 @@ $peerctl.PeerSessionList = $tc.extend(
           list.fill_policy_selects(port_row, data);
           button_live.element.data("peer_session-id", response.first().peer_session);
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
+          fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
         });
 
         $(button_live).on("api-delete:success", ()=>{
@@ -735,6 +745,7 @@ $peerctl.PeerSessionList = $tc.extend(
           if(peer_row)
             peer_row.addClass("border-inactive").removeClass("border-active");
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
+          fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
         });
 
 

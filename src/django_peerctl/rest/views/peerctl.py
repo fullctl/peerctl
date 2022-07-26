@@ -250,12 +250,12 @@ def get_member(pk, join=None):
 
 
 @route
-class SummarySessions(CachedObjectMixin, viewsets.GenericViewSet):
+class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
 
     serializer_class = Serializers.peer_session
     require_asn = True
     optional_port = True
-    ref_tag = "summary_sessions"
+    ref_tag = "sessions_summary"
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
