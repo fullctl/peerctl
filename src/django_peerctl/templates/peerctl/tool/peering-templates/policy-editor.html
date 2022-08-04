@@ -1,5 +1,5 @@
 {% load i18n static %}
-    <table class="table"
+    <table class="table table-borderless"
       data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
       data-template="policy_list">
 
@@ -41,31 +41,31 @@
   data-api-action=""
   data-template="form_policy">
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label for="name">{% trans "Name" %}</label>
+      <label for="name" class="form-label">{% trans "Name" %}</label>
       <input class="form-control" type="text" id="name" name="name">
     </div>
   </div>
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label for="import_policy">{% trans "Import policy" %}</label>
+      <label for="import_policy" class="form-label">{% trans "Import policy" %}</label>
       <input class="form-control" type="text" id="import_policy" name="import_policy">
     </div>
   </div>
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label for="export_policy">{% trans "Export policy" %}</label>
+      <label for="export_policy" class="form-label">{% trans "Export policy" %}</label>
       <input class="form-control" type="text" id="export_policy" name="export_policy">
     </div>
   </div>
 
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label for="peer_group">{% trans "Peer group" %}</label>
+      <label for="peer_group" class="form-label">{% trans "Peer group" %}</label>
       <input class="form-control" type="text" id="peer_group" name="peer_group">
     </div>
   </div>
@@ -73,14 +73,14 @@
   <div class="row form-check">
     <div class="col-12" data-api-submit="yes">
       <input type="checkbox" class="form-check-input" id="is_global4" name="is_global4" />
-      <label for="is_global4" class="form-check-label">{% trans "Set as global v4 policy" %}</label>
+      <label for="is_global4" class="form-check-label form-label">{% trans "Set as global v4 policy" %}</label>
     </div>
   </div>
 
   <div class="row form-check">
     <div class="col-12" data-api-submit="yes">
       <input type="checkbox" class="form-check-input" id="is_global6" name="is_global6" />
-      <label for="is_global6" class="form-check-label">{% trans "Set as global v6 policy" %}</label>
+      <label for="is_global6" class="form-check-label from-label">{% trans "Set as global v6 policy" %}</label>
     </div>
   </div>
 
