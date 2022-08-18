@@ -3,7 +3,7 @@
   data-api-base="{% url "peerctl_api:peer-set-md5" asn=selected_asn port_pk="port_id" pk="peer_id" %}"
   data-api-method="put">
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
       <label for="md5">{% trans "MD5 Password" %}</label>
       <input class="form-control" type="text" id="md5" name="md5">
