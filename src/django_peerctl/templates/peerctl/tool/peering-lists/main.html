@@ -197,7 +197,8 @@
             <button class="peer_session-active-toggled" data-element="peer_session_device_config">
               <span class="icon fullctl icon-settings"></span>
               <span class="label">{% trans "Show Config" %}</span></button>
-            </div></div>
+            </div>
+          </div>
           </div>
         </div>
       </div>
@@ -208,62 +209,73 @@
 
     <div data-template="menu" class="marg-top-lg">
       <div class="row">
-        <div class="col-xs-12 col-8">
 
-          <div class="toolbar-field">
+        <div class="col-auto mt-1 me-auto">
+          <div class="row">
+              <div class="toolbar-field col-auto">
+                {% trans "Policy IPv4" %}
 
-            {% trans "Policy IPv4" %}
+                <select
+                  class="port-policy-4"
+                  data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
+                  data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
+                  data-api-method="put"
+                  data-null-option="0;{% trans "Inherit Policy" %}"
+                  data-element="port_policy_4">
+                </select>
+              </div>
 
-            <select
-              class="port-policy-4"
-              data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
-              data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
-              data-api-method="put"
-              data-null-option="0;{% trans "Inherit Policy" %}"
-              data-element="port_policy_4"></select>
+            <div class="toolbar-field col-auto">
+              {% trans "Policy IPv6" %}
 
+              <select
+                class="port-policy-6"
+                data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
+                data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
+                data-api-method="put"
+                data-null-option="0;{% trans "Inherit Policy" %}"
+                data-element="port_policy_6">
+              </select>
+            </div>
+
+            <div class="toolbar-field col-auto">
+              {% trans "Device Type" %}
+
+              <select data-api-load="yes"
+                data-api-base="{% url "peerctl_api:device-list" asn=selected_asn %}"
+                data-load-type="drf-choices"
+                data-drf-name="type"
+                data-api-action="{% url "peerctl_api:device-detail" asn=selected_asn pk=0 %}"
+                data-api-method="put"
+                data-element="port_device_type">
+              </select>
+            </div>
           </div>
-
-          <div class="toolbar-field">
-            {% trans "Policy IPv6" %}
-
-            <select
-              class="port-policy-6"
-              data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
-              data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
-              data-api-method="put"
-              data-null-option="0;{% trans "Inherit Policy" %}"
-              data-element="port_policy_6"></select>
-
-          </div>
-          <div class="toolbar-field">
-
-            {% trans "Device Type" %}
-
-            <select data-api-load="yes"
-              data-api-base="{% url "peerctl_api:device-list" asn=selected_asn %}"
-              data-load-type="drf-choices"
-              data-drf-name="type"
-              data-api-action="{% url "peerctl_api:device-detail" asn=selected_asn pk=0 %}"
-              data-api-method="put"
-              data-element="port_device_type"></select>
-          </div>
-
         </div>
-        <div class="col-xs-12 col-4 right">
 
-          <div class="toolbar-field">
-            {% trans "Template" %}
+        <div class="col-auto mt-1 right">
+          <div class="row">
 
-            <select
-              data-api-base="{% url "peerctl_api:device_template-list-available" asn=selected_asn %}"
-              data-element="port_device_template"></select>
+            <div class="toolbar-field col">
+              <div class="row">
+                <div class="col-auto">
+                  {% trans "Template" %}
+                </div>
+                <div class="col-auto">
+                  <select style="max-width: inherit;"
+                    data-api-base="{% url "peerctl_api:device_template-list-available" asn=selected_asn %}"
+                    data-element="port_device_template">
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <button class="col-auto py-2" data-element="device_config">
+              <span class="icon fullctl icon-settings"></span>
+              <span class="label">{% trans "Show config" %}</span>
+            </button>
+
           </div>
-
-          <button class="tool-spacing-left" data-element="device_config">
-            <span class="icon fullctl icon-settings"></span>
-            <span class="label">{% trans "Show config" %}</span></button>
-
         </div>
 
       </div>
