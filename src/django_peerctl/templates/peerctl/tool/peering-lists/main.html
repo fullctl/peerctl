@@ -239,17 +239,29 @@
             </div>
 
             <div class="toolbar-field col-auto">
-              {% trans "Device Type" %}
+              {% trans "Device" %}
 
               <select data-api-load="yes"
-                data-api-base="{% url "peerctl_api:device-list" asn=selected_asn %}"
-                data-load-type="drf-choices"
-                data-drf-name="type"
-                data-api-action="{% url "peerctl_api:device-detail" asn=selected_asn pk=0 %}"
+                data-api-base="{% url "proxies-api-devicectl-list" org_tag=request.org.slug %}"
+                data-name-field="display_name"
                 data-api-method="put"
-                data-element="port_device_type">
+                data-element="devicectl_device">
               </select>
             </div>
+
+            <div class="toolbar-field col-auto">
+              {% trans "Port" %}
+
+              <select
+                data-name-field="display_name"
+                data-null-option="0;-"
+                data-api-base="{% url "peerctl_api:port-list-available-ports" asn=selected_asn pk=0 %}"
+                data-api-action="{% url "peerctl_api:port-change-port" asn=selected_asn pk=0 %}"
+                data-api-method="put"
+                data-element="devicectl_port">
+              </select>
+            </div>
+
           </div>
         </div>
 

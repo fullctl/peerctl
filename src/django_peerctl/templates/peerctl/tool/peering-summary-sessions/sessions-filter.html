@@ -21,7 +21,7 @@
         <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
         <select
           data-api-load="yes"
-          data-api-base="{% url "peerctl_api:device-list" asn=selected_asn %}"
+          data-api-base="{% url "proxies-api-devicectl-list" org_tag=request.org.slug %}"
           data-null-option="all;{% trans "All" %}"
           data-name-field="display_name"
           data-element="select_device"></select>

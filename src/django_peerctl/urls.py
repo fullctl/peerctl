@@ -1,10 +1,24 @@
 import fullctl.django.rest.urls.service_bridge_proxy as service_bridge
+from django.conf import settings
 from django.urls import include, path
 
 import django_peerctl.views as views
 from django_peerctl.legacy.views import device_template_base, email_template_base
 
-urlpatterns = service_bridge.urlpatterns(["aaactl", "devicectl"])
+import fullctl.django.rest.urls.service_bridge_proxy as proxy
+from fullctl.django.views.template import TemplateFileView
+
+proxy.setup("devicectl", proxy.proxy_api(
+    "devicectl",
+    settings.DEVICECTL_URL,
+    [
+        ("device/{org_tag}/{pk}/", "device/<str:org_tag>/{pk}", "detail"),
+        ("device/{org_tag}", "device/<str:org_tag>/", "list"),
+    ],
+))
+
+urlpatterns = proxy.urlpatterns(["devicectl"])
+
 
 urlpatterns += [
     path(
