@@ -4,6 +4,7 @@ import json
 import logging
 import os.path
 
+import fullctl.service_bridge.devicectl as devicectl
 import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
@@ -19,13 +20,11 @@ from django_countries.fields import CountryField
 from django_grainy.decorators import grainy_model
 from django_handleref.models import HandleRefModel
 from django_inet.models import ASNField, IPAddressField, IPPrefixField
-from fullctl.django.models.concrete import Instance
 from fullctl.django.fields.service_bridge import ReferencedObjectField
-from fullctl.django.models.concrete import Organization
+from fullctl.django.models.concrete import Instance, Organization
 from fullctl.service_bridge.data import Relationships
-import fullctl.service_bridge.devicectl as devicectl
 from jinja2 import DictLoader, Environment, FileSystemLoader
-from netfields import MACAddressField, InetAddressField
+from netfields import InetAddressField, MACAddressField
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
@@ -105,7 +104,12 @@ class ref_fallback:
         def wrapped(*args, **kwargs):
             try:
                 return fn(*args, **kwargs)
-            except (AttributeError, sot.ReferenceNotFoundError, sot.ReferenceNotSetError, ObjectDoesNotExist):
+            except (
+                AttributeError,
+                sot.ReferenceNotFoundError,
+                sot.ReferenceNotSetError,
+                ObjectDoesNotExist,
+            ):
                 if isinstance(value, collections.abc.Callable):
                     return value(*args)
                 return value
@@ -585,6 +589,7 @@ class InternetExchange(sot.ReferenceMixin, Base):
     def __str__(self):
         return f"InternetExchange({self.id}): {self.name}"
 
+
 class PortPolicy(PolicyHolderMixin, Base):
 
     port = models.PositiveIntegerField(unique=True)
@@ -594,6 +599,7 @@ class PortPolicy(PolicyHolderMixin, Base):
 
     class HandleRef:
         tag = "port_policy"
+
 
 class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
@@ -650,7 +656,7 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     @property
     def mac_address(self):
-        #XXX devicectl
+        # XXX devicectl
         return ""
 
     @property
@@ -677,7 +683,6 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     def set_policy(self, *args, **kwargs):
         return self.port_policy.set_policy(*args, **kwargs)
-
 
     def set_mac_address(self, mac_address):
 
@@ -709,18 +714,12 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         return f"Port({self.pk}): {self.port_info}"
 
 
-
-
-
-
 class Port(devicectl.Port):
 
     DoesNotExist = Exception
 
     class Meta(devicectl.Port.Meta):
         data_object_cls = PortObject
-
-
 
 
 @reversion.register
@@ -742,8 +741,20 @@ class PortInfo(sot.ReferenceMixin, Base):
 
     port = ReferencedObjectField(bridge=Port)
 
-    ip_address_4 = InetAddressField(blank=True, null=True, help_text=_("manually set the ip6 address of this port info - used for manual peer session"))
-    ip_address_6 = InetAddressField(blank=True, null=True, help_text=_("manually set the ip4 address of this port info - used for manual peer session"))
+    ip_address_4 = InetAddressField(
+        blank=True,
+        null=True,
+        help_text=_(
+            "manually set the ip6 address of this port info - used for manual peer session"
+        ),
+    )
+    ip_address_6 = InetAddressField(
+        blank=True,
+        null=True,
+        help_text=_(
+            "manually set the ip4 address of this port info - used for manual peer session"
+        ),
+    )
 
     class HandleRef:
         tag = "port_info"
@@ -757,11 +768,13 @@ class PortInfo(sot.ReferenceMixin, Base):
     def require_for_pdb_netixlan(cls, network, port, member):
         if not port:
             try:
-               return cls.objects.get(net=network, ref_id=member.ref_id)
+                return cls.objects.get(net=network, ref_id=member.ref_id)
             except cls.DoesNotExist:
                 pass
 
-        port_info, _ = cls.objects.get_or_create(net=network, port=port, ref_id=member.ref_id)
+        port_info, _ = cls.objects.get_or_create(
+            net=network, port=port, ref_id=member.ref_id
+        )
         return port_info
 
     @classmethod
@@ -851,7 +864,6 @@ class PortInfo(sot.ReferenceMixin, Base):
 
 
 class DeviceObject(devicectl.DeviceCtlEntity):
-
     @property
     def type_label(self):
         if not self.type:
@@ -946,14 +958,12 @@ class DeviceObject(devicectl.DeviceCtlEntity):
         return {"peer_groups": peer_groups}
 
 
-
 class Device(devicectl.Device):
 
     DoesNotExist = Exception
 
     class Meta(devicectl.Device.Meta):
         data_object_cls = DeviceObject
-
 
 
 @reversion.register
@@ -1017,6 +1027,7 @@ class PeerPort(Base):
     def __str__(self):
         return f"PeerPort({self.id}): {self.port_info}"
 
+
 # class BGPSession(Base):
 @grainy_model(namespace="peer_session")
 @reversion.register
@@ -1069,7 +1080,7 @@ class PeerSession(PolicyHolderMixin, Base):
 
     @property
     def is_floating(self):
-        return (not self.peer_port.port_info.ref_id)
+        return not self.peer_port.port_info.ref_id
 
     @property
     def user(self):
@@ -1377,7 +1388,7 @@ class AuditLog(HandleRefModel):
 
     @classmethod
     def log_peer_session(cls, event, peer_session, user):
-        #XXX
+        # XXX
         return
         peer_port = peer_session.peer_port
         return cls.log(

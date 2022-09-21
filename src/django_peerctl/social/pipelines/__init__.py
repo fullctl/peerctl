@@ -1,7 +1,7 @@
+import fullctl.service_bridge.devicectl as devicectl
 import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
-import fullctl.service_bridge.devicectl as devicectl
 from fullctl.django.auth import permissions
 
 from django_peerctl.models import Network, Port, PortInfo
@@ -38,7 +38,7 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
     if org:
         org = org.org
 
-    port_infos = dict([(p.ref_id, p) for p in PortInfo.objects.filter(net__org=org)])
+    port_infos = {p.ref_id: p for p in PortInfo.objects.filter(net__org=org)}
 
     for member in sot.InternetExchangeMember().objects(asns=verified_asns, join="ix"):
         if member.asn not in networks:
@@ -47,20 +47,26 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
         if member.ref_id not in port_infos:
             required_ports.setdefault(member.ixlan_id, [])
             required_port_infos.setdefault(member.ixlan_id, [])
-            required_ports[member.ixlan_id].append({
-                "asn" : member.asn,
-                "id": member.ref_id,
-                "ip_address_4": member.ipaddr4,
-                "ip_address_6": member.ipaddr6,
-                "speed": member.speed
-            })
+            required_ports[member.ixlan_id].append(
+                {
+                    "asn": member.asn,
+                    "id": member.ref_id,
+                    "ip_address_4": member.ipaddr4,
+                    "ip_address_6": member.ipaddr6,
+                    "speed": member.speed,
+                }
+            )
             required_port_infos[member.ixlan_id].append(member)
 
-    ports = devicectl.Port().request_dummy_ports(org.slug, required_ports, "pdb", device_type="bird")
+    ports = devicectl.Port().request_dummy_ports(
+        org.slug, required_ports, "pdb", device_type="bird"
+    )
 
-    ports = dict([(port["name"], port) for port in ports])
+    ports = {port["name"]: port for port in ports}
 
     for ixlan_id, members in required_port_infos.items():
         for member in members:
             network = networks[member.asn]
-            PortInfo.require_for_pdb_netixlan(network, ports[f"pdb:{member.ref_id}"]["id"], member)
+            PortInfo.require_for_pdb_netixlan(
+                network, ports[f"pdb:{member.ref_id}"]["id"], member
+            )

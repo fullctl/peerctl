@@ -8,11 +8,10 @@ def delete_all_portinfos(apps, schema_editor):
     PortInfo.handleref.all().delete()
 
 
-
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('django_peerctl', '0010_reftag'),
+        ("django_peerctl", "0010_reftag"),
     ]
 
     operations = [

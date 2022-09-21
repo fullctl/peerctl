@@ -183,7 +183,8 @@ class OrganizationForm(forms.ModelForm):
         self.cleaned_data["networks"].update(org=instance)
         return instance
 
-#XXX OLD organization admin - still need?
+
+# XXX OLD organization admin - still need?
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "net_count", "created", "updated")
     fields = ("name", "networks")

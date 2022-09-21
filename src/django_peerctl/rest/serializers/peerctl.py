@@ -46,7 +46,6 @@ class Network(ModelSerializer):
         return instance.contacts
 
 
-
 @register
 class Policy(ModelSerializer):
     class Meta:
@@ -61,9 +60,10 @@ class Policy(ModelSerializer):
             "is_global4",
             "is_global6",
             "peer_group",
-            #XXX
-            #"count_peers",
+            # XXX
+            # "count_peers",
         ]
+
 
 @register
 class AvailablePort(serializers.Serializer):
@@ -123,7 +123,7 @@ class Port(serializers.Serializer):
         ]
 
     def get_mac_address(self, instance):
-        #XXX implement devicectl
+        # XXX implement devicectl
         return ""
 
     def get_peers(self, instance):
@@ -413,9 +413,11 @@ class PeerDetails(serializers.Serializer):
 
         for ix_id, result in net.get_mutual_locations(obj.asn, exclude=exclude).items():
 
-            port = models.PortInfo.objects.get(ref_id=result[net.asn][0].ref_id).port.object
+            port = models.PortInfo.objects.get(
+                ref_id=result[net.asn][0].ref_id
+            ).port.object
 
-            #port = models.Port.get_or_create(result[net.asn][0])
+            # port = models.Port.get_or_create(result[net.asn][0])
             if port.id == my_port.id:
                 continue
 
@@ -434,10 +436,11 @@ class PeerDetails(serializers.Serializer):
 
         return mutual_locs
 
+
 @register
 class CreateFloatingPeerSession(serializers.Serializer):
 
-    ip_address_4 =serializers.CharField(allow_null=True, allow_blank=True)
+    ip_address_4 = serializers.CharField(allow_null=True, allow_blank=True)
     ip_address_6 = serializers.CharField(allow_null=True, allow_blank=True)
     policy_4 = serializers.IntegerField()
     policy_6 = serializers.IntegerField()
@@ -466,10 +469,10 @@ class CreateFloatingPeerSession(serializers.Serializer):
         net = models.Network.objects.get(asn=asn)
 
         port_info = models.PortInfo.objects.create(
-            port = 0,
-            net = net,
-            ip_address_4 = data["ip_address_4"],
-            ip_address_6 = data["ip_address_6"],
+            port=0,
+            net=net,
+            ip_address_4=data["ip_address_4"],
+            ip_address_6=data["ip_address_6"],
         )
         print("port_info", port_info)
 
@@ -482,15 +485,16 @@ class CreateFloatingPeerSession(serializers.Serializer):
         peer_net.md5 = data["md5"]
 
         peer_port = models.PeerPort.get_or_create(port_info, peer_net)
-        print("peer_port" ,peer_port)
+        print("peer_port", peer_port)
 
         return models.PeerSession.objects.create(
-            port = data["port"],
-            peer_port = peer_port,
-            policy4_id = data["policy_4"] or None,
-            policy6_id = data["policy_6"] or None,
-            status="ok"
+            port=data["port"],
+            peer_port=peer_port,
+            policy4_id=data["policy_4"] or None,
+            policy6_id=data["policy_6"] or None,
+            status="ok",
         )
+
 
 @register
 class PeerSession(ModelSerializer):
@@ -549,7 +553,11 @@ class PeerSession(ModelSerializer):
         return obj.devices[0].id
 
     def get_port_display_name(self, obj):
-        return obj.port.object.port_info_object.ix_name + " " + obj.port.object.port_info_object.ipaddr4
+        return (
+            obj.port.object.port_info_object.ix_name
+            + " "
+            + obj.port.object.port_info_object.ipaddr4
+        )
 
 
 @register
