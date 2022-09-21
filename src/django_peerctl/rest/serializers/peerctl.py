@@ -506,8 +506,9 @@ class PeerSession(ModelSerializer):
     policy6_name = serializers.SerializerMethodField()
     policy6_inherited = serializers.SerializerMethodField()
 
-
-    peer_id = serializers.PrimaryKeyRelatedField(source="peer_port", queryset=models.PeerPort.objects.all())
+    peer_id = serializers.PrimaryKeyRelatedField(
+        source="peer_port", queryset=models.PeerPort.objects.all()
+    )
     peer_asn = serializers.SerializerMethodField()
 
     device_name = serializers.SerializerMethodField()
@@ -516,7 +517,6 @@ class PeerSession(ModelSerializer):
     port_id = serializers.IntegerField(source="port")
     port_display_name = serializers.SerializerMethodField()
     ref_tag = "peer_session"
-
 
     class Meta:
         model = models.PeerSession
@@ -546,7 +546,7 @@ class PeerSession(ModelSerializer):
 
         if obj and obj.status == "ok":
             if hasattr(self, f"_policy{version}"):
-                policy =  getattr(self, f"_policy{version}")
+                policy = getattr(self, f"_policy{version}")
             else:
                 policy = get_best_policy(obj, version, raise_error=False)
                 setattr(self, f"_policy{version}", policy)
@@ -575,8 +575,6 @@ class PeerSession(ModelSerializer):
 
     def get_policy6_inherited(self, obj):
         return self.get_policy(obj, 6).get("inherited", None)
-
-
 
     def get_peer_asn(self, obj):
         return obj.peer_port.peer_net.peer.asn
