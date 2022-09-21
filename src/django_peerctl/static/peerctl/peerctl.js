@@ -332,11 +332,11 @@ $peerctl.SessionsSummary = $tc.extend(
         w.formatters.row = (row, data) => {
           new $peerctl.PeerSessionPolicySelect(
             row.find('.peer_session-policy-4'), 4, data.id
-          ).element.val(data.policy4.id);
+          ).element.val(data.policy4_id);
 
           new $peerctl.PeerSessionPolicySelect(
             row.find('.peer_session-policy-6'), 6, data.id
-          ).element.val(data.policy6.id);
+          ).element.val(data.policy6_id);
         }
         return w;
       });
@@ -851,11 +851,11 @@ $peerctl.PeerSessionList = $tc.extend(
     fill_policy_selects : function(port_row, data) {
       new $peerctl.PeerSessionPolicySelect(
         port_row.find('.peer_session-policy-4'), 4, data.peer_session
-      ).element.val(data.policy4.id);
+      ).element.val(data.policy4_id);
 
       new $peerctl.PeerSessionPolicySelect(
         port_row.find('.peer_session-policy-6'), 6, data.peer_session
-      ).element.val(data.policy6.id);
+      ).element.val(data.policy6_id);
 
     }
 

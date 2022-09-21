@@ -498,37 +498,58 @@ class CreateFloatingPeerSession(serializers.Serializer):
 
 @register
 class PeerSession(ModelSerializer):
-    policy6 = serializers.SerializerMethodField()
-    policy4 = serializers.SerializerMethodField()
-    asn = serializers.SerializerMethodField()
-    devices = serializers.SerializerMethodField()
+    policy4_id = serializers.SerializerMethodField()
+    policy4_name = serializers.SerializerMethodField()
+    policy4_inherited = serializers.SerializerMethodField()
+
+    policy6_id = serializers.SerializerMethodField()
+    policy6_name = serializers.SerializerMethodField()
+    policy6_inherited = serializers.SerializerMethodField()
+
+
+    peer_id = serializers.PrimaryKeyRelatedField(source="peer_port", queryset=models.PeerPort.objects.all())
+    peer_asn = serializers.SerializerMethodField()
+
+    device_name = serializers.SerializerMethodField()
     device_id = serializers.SerializerMethodField()
+
+    port_id = serializers.IntegerField(source="port")
     port_display_name = serializers.SerializerMethodField()
     ref_tag = "peer_session"
+
 
     class Meta:
         model = models.PeerSession
         fields = [
             "id",
-            "port",
-            "peer_port",
-            "policy6",
-            "policy4",
-            "asn",
-            "devices",
-            "device_id",
+            "port_id",
             "port_display_name",
+            "ip4",
+            "ip6",
+            "peer_id",
+            "peer_asn",
+            "peer_ip4",
+            "peer_ip6",
+            "peer_is_managed",
+            "policy4_id",
+            "policy4_name",
+            "policy4_inherited",
+            "policy6_id",
+            "policy6_name",
+            "policy6_inherited",
+            "device_name",
+            "device_id",
             "status",
-            "ip_address_4",
-            "ip_address_6",
-            "peer_ip_address_4",
-            "peer_ip_address_6",
-            "is_floating",
         ]
 
     def get_policy(self, obj, version):
+
         if obj and obj.status == "ok":
-            policy = get_best_policy(obj, version, raise_error=False)
+            if hasattr(self, f"_policy{version}"):
+                policy =  getattr(self, f"_policy{version}")
+            else:
+                policy = get_best_policy(obj, version, raise_error=False)
+                setattr(self, f"_policy{version}", policy)
             if policy:
                 return {
                     "id": policy.id,
@@ -537,16 +558,30 @@ class PeerSession(ModelSerializer):
                 }
         return {}
 
-    def get_policy4(self, obj):
-        return self.get_policy(obj, 4)
+    def get_policy4_id(self, obj):
+        return self.get_policy(obj, 4).get("id", None)
 
-    def get_policy6(self, obj):
-        return self.get_policy(obj, 6)
+    def get_policy4_name(self, obj):
+        return self.get_policy(obj, 4).get("name", None)
 
-    def get_asn(self, obj):
+    def get_policy4_inherited(self, obj):
+        return self.get_policy(obj, 4).get("inherited", None)
+
+    def get_policy6_id(self, obj):
+        return self.get_policy(obj, 6).get("id", None)
+
+    def get_policy6_name(self, obj):
+        return self.get_policy(obj, 6).get("name", None)
+
+    def get_policy6_inherited(self, obj):
+        return self.get_policy(obj, 6).get("inherited", None)
+
+
+
+    def get_peer_asn(self, obj):
         return obj.peer_port.peer_net.peer.asn
 
-    def get_devices(self, obj):
+    def get_device_name(self, obj):
         return obj.devices[0].display_name
 
     def get_device_id(self, obj):

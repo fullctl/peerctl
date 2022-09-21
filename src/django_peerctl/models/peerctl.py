@@ -1063,24 +1063,24 @@ class PeerSession(PolicyHolderMixin, Base):
         return obj
 
     @property
-    def ip_address_4(self):
+    def ip4(self):
         return self.port.object.port_info_object.ipaddr4
 
     @property
-    def ip_address_6(self):
+    def ip6(self):
         return self.port.object.port_info_object.ipaddr6
 
     @property
-    def peer_ip_address_4(self):
+    def peer_ip4(self):
         return self.peer_port.port_info.ipaddr4
 
     @property
-    def peer_ip_address_6(self):
+    def peer_ip6(self):
         return self.peer_port.port_info.ipaddr6
 
     @property
-    def is_floating(self):
-        return not self.peer_port.port_info.ref_id
+    def peer_is_managed(self):
+        return self.peer_port.port_info.ref_id
 
     @property
     def user(self):
