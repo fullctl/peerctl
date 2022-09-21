@@ -25,7 +25,7 @@ from fullctl.django.models.concrete import Organization
 from fullctl.service_bridge.data import Relationships
 import fullctl.service_bridge.devicectl as devicectl
 from jinja2 import DictLoader, Environment, FileSystemLoader
-from netfields import MACAddressField
+from netfields import MACAddressField, InetAddressField
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
@@ -105,7 +105,7 @@ class ref_fallback:
         def wrapped(*args, **kwargs):
             try:
                 return fn(*args, **kwargs)
-            except (sot.ReferenceNotFoundError, ObjectDoesNotExist):
+            except (AttributeError, sot.ReferenceNotFoundError, sot.ReferenceNotSetError, ObjectDoesNotExist):
                 if isinstance(value, collections.abc.Callable):
                     return value(*args)
                 return value
@@ -271,7 +271,10 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     def get_or_create(cls, asn, org):
         """get or create a network object from an ASN"""
         try:
-            obj = cls.objects.get(asn=asn, org=org)
+            if org:
+                obj = cls.objects.get(asn=asn, org=org)
+            else:
+                obj = cls.objects.get(asn=asn)
 
         except cls.DoesNotExist:
             obj = cls.objects.create(asn=asn, org=org, status="ok")
@@ -299,7 +302,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         return get_peer_contact_email(self.asn)
 
     @property
-    @ref_fallback("")
+    @ref_fallback(lambda x: f"{x}")
     def name(self):
         return self.ref.name
 
@@ -532,6 +535,9 @@ class PeerNetwork(PolicyHolderMixin, Base):
             self.full_clean()
             self.save()
 
+    def policy_parents(self):
+        return [self.net]
+
 
 @reversion.register
 class InternetExchange(sot.ReferenceMixin, Base):
@@ -579,6 +585,16 @@ class InternetExchange(sot.ReferenceMixin, Base):
     def __str__(self):
         return f"InternetExchange({self.id}): {self.name}"
 
+class PortPolicy(PolicyHolderMixin, Base):
+
+    port = models.PositiveIntegerField(unique=True)
+
+    class Meta:
+        db_table = "peerctl_port_policy"
+
+    class HandleRef:
+        tag = "port_policy"
+
 class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     # TODO PortPolicy schema to allow setting policy per port
@@ -589,6 +605,15 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
     policy4_id = None
     policy6_id = None
 
+    class Meta:
+        abstract = True
+
+    @property
+    def port_policy(self):
+        if not hasattr(self, "_port_policy"):
+            self._port_policy, _ = PortPolicy.objects.get_or_create(port=self.id)
+        return self._port_policy
+
     @property
     def port_info_object(self):
         if not hasattr(self, "_port_info"):
@@ -597,7 +622,7 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     @property
     def policy_parents(self):
-        return [self.port_info_object.net]
+        return [self.port_policy, self.port_info_object.net]
 
     @property
     def devices(self):
@@ -625,7 +650,15 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     @property
     def mac_address(self):
-        return self.virtual_port.mac_address or ""
+        #XXX devicectl
+        return ""
+
+    @property
+    def asn(self):
+        try:
+            return PortInfo.objects.get(port=self.id).net.asn
+        except PortInfo.DoesNotExist:
+            return None
 
     @property
     def peer_session_qs_prefetched(self):
@@ -641,6 +674,9 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
                 "peer_port", "peer_port__port_info", "peer_port__peer_net"
             ).all()
         return self._peer_session_qs_prefetched
+
+    def set_policy(self, *args, **kwargs):
+        return self.port_policy.set_policy(*args, **kwargs)
 
 
     def set_mac_address(self, mac_address):
@@ -676,6 +712,7 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
 
 
+
 class Port(devicectl.Port):
 
     DoesNotExist = Exception
@@ -704,6 +741,9 @@ class PortInfo(sot.ReferenceMixin, Base):
     # ip_addr
 
     port = ReferencedObjectField(bridge=Port)
+
+    ip_address_4 = InetAddressField(blank=True, null=True, help_text=_("manually set the ip6 address of this port info - used for manual peer session"))
+    ip_address_6 = InetAddressField(blank=True, null=True, help_text=_("manually set the ip4 address of this port info - used for manual peer session"))
 
     class HandleRef:
         tag = "port_info"
@@ -749,11 +789,15 @@ class PortInfo(sot.ReferenceMixin, Base):
     @property
     @ref_fallback("")
     def ipaddr4(self):
+        if self.ip_address_4:
+            return str(self.ip_address_4)
         return self.ref.ipaddr4
 
     @property
     @ref_fallback("")
     def ipaddr6(self):
+        if self.ip_address_6:
+            return str(self.ip_address_6)
         return self.ref.ipaddr6
 
     @property
@@ -973,7 +1017,6 @@ class PeerPort(Base):
     def __str__(self):
         return f"PeerPort({self.id}): {self.port_info}"
 
-
 # class BGPSession(Base):
 @grainy_model(namespace="peer_session")
 @reversion.register
@@ -1009,6 +1052,26 @@ class PeerSession(PolicyHolderMixin, Base):
         return obj
 
     @property
+    def ip_address_4(self):
+        return self.port.object.port_info_object.ipaddr4
+
+    @property
+    def ip_address_6(self):
+        return self.port.object.port_info_object.ipaddr6
+
+    @property
+    def peer_ip_address_4(self):
+        return self.peer_port.port_info.ipaddr4
+
+    @property
+    def peer_ip_address_6(self):
+        return self.peer_port.port_info.ipaddr6
+
+    @property
+    def is_floating(self):
+        return (not self.peer_port.port_info.ref_id)
+
+    @property
     def user(self):
         """
         Returns the user that created this peer session
@@ -1030,7 +1093,7 @@ class PeerSession(PolicyHolderMixin, Base):
 
     @property
     def policy_parents(self):
-        return [self.peer_port.peer_net, self.port]
+        return [self.peer_port.peer_net, self.port.object]
 
     def __str__(self):
         return "Session ({}): AS{} -> AS{}".format(

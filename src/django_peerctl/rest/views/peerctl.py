@@ -210,10 +210,16 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
         serializer = Serializers.device(instance=port.devices, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["put"])
-    @load_object("port", models.Port, id="pk", port_info__net__asn="asn")
+    @action(detail=False, methods=["put"], url_path="(?P<pk>[^/.]+)/set_policy")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def set_policy(self, request, asn, pk, port, *args, **kwargs):
+    def set_policy(self, request, asn, pk, *args, **kwargs):
+
+        # get port
+        port = models.Port().object(pk)
+
+        # check that the net owns the port
+        models.PortInfo.objects.get(port=port, net__asn=asn)
+
         ip_version = int(request.data.get("ipv"))
         policy_id = int(request.data.get("value"))
         policy = None
@@ -316,6 +322,14 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
 
         return Response(intersection)
 
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def destroy(
+        self, request, asn, net, pk, *args, **kwargs
+    ):
+        peer_session = models.PeerSession.objects.get(id=pk, peer_port__peer_net__net=net)
+        peer_session.delete()
+        return Response(self.serializer_class(peer_session).data)
 
 @route
 class Peer(CachedObjectMixin, viewsets.GenericViewSet):
@@ -409,9 +423,14 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
     @action(detail=True, methods=["put"])
     @load_object("net", models.Network, asn="asn")
-    @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def set_md5(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
+    def set_md5(self, request, asn, net, port_pk, pk, *args, **kwargs):
+        port = models.Port().object(port_pk)
+
+        if int(asn) != port.asn:
+            return Response({}, status=404)
+
+
         member = get_member(pk)
         peer = models.Network.objects.get(asn=member.asn)
         peer_net = models.PeerNetwork.get_or_create(net, peer)
@@ -585,6 +604,23 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
             r = super().destroy(request, asn, port, pk)
         return Response(self.serializer_class(peer_session).data)
 
+
+    @action(detail=False, methods=["post"])
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def create_floating(
+        self, request, asn, net, port_pk, *args, **kwargs
+    ):
+
+        data = request.data.copy()
+
+        serializer = Serializers.create_floating_peer_session(data=data, context={"asn":asn})
+
+        serializer.is_valid(raise_exception=True)
+
+        peer_session = serializer.save()
+
+        return Response(self.serializer_class(peer_session).data)
 
 @route
 class UserPreferences(CachedObjectMixin, viewsets.ModelViewSet):

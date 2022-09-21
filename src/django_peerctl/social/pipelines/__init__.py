@@ -56,7 +56,7 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
             })
             required_port_infos[member.ixlan_id].append(member)
 
-    ports = devicectl.Port().request_dummy_ports(org.slug, required_ports, "pdb", device_type="bird2")
+    ports = devicectl.Port().request_dummy_ports(org.slug, required_ports, "pdb", device_type="bird")
 
     ports = dict([(port["name"], port) for port in ports])
 

@@ -434,6 +434,63 @@ class PeerDetails(serializers.Serializer):
 
         return mutual_locs
 
+@register
+class CreateFloatingPeerSession(serializers.Serializer):
+
+    ip_address_4 =serializers.CharField(allow_null=True, allow_blank=True)
+    ip_address_6 = serializers.CharField(allow_null=True, allow_blank=True)
+    policy_4 = serializers.IntegerField()
+    policy_6 = serializers.IntegerField()
+    md5 = serializers.CharField()
+    peer_asn = serializers.IntegerField()
+    port = serializers.IntegerField()
+
+    ref_tag = "create_floating_peer_session"
+
+    class Meta:
+        fields = [
+            "ip_address_4",
+            "ip_address_6",
+            "policy_4",
+            "policy_6",
+            "md5",
+            "peer_asn",
+            "port",
+        ]
+
+    def save(self):
+
+        data = self.validated_data
+        asn = self.context.get("asn")
+
+        net = models.Network.objects.get(asn=asn)
+
+        port_info = models.PortInfo.objects.create(
+            port = 0,
+            net = net,
+            ip_address_4 = data["ip_address_4"],
+            ip_address_6 = data["ip_address_6"],
+        )
+        print("port_info", port_info)
+
+        peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
+        print("peer", peer)
+
+        peer_net = models.PeerNetwork.get_or_create(net, peer)
+        print("peer_net", peer_net)
+
+        peer_net.md5 = data["md5"]
+
+        peer_port = models.PeerPort.get_or_create(port_info, peer_net)
+        print("peer_port" ,peer_port)
+
+        return models.PeerSession.objects.create(
+            port = data["port"],
+            peer_port = peer_port,
+            policy4_id = data["policy_4"] or None,
+            policy6_id = data["policy_6"] or None,
+            status="ok"
+        )
 
 @register
 class PeerSession(ModelSerializer):
@@ -458,6 +515,11 @@ class PeerSession(ModelSerializer):
             "device_id",
             "port_display_name",
             "status",
+            "ip_address_4",
+            "ip_address_6",
+            "peer_ip_address_4",
+            "peer_ip_address_6",
+            "is_floating",
         ]
 
     def get_policy(self, obj, version):

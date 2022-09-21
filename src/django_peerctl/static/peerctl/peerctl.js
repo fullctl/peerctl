@@ -317,14 +317,27 @@ $peerctl.SessionsSummary = $tc.extend(
         return this.setup_select_filter('#page-summary-sessions select[data-element="select_device"]');
       });
 
+
       $(this.$w.select_port).one("load:after", () => {
         this.sync();
       });
 
+      this.$e.btn_add_peer_session.click(() => {
+        new $ctl.application.Peerctl.ModalFloatingSession();
+      });
+
       this.widget("list_peer_sessions", ($e) => {
         var w = new twentyc.rest.List($('#summary-sessions-body table'));
-        w.formatters.policy4 = (value, data) => {return data.policy4.name;}
-        w.formatters.policy6 = (value, data) => {return data.policy4.name;}
+
+        w.formatters.row = (row, data) => {
+          new $peerctl.PeerSessionPolicySelect(
+            row.find('.peer_session-policy-4'), 4, data.id
+          ).element.val(data.policy4.id);
+
+          new $peerctl.PeerSessionPolicySelect(
+            row.find('.peer_session-policy-6'), 6, data.id
+          ).element.val(data.policy6.id);
+        }
         return w;
       });
 
@@ -367,6 +380,37 @@ $peerctl.SessionsSummary = $tc.extend(
     },
   },
   $ctl.application.Tool
+);
+
+
+$ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
+  "ModalFloatingSession",
+  {
+    ModalFloatingSession : function() {
+      var modal = this;
+      var title = "Add peer session"
+      var form = this.form = new twentyc.rest.Form(
+        $ctl.template("form_floating_session")
+      );
+
+      this.select_port = new twentyc.rest.Select(this.form.element.find('#port'));
+      this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
+      this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
+
+      this.select_port.load();
+      this.select_policy_4.load();
+      this.select_policy_6.load();
+
+      $(this.form).on("api-write:success", (ev, e, payload, response) => {
+        modal.hide();
+        fullctl.peerctl.$t.sessions_summary.$w.list_peer_sessions.load();
+      });
+
+      this.Modal("save", title, form.element);
+      form.wire_submit(this.$e.button_submit);
+    }
+  },
+  $ctl.application.Modal
 );
 
 $peerctl.Policies = $tc.extend(

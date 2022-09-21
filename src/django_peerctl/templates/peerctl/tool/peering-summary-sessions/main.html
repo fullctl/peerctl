@@ -1,6 +1,10 @@
 {% load static i18n %}
 <div class="tool" data-component="peering_summary-sessions">
-  <div data-element="menu"></div>
+  <div data-element="menu" class="center">
+    <a class="button" data-element="btn_add_peer_session"><span class="icon fullctl icon-add"></span><span class="fullctl label">{% trans "Add Session" %}</span></a>
+
+  </div>
+  <div class="marg-top-lg"></div>
   <table
   class="table list-table table-borderless"
   data-api-load="yes"
@@ -9,10 +13,12 @@
   <thead>
       <tr>
       <th>{% trans "ASN" %}</th>
+      <th>{% trans "Ip" %}</th>
       <th>{% trans "Policy IPv4" %}</th>
       <th>{% trans "Policy IPv6" %}</th>
       <th>{% trans "Port" %}</th>
       <th>{% trans "Device" %}</th>
+      <th></th>
       </tr>
   </thead>
 
@@ -21,15 +27,49 @@
 
   <tbody class="templates">
       <tr data-template="row" class="with-border">
-        <td data-field="asn"></td>
-        <td data-field="policy4"></td>
-        <td data-field="policy6"></td>
+        <td data-field="asn" class="highlight"></td>
+
+        <td>
+          <div data-field="peer_ip_address_4"></div>
+          <div data-field="peer_ip_address_6"></div>
+        </td>
+        <td class="secondary">
+            <select
+              data-api-base="/"
+              data-api-method="put"
+              data-api-load="yes"
+              data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
+              class="peer_session-policy-4"
+              data-proxy-data=".port-policy-4"></select>
+        </td>
+        <td class="secondary">
+
+            <select
+              data-api-base="/"
+              data-api-method="put"
+              data-api-load="yes"
+              data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
+              class="peer_session-policy-6"
+              data-proxy-data=".port-policy-6"></select>
+
+        </td>
         <td data-field="port_display_name"></td>
         <td data-field="devices"></td>
+        <td class="control">
+        	<a class="button"
+            data-api-action="{id}"
+            data-api-callback="remove"
+            data-confirm="Remove peer session?"
+            data-api-method="DELETE"><span class="icon fullctl icon-delete"></span><span class="fullctl label">{% trans "Delete" %}</span>
+          </a>
+        </td>
       </tr>
   </tbody>
   </table>
+
   <div class="templates">
     <div data-template="menu"></div>
+
+    {% include "peerctl/tool/peering-summary-sessions/form-manual-session.html" %}
   </div>
 </div>
