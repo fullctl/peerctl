@@ -977,6 +977,8 @@ class PeerPort(Base):
     #    virtual_port = models.ForeignKey(VirtualPort, on_delete=models.CASCADE, related_name='+')
     port_info = models.ForeignKey(PortInfo, on_delete=models.CASCADE, related_name="+")
 
+    interface_name = models.CharField(max_length=255, null=True, blank=True, help_text=_("Peer interface name"))
+
     class HandleRef:
         tag = "peer_port"
 
@@ -1080,7 +1082,7 @@ class PeerSession(PolicyHolderMixin, Base):
 
     @property
     def peer_is_managed(self):
-        return self.peer_port.port_info.ref_id
+        return (self.peer_port.port_info.port > 0)
 
     @property
     def user(self):

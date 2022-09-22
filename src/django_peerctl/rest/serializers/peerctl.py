@@ -446,6 +446,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
     policy_6 = serializers.IntegerField()
     md5 = serializers.CharField()
     peer_asn = serializers.IntegerField()
+    peer_interface = serializers.CharField(allow_null=True, allow_blank=True)
     port = serializers.IntegerField()
 
     ref_tag = "create_floating_peer_session"
@@ -458,6 +459,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
             "policy_6",
             "md5",
             "peer_asn",
+            "peer_interface",
             "port",
         ]
 
@@ -474,18 +476,14 @@ class CreateFloatingPeerSession(serializers.Serializer):
             ip_address_4=data["ip_address_4"],
             ip_address_6=data["ip_address_6"],
         )
-        print("port_info", port_info)
 
         peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
-        print("peer", peer)
-
         peer_net = models.PeerNetwork.get_or_create(net, peer)
-        print("peer_net", peer_net)
-
         peer_net.md5 = data["md5"]
-
         peer_port = models.PeerPort.get_or_create(port_info, peer_net)
-        print("peer_port", peer_port)
+
+        peer_port.interface_name = data["peer_interface"]
+        peer_port.save()
 
         return models.PeerSession.objects.create(
             port=data["port"],
@@ -510,6 +508,7 @@ class PeerSession(ModelSerializer):
         source="peer_port", queryset=models.PeerPort.objects.all()
     )
     peer_asn = serializers.SerializerMethodField()
+    peer_interface = serializers.SerializerMethodField()
 
     device_name = serializers.SerializerMethodField()
     device_id = serializers.SerializerMethodField()
@@ -528,6 +527,7 @@ class PeerSession(ModelSerializer):
             "ip6",
             "peer_id",
             "peer_asn",
+            "peer_interface",
             "peer_ip4",
             "peer_ip6",
             "peer_is_managed",
@@ -578,6 +578,15 @@ class PeerSession(ModelSerializer):
 
     def get_peer_asn(self, obj):
         return obj.peer_port.peer_net.peer.asn
+
+    def get_peer_interface(self, obj):
+        if obj.peer_is_managed:
+            # TODO this currently returns the port name, but needs
+            # to actually return the physical port name
+            return obj.peer_port.port_info.port.object.name
+
+        return obj.peer_port.interface_name
+
 
     def get_device_name(self, obj):
         return obj.devices[0].display_name
