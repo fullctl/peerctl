@@ -6,22 +6,17 @@ from django.contrib.auth.admin import UserAdmin
 
 from django_peerctl.models import (
     AuditLog,
-    Device,
     DeviceTemplate,
     EmailLog,
     EmailLogRecipient,
     InternetExchange,
-    LogicalPort,
     Network,
     Organization,
     PeerNetwork,
     PeerSession,
-    PhysicalPort,
     Policy,
-    Port,
     PortInfo,
     UserSession,
-    VirtualPort,
     Wish,
 )
 
@@ -76,31 +71,9 @@ class PeerNetworkAdmin(admin.ModelAdmin):
         return "no"
 
 
-class PhysicalPortInlineAdmin(admin.TabularInline):
-    model = PhysicalPort
-    readonly_fields = ("created", "updated")
-    fields = ("name", "description", "device", "created", "updated", "status")
-    form = status_form()
-
-
-class VirtualPortInlineAdmin(admin.TabularInline):
-    model = VirtualPort
-    readonly_fields = ("created", "updated")
-    fields = ("vlan_id", "created", "updated", "status")
-    form = status_form()
-
-
-@admin.register(LogicalPort)
-class LogicalPortAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "channel", "trunk")
-    readonly_fields = ("created", "updated")
-    inlines = (PhysicalPortInlineAdmin, VirtualPortInlineAdmin)
-    form = status_form()
-
-
 @admin.register(PortInfo)
 class PortInfoAdmin(admin.ModelAdmin):
-    list_display = ("asn", "ref_id", "ix", "ipaddr4", "ipaddr6")
+    list_display = ("net", "asn", "ref_id", "ix", "ipaddr4", "ipaddr6", "port")
     readonly_fields = ("asn", "ix", "ipaddr4", "ipaddr6")
     search_fields = ("net__asn",)
     form = status_form()
@@ -123,30 +96,6 @@ class DeviceTemplateAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(Device)
-class DeviceAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(Port)
-class PortAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "port_info",
-        "asn",
-        "virtual_port_id",
-        "policy4",
-        "policy6",
-        "created",
-        "updated",
-    )
-    readonly_fields = ("asn", "policy4", "policy6")
-    form = status_form()
-
-    def asn(self, obj):
-        return obj.port_info.net.asn
-
-
 @admin.register(Wish)
 class WishAdmin(admin.ModelAdmin):
     list_display = ("user", "path", "text", "ticket", "status", "created")
@@ -166,7 +115,6 @@ class PeerSessionAdmin(admin.ModelAdmin):
         "ipaddr6",
         "peer_ipaddr4",
         "peer_ipaddr6",
-        "port_id",
         "policy4",
         "policy6",
         "status",
@@ -187,16 +135,16 @@ class PeerSessionAdmin(admin.ModelAdmin):
         return obj.peer_port.peer_net.peer
 
     def ix_id(self, obj):
-        return obj.port.port_info.ix.id
+        return obj.port.object.port_info_object.ix.id
 
     def ix_name(self, obj):
-        return obj.port.port_info.ix.name
+        return obj.port.object.port_info_object.ix.name
 
     def ipaddr4(self, obj):
-        return obj.port.port_info.ipaddr4
+        return obj.port.object.port_info_object.ipaddr4
 
     def ipaddr6(self, obj):
-        return obj.port.port_info.ipaddr6
+        return obj.port.object.port_info_object.ipaddr6
 
     def peer_ipaddr4(self, obj):
         return obj.peer_port.port_info.ipaddr4
@@ -236,10 +184,10 @@ class OrganizationForm(forms.ModelForm):
         return instance
 
 
-@admin.register(Organization)
+# XXX OLD organization admin - still need?
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "net_count", "created", "updated")
-    fields = ("name", "networks", "max_sessions")
+    fields = ("name", "networks")
     readonly_fields = ("net_count",)
     search_fields = ("name", "net_set__asn")
     form = OrganizationForm

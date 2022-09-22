@@ -190,7 +190,8 @@ $peerctl.PeeringLists = $tc.extend(
       this.$w.port_info.find(".speed").text( $ctl.formatters.pretty_speed(port.speed) );
       this.$w.port_policy_4.element.val(port.policy4.id);
       this.$w.port_policy_6.element.val(port.policy6.id);
-      this.$w.port_device_type.element.val(port.device.type);
+      this.$w.devicectl_device.element.val(port.device.id);
+      this.$w.devicectl_port.element.val(port.id);
 
       if(port.ref_ix_id.indexOf("ixctl:") == 0) {
         this.Tool_menu().find(".ixctl-controls").show();
@@ -215,10 +216,13 @@ $peerctl.PeeringLists = $tc.extend(
         return new $peerctl.PortPolicySelect(menu.find('[data-element="port_policy_6"]'), 6);
       })
 
-      this.widget("port_device_type", ($e) => {
-        return new $peerctl.DeviceTypeSelect(menu.find('[data-element="port_device_type"]'));
+      this.widget("devicectl_device", ($e) => {
+        return new $peerctl.DeviceSelect(menu.find('[data-element="devicectl_device"]'));
       });
 
+      this.widget("devicectl_port", ($e) => {
+        return new $peerctl.PortSelect(menu.find('[data-element="devicectl_port"]'));
+      });
 
       this.widget("port_device_template", ($e) => {
         return new $peerctl.DeviceTemplateSelect(menu.find('[data-element="port_device_template"]'));
@@ -250,15 +254,33 @@ $peerctl.PeeringLists = $tc.extend(
           select.val(port_object.policy6.id);
       });
 
-      $(this.$w.port_device_type).on("load:after", (e, select) => {
+      $(this.$w.devicectl_device).on("load:after", (e, select) => {
         let port_object = fullctl.peerctl.port_object();
         if(port_object)
-          select.val(port_object.device.type);
+          select.val(port_object.device.id);
+        this.$w.devicectl_port.device_id = select.val();
+        this.$w.devicectl_port.load();
       });
 
-      $(this.$w.port_device_type).on("api-write:after", ()=>{
-        this.$w.port_device_template.load();
+      var devicectl_port = this.$w.devicectl_port;
+
+      $(this.$w.devicectl_device.element).on("change", function() {
+        devicectl_port.device_id = $(this).val();
+        devicectl_port.load();
+        //this.$w.port_device_template.load();
       });
+
+      $(this.$w.devicectl_port).on("load:after", (e, select) => {
+        let port_object = fullctl.peerctl.port_object();
+        if(port_object)
+          select.val(port_object.id);
+      });
+
+      $(this.$w.devicectl_port).on("api-write:success", ()=>{
+        this.$w.select_port.load(this.$w.devicectl_port.id).then(()=>{this.sync()});
+      });
+
+
 
       $(this.$w.port_mac_address).on("api-write:success", (ev, endpoint, sent_data, response)=>{
         var data = response.first();
@@ -295,14 +317,27 @@ $peerctl.SessionsSummary = $tc.extend(
         return this.setup_select_filter('#page-summary-sessions select[data-element="select_device"]');
       });
 
+
       $(this.$w.select_port).one("load:after", () => {
         this.sync();
       });
 
+      this.$e.btn_add_peer_session.click(() => {
+        new $ctl.application.Peerctl.ModalFloatingSession();
+      });
+
       this.widget("list_peer_sessions", ($e) => {
         var w = new twentyc.rest.List($('#summary-sessions-body table'));
-        w.formatters.policy4 = (value, data) => {return data.policy4.name;}
-        w.formatters.policy6 = (value, data) => {return data.policy4.name;}
+
+        w.formatters.row = (row, data) => {
+          new $peerctl.PeerSessionPolicySelect(
+            row.find('.peer_session-policy-4'), 4, data.id
+          ).element.val(data.policy4_id);
+
+          new $peerctl.PeerSessionPolicySelect(
+            row.find('.peer_session-policy-6'), 6, data.id
+          ).element.val(data.policy6_id);
+        }
         return w;
       });
 
@@ -345,6 +380,37 @@ $peerctl.SessionsSummary = $tc.extend(
     },
   },
   $ctl.application.Tool
+);
+
+
+$ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
+  "ModalFloatingSession",
+  {
+    ModalFloatingSession : function() {
+      var modal = this;
+      var title = "Add peer session"
+      var form = this.form = new twentyc.rest.Form(
+        $ctl.template("form_floating_session")
+      );
+
+      this.select_port = new twentyc.rest.Select(this.form.element.find('#port'));
+      this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
+      this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
+
+      this.select_port.load();
+      this.select_policy_4.load();
+      this.select_policy_6.load();
+
+      $(this.form).on("api-write:success", (ev, e, payload, response) => {
+        modal.hide();
+        fullctl.peerctl.$t.sessions_summary.$w.list_peer_sessions.load();
+      });
+
+      this.Modal("save", title, form.element);
+      form.wire_submit(this.$e.button_submit);
+    }
+  },
+  $ctl.application.Modal
 );
 
 $peerctl.Policies = $tc.extend(
@@ -632,8 +698,8 @@ $peerctl.PeerSessionButton = $tc.extend(
 
 
 
-$peerctl.DeviceTypeSelect = $tc.extend(
-  "DeviceTypeSelect",
+$peerctl.DeviceSelect = $tc.extend(
+  "DeviceSelect",
   {
     payload : function() {
       var port = fullctl.peerctl.port_object();
@@ -642,7 +708,7 @@ $peerctl.DeviceTypeSelect = $tc.extend(
     },
     format_request_url: function(url,method) {
       if(method == "put") {
-        url = this.element.data("api-action");
+        url = url + "/" + this.element.data("api-action");
         return url.replace("/0/", "/"+ fullctl.peerctl.port_object().device.id + "/");
       }
       return url;
@@ -650,6 +716,25 @@ $peerctl.DeviceTypeSelect = $tc.extend(
   },
   twentyc.rest.Select
 )
+
+$peerctl.PortSelect = $tc.extend(
+  "PortSelect",
+  {
+    format_request_url: function(url,method) {
+      if(!fullctl.peerctl)
+        return url;
+      if(method == "put") {
+        url = this.element.data("api-action");
+      }
+      if(method == "get") {
+        url = url+"?device_id="+this.device_id
+      }
+      return url.replace("/0/", "/"+ fullctl.peerctl.port_object().id + "/");
+    }
+  },
+  twentyc.rest.Select
+)
+
 
 $peerctl.MaxPrefixInput = $tc.extend(
   "MaxPrefixInput",
@@ -766,11 +851,11 @@ $peerctl.PeerSessionList = $tc.extend(
     fill_policy_selects : function(port_row, data) {
       new $peerctl.PeerSessionPolicySelect(
         port_row.find('.peer_session-policy-4'), 4, data.peer_session
-      ).element.val(data.policy4.id);
+      ).element.val(data.policy4_id);
 
       new $peerctl.PeerSessionPolicySelect(
         port_row.find('.peer_session-policy-6'), 6, data.peer_session
-      ).element.val(data.policy6.id);
+      ).element.val(data.policy6_id);
 
     }
 
