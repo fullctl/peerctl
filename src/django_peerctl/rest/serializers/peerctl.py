@@ -515,6 +515,7 @@ class PeerSession(ModelSerializer):
 
     port_id = serializers.IntegerField(source="port")
     port_display_name = serializers.SerializerMethodField()
+    port_interface = serializers.SerializerMethodField()
     ref_tag = "peer_session"
 
     class Meta:
@@ -522,6 +523,7 @@ class PeerSession(ModelSerializer):
         fields = [
             "id",
             "port_id",
+            "port_interface",
             "port_display_name",
             "ip4",
             "ip6",
@@ -593,6 +595,9 @@ class PeerSession(ModelSerializer):
 
     def get_device_id(self, obj):
         return obj.devices[0].id
+
+    def get_port_interface(self, obj):
+        return obj.port.object.name
 
     def get_port_display_name(self, obj):
         return (
