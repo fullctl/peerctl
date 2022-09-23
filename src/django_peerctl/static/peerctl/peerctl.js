@@ -258,6 +258,8 @@ $peerctl.PeeringLists = $tc.extend(
         let port_object = fullctl.peerctl.port_object();
         if(port_object)
           select.val(port_object.device.id);
+        else
+          select.val(select.find('option').first().val());
         this.$w.devicectl_port.device_id = select.val();
         this.$w.devicectl_port.load();
       });
