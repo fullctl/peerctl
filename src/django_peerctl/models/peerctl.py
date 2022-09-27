@@ -37,6 +37,8 @@ from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.models.tasks import SyncMacAddress
 from django_peerctl.templating import make_variable_name
 
+from fullctl.django.validators import ip_address_string
+
 # naming::
 # handleref tag $model_$model
 # matching fks should use the tag (even tho it would usually be done as _)
@@ -53,7 +55,6 @@ EMAIL_TEMPLATE_TYPES = (
     ("peer-config-complete", "Peering Configuration Complete"),
     ("peer-session-live", "Peering Session Live"),
 )
-
 
 class DescriptionField(models.CharField):
     """
@@ -802,16 +803,20 @@ class PortInfo(sot.ReferenceMixin, Base):
     @property
     @ref_fallback("")
     def ipaddr4(self):
+        if self.port > 0:
+            return ip_address_string(self.port.object.ip_address_4)
         if self.ip_address_4:
-            return str(self.ip_address_4)
-        return self.ref.ipaddr4
+            return ip_address_string(self.ip_address_4)
+        return ip_address_string(self.ref.ipaddr4)
 
     @property
     @ref_fallback("")
     def ipaddr6(self):
+        if self.port > 0:
+            return ip_address_string(self.port.object.ip_address_6)
         if self.ip_address_6:
-            return str(self.ip_address_6)
-        return self.ref.ipaddr6
+            return ip_address_string(self.ip_address_6)
+        return ip_address_string(self.ref.ipaddr6)
 
     @property
     @ref_fallback(0)
@@ -1066,11 +1071,11 @@ class PeerSession(PolicyHolderMixin, Base):
 
     @property
     def ip4(self):
-        return self.port.object.port_info_object.ipaddr4
+        return ip_address_string(self.port.object.ip_address_4)
 
     @property
     def ip6(self):
-        return self.port.object.port_info_object.ipaddr6
+        return ip_address_string(self.port.object.ip_address_6)
 
     @property
     def peer_ip4(self):
