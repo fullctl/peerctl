@@ -444,7 +444,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
     ip_address_6 = serializers.CharField(allow_null=True, allow_blank=True)
     policy_4 = serializers.IntegerField()
     policy_6 = serializers.IntegerField()
-    md5 = serializers.CharField()
+    md5 = serializers.CharField(allow_null=True, allow_blank=True)
     peer_asn = serializers.IntegerField()
     peer_interface = serializers.CharField(allow_null=True, allow_blank=True)
     port = serializers.IntegerField()
