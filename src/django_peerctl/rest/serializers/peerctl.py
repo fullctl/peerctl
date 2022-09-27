@@ -468,16 +468,14 @@ class CreateFloatingPeerSession(serializers.Serializer):
         ]
 
     def validate_peer_prefixes4(self, value):
-        if value <0:
+        if value < 0:
             raise serializers.ValidationError("Cannot be negative")
         return value
 
     def validate_peer_prefixes6(self, value):
-        if value <0:
+        if value < 0:
             raise serializers.ValidationError("Cannot be negative")
         return value
-
-
 
     def save(self):
 

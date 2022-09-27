@@ -22,6 +22,7 @@ from django_handleref.models import HandleRefModel
 from django_inet.models import ASNField, IPAddressField, IPPrefixField
 from fullctl.django.fields.service_bridge import ReferencedObjectField
 from fullctl.django.models.concrete import Instance, Organization
+from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
 from netfields import InetAddressField, MACAddressField
@@ -36,8 +37,6 @@ from django_peerctl.exceptions import (
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.models.tasks import SyncMacAddress
 from django_peerctl.templating import make_variable_name
-
-from fullctl.django.validators import ip_address_string
 
 # naming::
 # handleref tag $model_$model
@@ -55,6 +54,7 @@ EMAIL_TEMPLATE_TYPES = (
     ("peer-config-complete", "Peering Configuration Complete"),
     ("peer-session-live", "Peering Session Live"),
 )
+
 
 class DescriptionField(models.CharField):
     """
@@ -982,7 +982,9 @@ class PeerPort(Base):
     #    virtual_port = models.ForeignKey(VirtualPort, on_delete=models.CASCADE, related_name='+')
     port_info = models.ForeignKey(PortInfo, on_delete=models.CASCADE, related_name="+")
 
-    interface_name = models.CharField(max_length=255, null=True, blank=True, help_text=_("Peer interface name"))
+    interface_name = models.CharField(
+        max_length=255, null=True, blank=True, help_text=_("Peer interface name")
+    )
 
     class HandleRef:
         tag = "peer_port"
@@ -1087,7 +1089,7 @@ class PeerSession(PolicyHolderMixin, Base):
 
     @property
     def peer_is_managed(self):
-        return (self.peer_port.port_info.port > 0)
+        return self.peer_port.port_info.port > 0
 
     @property
     def user(self):

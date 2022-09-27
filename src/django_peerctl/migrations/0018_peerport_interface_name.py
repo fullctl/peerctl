@@ -6,13 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('django_peerctl', '0017_portpolicy'),
+        ("django_peerctl", "0017_portpolicy"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='peerport',
-            name='interface_name',
-            field=models.CharField(blank=True, help_text='Peer interface name', max_length=255, null=True),
+            model_name="peerport",
+            name="interface_name",
+            field=models.CharField(
+                blank=True, help_text="Peer interface name", max_length=255, null=True
+            ),
         ),
     ]
