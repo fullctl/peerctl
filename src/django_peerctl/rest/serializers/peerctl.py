@@ -527,8 +527,8 @@ class PeerSession(ModelSerializer):
     )
     peer_asn = serializers.SerializerMethodField()
     peer_interface = serializers.SerializerMethodField()
-    peer_prefixes4 = serializers.SerializerMethodField()
-    peer_prefixes6 = serializers.SerializerMethodField()
+    peer_maxprefix4 = serializers.SerializerMethodField()
+    peer_maxprefix6 = serializers.SerializerMethodField()
 
     device_name = serializers.SerializerMethodField()
     device_id = serializers.SerializerMethodField()
@@ -554,8 +554,8 @@ class PeerSession(ModelSerializer):
             "peer_ip4",
             "peer_ip6",
             "peer_is_managed",
-            "peer_prefixes4",
-            "peer_prefixes6",
+            "peer_maxprefix4",
+            "peer_maxprefix6",
             "policy4_id",
             "policy4_name",
             "policy4_inherited",
@@ -612,10 +612,10 @@ class PeerSession(ModelSerializer):
 
         return obj.peer_port.interface_name
 
-    def get_peer_prefixes4(self, obj):
+    def get_peer_maxprefix4(self, obj):
         return obj.peer_port.peer_net.info_prefixes(4)
 
-    def get_peer_prefixes6(self, obj):
+    def get_peer_maxprefix6(self, obj):
         return obj.peer_port.peer_net.info_prefixes(6)
 
     def get_device_name(self, obj):
