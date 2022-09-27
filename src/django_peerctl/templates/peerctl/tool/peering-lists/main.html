@@ -258,6 +258,7 @@
                 data-api-base="{% url "peerctl_api:port-list-available-ports" asn=selected_asn pk=0 %}"
                 data-api-action="{% url "peerctl_api:port-change-port" asn=selected_asn pk=0 %}"
                 data-api-method="put"
+                data-change-confirm="Changing the port will migrate sessions to the new port, continue?"
                 data-element="devicectl_port">
               </select>
             </div>
