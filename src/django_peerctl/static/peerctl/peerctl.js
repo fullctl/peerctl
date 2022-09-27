@@ -282,6 +282,7 @@ $peerctl.PeeringLists = $tc.extend(
 
       $(this.$w.devicectl_port).on("api-write:success", ()=>{
         this.sync(this.$w.devicectl_port.element.val());
+        $ctl.peerctl.$t.sessions_summary.sync();
       });
 
 
