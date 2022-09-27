@@ -444,8 +444,8 @@ class CreateFloatingPeerSession(serializers.Serializer):
     ip_address_6 = serializers.CharField(allow_null=True, allow_blank=True)
     policy_4 = serializers.IntegerField()
     policy_6 = serializers.IntegerField()
-    info_prefixes4 = serializers.IntegerField(allow_null=True)
-    info_prefixes6 = serializers.IntegerField(allow_null=True)
+    peer_prefixes4 = serializers.IntegerField(allow_null=True)
+    peer_prefixes6 = serializers.IntegerField(allow_null=True)
     md5 = serializers.CharField(allow_null=True, allow_blank=True)
     peer_asn = serializers.IntegerField()
     peer_interface = serializers.CharField(allow_null=True, allow_blank=True)
@@ -459,20 +459,20 @@ class CreateFloatingPeerSession(serializers.Serializer):
             "ip_address_6",
             "policy_4",
             "policy_6",
-            "info_prefixes4",
-            "info_prefixes6",
             "md5",
             "peer_asn",
             "peer_interface",
+            "peer_prefixes4",
+            "peer_prefixes6",
             "port",
         ]
 
-    def validate_info_prefixes4(self, value):
+    def validate_peer_prefixes4(self, value):
         if value <0:
             raise serializers.ValidationError("Cannot be negative")
         return value
 
-    def validate_info_prefixes6(self, value):
+    def validate_peer_prefixes6(self, value):
         if value <0:
             raise serializers.ValidationError("Cannot be negative")
         return value
@@ -497,8 +497,8 @@ class CreateFloatingPeerSession(serializers.Serializer):
 
         peer_net = models.PeerNetwork.get_or_create(net, peer)
         peer_net.md5 = data["md5"]
-        peer_net.info_prefixes4 = data["info_prefixes4"]
-        peer_net.info_prefixes6 = data["info_prefixes6"]
+        peer_net.info_prefixes4 = data["peer_prefixes4"]
+        peer_net.info_prefixes6 = data["peer_prefixes6"]
         peer_net.save()
 
         peer_port = models.PeerPort.get_or_create(port_info, peer_net)
@@ -529,6 +529,8 @@ class PeerSession(ModelSerializer):
     )
     peer_asn = serializers.SerializerMethodField()
     peer_interface = serializers.SerializerMethodField()
+    peer_prefixes4 = serializers.SerializerMethodField()
+    peer_prefixes6 = serializers.SerializerMethodField()
 
     device_name = serializers.SerializerMethodField()
     device_id = serializers.SerializerMethodField()
@@ -536,6 +538,7 @@ class PeerSession(ModelSerializer):
     port_id = serializers.IntegerField(source="port")
     port_display_name = serializers.SerializerMethodField()
     port_interface = serializers.SerializerMethodField()
+
     ref_tag = "peer_session"
 
     class Meta:
@@ -553,6 +556,8 @@ class PeerSession(ModelSerializer):
             "peer_ip4",
             "peer_ip6",
             "peer_is_managed",
+            "peer_prefixes4",
+            "peer_prefixes6",
             "policy4_id",
             "policy4_name",
             "policy4_inherited",
@@ -609,6 +614,11 @@ class PeerSession(ModelSerializer):
 
         return obj.peer_port.interface_name
 
+    def get_peer_prefixes4(self, obj):
+        return obj.peer_port.peer_net.info_prefixes(4)
+
+    def get_peer_prefixes6(self, obj):
+        return obj.peer_port.peer_net.info_prefixes(6)
 
     def get_device_name(self, obj):
         return obj.devices[0].display_name
