@@ -4,16 +4,16 @@
   data-api-base="{% url "peerctl_api:peer_session-create-floating" asn=selected_asn port_pk=0 %}"
   data-api-method="POST"
   >
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label for="priority">{% trans "Peer ASN" %}</label>
+      <label class="form-label" for="priority">{% trans "Peer ASN" %}</label>
       <input type="text" class="form-control" id="peer-asn" name="peer_asn" />
     </div>
   </div>
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label for="description">{% trans "Port" %}</label>
+      <label class="form-label" for="description">{% trans "Port" %}</label>
       <span class="modal-control">
       <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
       <select
@@ -29,13 +29,13 @@
     </div>
 
   </div>
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-6" data-api-submit="yes">
-      <label for="ip_address_4">{% trans "Peer IP4 Address" %}</label>
+      <label class="form-label" for="ip_address_4">{% trans "Peer IP4 Address" %}</label>
       <input type="text" class="form-control" id="ip-address-4" name="ip_address_4" />
     </div>
     <div class="col-6" data-api-submit="yes">
-      <label for="policy_4">{% trans "Policy" %}</label>
+      <label class="form-label" for="policy_4">{% trans "Policy" %}</label>
       <span class="modal-control">
       <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
       <select
@@ -50,13 +50,13 @@
     </div>
 
   </div>
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-6" data-api-submit="yes">
-      <label for="ip_address_6">{% trans "Peer IP6 Address" %}</label>
+      <label class="form-label" for="ip_address_6">{% trans "Peer IP6 Address" %}</label>
       <input type="text" class="form-control" id="ip-address-6" name="ip_address_6" />
     </div>
     <div class="col-6" data-api-submit="yes">
-      <label for="policy_6">{% trans "Policy" %}</label>
+      <label class="form-label" for="policy_6">{% trans "Policy" %}</label>
       <span class="modal-control">
       <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
       <select
@@ -73,17 +73,30 @@
 
   </div>
 
-  <div class="row form-group">
+  <div class="row mb-3">
+    <div class="col-6" data-api-submit="yes">
+      <label class="form-label" for="info_prefixes4">{% trans "Max. v4 Prefixes" %}</label>
+      <input type="text" class="form-control" id="info-prefixes4" name="info_prefixes4">
+    </div>
+
+    <div class="col-6" data-api-submit="yes">
+      <label class="form-label" for="info_prefixes6">{% trans "Max. v6 Prefixes" %}</label>
+      <input type="text" class="form-control" id="info-prefixes6" name="info_prefixes6">
+    </div>
+
+  </div>
+
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label for="peer_interface">{% trans "Peer interface name" %}</label>
+      <label class="form-label" for="peer_interface">{% trans "Peer interface name" %}</label>
       <input type="text" class="form-control" id="peer-interface" name="peer_interface" />
     </div>
   </div>
 
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label for="md5">{% trans "MD5" %}</label>
+      <label class="form-label" for="md5">{% trans "MD5" %}</label>
       <input type="text" class="form-control" id="md5" name="md5" />
     </div>
   </div>

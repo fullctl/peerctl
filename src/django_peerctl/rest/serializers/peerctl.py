@@ -444,6 +444,8 @@ class CreateFloatingPeerSession(serializers.Serializer):
     ip_address_6 = serializers.CharField(allow_null=True, allow_blank=True)
     policy_4 = serializers.IntegerField()
     policy_6 = serializers.IntegerField()
+    info_prefixes4 = serializers.IntegerField(allow_null=True)
+    info_prefixes6 = serializers.IntegerField(allow_null=True)
     md5 = serializers.CharField(allow_null=True, allow_blank=True)
     peer_asn = serializers.IntegerField()
     peer_interface = serializers.CharField(allow_null=True, allow_blank=True)
@@ -457,11 +459,25 @@ class CreateFloatingPeerSession(serializers.Serializer):
             "ip_address_6",
             "policy_4",
             "policy_6",
+            "info_prefixes4",
+            "info_prefixes6",
             "md5",
             "peer_asn",
             "peer_interface",
             "port",
         ]
+
+    def validate_info_prefixes4(self, value):
+        if value <0:
+            raise serializers.ValidationError("Cannot be negative")
+        return value
+
+    def validate_info_prefixes6(self, value):
+        if value <0:
+            raise serializers.ValidationError("Cannot be negative")
+        return value
+
+
 
     def save(self):
 
@@ -478,10 +494,14 @@ class CreateFloatingPeerSession(serializers.Serializer):
         )
 
         peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
+
         peer_net = models.PeerNetwork.get_or_create(net, peer)
         peer_net.md5 = data["md5"]
-        peer_port = models.PeerPort.get_or_create(port_info, peer_net)
+        peer_net.info_prefixes4 = data["info_prefixes4"]
+        peer_net.info_prefixes6 = data["info_prefixes6"]
+        peer_net.save()
 
+        peer_port = models.PeerPort.get_or_create(port_info, peer_net)
         peer_port.interface_name = data["peer_interface"]
         peer_port.save()
 
