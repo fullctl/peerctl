@@ -125,13 +125,19 @@ $peerctl.PeeringLists = $tc.extend(
         return $('#page-peering-lists [data-element="toggle_available_peers"]');
       });
 
-      $(this.$w.select_port).one("load:after", () => {
-        /*if(this.preselect_port) {
-          this.select_port(this.preselect_port)
-        } else { */
-          this.sync();
-          //this.sync_url(this.$c.toolbar.$e.select_port.val());
-        //}
+
+      $(this.$w.select_port).on("load:after", (e, select) => {
+        this.$w.devicectl_device.load();
+      });
+
+      $(this.$w.devicectl_device).on("load:after", (e, select) => {
+        let port_object = fullctl.peerctl.port_object();
+        if(port_object)
+          select.val(port_object.device.id);
+        else
+          select.val(select.find('option').first().val());
+        this.$w.devicectl_port.device_id = select.val();
+        this.$w.devicectl_port.load();
       });
 
       $(this.$w.select_port.element).on("change", () => {
@@ -158,6 +164,8 @@ $peerctl.PeeringLists = $tc.extend(
         else
           button.addClass("fullctl").removeClass("inactive");
       });
+
+      this.sync();
     },
 
     init: function() {
@@ -179,30 +187,34 @@ $peerctl.PeeringLists = $tc.extend(
       return this.ports[this.port()]
     },
 
-    sync : function() {
+    sync : function(port_id) {
       let port = this.port_object();
       this.$e.menu.find(".ixctl-controls").hide();
 
-      if(!port) {
-        return;
+
+      if (!port_id) {
+        port_id = (port?port.id:null);
       }
 
-      this.$w.port_info.find(".speed").text( $ctl.formatters.pretty_speed(port.speed) );
-      this.$w.port_policy_4.element.val(port.policy4.id);
-      this.$w.port_policy_6.element.val(port.policy6.id);
-      this.$w.devicectl_device.element.val(port.device.id);
-      this.$w.devicectl_port.element.val(port.id);
+      this.$w.select_port.load(port_id).then(() => {
+        let port = this.port_object();
+        this.$w.port_info.find(".speed").text( $ctl.formatters.pretty_speed(port.speed) );
+        this.$w.port_policy_4.element.val(port.policy4.id);
+        this.$w.port_policy_6.element.val(port.policy6.id);
+        this.$w.devicectl_device.element.val(port.device.id);
+        this.$w.devicectl_port.element.val(port.id);
 
-      if(port.ref_ix_id.indexOf("ixctl:") == 0) {
-        this.Tool_menu().find(".ixctl-controls").show();
-      }
-      this.$w.port_mac_address.element.val(port.mac_address);
-      this.$w.net_as_set.element.val(fullctl.peerctl.network.as_set);
+        if(port.ref_ix_id.indexOf("ixctl:") == 0) {
+          this.Tool_menu().find(".ixctl-controls").show();
+        }
+        this.$w.port_mac_address.element.val(port.mac_address);
+        this.$w.net_as_set.element.val(fullctl.peerctl.network.as_set);
 
-      this.$w.peers.load();
-      this.$w.port_policy_4.load();
-      this.$w.port_policy_6.load();
-      this.$w.port_device_template.load();
+        this.$w.peers.load();
+        this.$w.port_policy_4.load();
+        this.$w.port_policy_6.load();
+        this.$w.port_device_template.load();
+      });
     },
 
     menu: function() {
@@ -254,16 +266,6 @@ $peerctl.PeeringLists = $tc.extend(
           select.val(port_object.policy6.id);
       });
 
-      $(this.$w.devicectl_device).on("load:after", (e, select) => {
-        let port_object = fullctl.peerctl.port_object();
-        if(port_object)
-          select.val(port_object.device.id);
-        else
-          select.val(select.find('option').first().val());
-        this.$w.devicectl_port.device_id = select.val();
-        this.$w.devicectl_port.load();
-      });
-
       var devicectl_port = this.$w.devicectl_port;
 
       $(this.$w.devicectl_device.element).on("change", function() {
@@ -279,7 +281,7 @@ $peerctl.PeeringLists = $tc.extend(
       });
 
       $(this.$w.devicectl_port).on("api-write:success", ()=>{
-        this.$w.select_port.load(this.$w.devicectl_port.id).then(()=>{this.sync()});
+        this.sync(this.$w.devicectl_port.element.val());
       });
 
 
