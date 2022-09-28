@@ -797,6 +797,7 @@ class PortInfo(sot.ReferenceMixin, Base):
         PeerSession.objects.filter(port=from_port.id).update(port=to_port.id)
 
     @property
+    @ref_fallback(0)
     def ref_ix_id(self):
         return f"{self.ref_source}:{self.ref.ix_id}"
 

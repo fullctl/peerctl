@@ -62,6 +62,7 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
         org.slug, required_ports, "pdb", device_type="bird"
     )
 
+    port_ids = [port["id"] for port in ports]
     ports = {port["name"]: port for port in ports}
 
     for ixlan_id, members in required_port_infos.items():
@@ -70,3 +71,15 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
             PortInfo.require_for_pdb_netixlan(
                 network, ports[f"pdb:{member.ref_id}"]["id"], member
             )
+
+    for port in devicectl.Port().objects():
+        if port.is_management:
+            continue
+        if not port.ip_address_4 and not port.ip_address_6:
+            continue
+        if PortInfo.objects.filter(port=port.id).exists():
+            continue
+        PortInfo.objects.create(
+            net = networks[verified_asns[0]],
+            port = port.id
+        )

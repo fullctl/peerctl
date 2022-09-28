@@ -140,6 +140,9 @@ class Port(serializers.Serializer):
 
     @models.ref_fallback("")
     def get_ix_name(self, instance):
+        if not self.get_ix(instance):
+            return f"{instance.virtual_port_name}: {instance.display_name}"
+
         ix = models.InternetExchange.objects.get(
             ref_id=instance.port_info_object.ref_ix_id
         )
