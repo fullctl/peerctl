@@ -365,6 +365,8 @@ $peerctl.SessionsSummary = $tc.extend(
       if (device_filter && device_filter != "all")
         this.$w.list_peer_sessions.action += "/device/" + device_filter;
       this.$w.list_peer_sessions.load();
+
+      this.$e.btn_api_view.attr("href", this.$w.list_peer_sessions.base_url+this.$w.list_peer_sessions.action);
     },
 
     setup_select_filter : function(selector) {
