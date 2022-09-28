@@ -241,7 +241,7 @@
             <div class="toolbar-field col-auto">
               {% trans "Device" %}
 
-              <select data-api-load="yes"
+              <select --data-api-load="yes"
                 data-api-base="{% url "proxies-api-devicectl-list" org_tag=request.org.slug %}"
                 data-name-field="display_name"
                 data-api-method="put"

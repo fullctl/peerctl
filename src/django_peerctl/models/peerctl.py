@@ -22,6 +22,7 @@ from django_handleref.models import HandleRefModel
 from django_inet.models import ASNField, IPAddressField, IPPrefixField
 from fullctl.django.fields.service_bridge import ReferencedObjectField
 from fullctl.django.models.concrete import Instance, Organization
+from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
 from netfields import InetAddressField, MACAddressField
@@ -802,16 +803,20 @@ class PortInfo(sot.ReferenceMixin, Base):
     @property
     @ref_fallback("")
     def ipaddr4(self):
+        if self.port > 0:
+            return ip_address_string(self.port.object.ip_address_4)
         if self.ip_address_4:
-            return str(self.ip_address_4)
-        return self.ref.ipaddr4
+            return ip_address_string(self.ip_address_4)
+        return ip_address_string(self.ref.ipaddr4)
 
     @property
     @ref_fallback("")
     def ipaddr6(self):
+        if self.port > 0:
+            return ip_address_string(self.port.object.ip_address_6)
         if self.ip_address_6:
-            return str(self.ip_address_6)
-        return self.ref.ipaddr6
+            return ip_address_string(self.ip_address_6)
+        return ip_address_string(self.ref.ipaddr6)
 
     @property
     @ref_fallback(0)
@@ -977,7 +982,9 @@ class PeerPort(Base):
     #    virtual_port = models.ForeignKey(VirtualPort, on_delete=models.CASCADE, related_name='+')
     port_info = models.ForeignKey(PortInfo, on_delete=models.CASCADE, related_name="+")
 
-    interface_name = models.CharField(max_length=255, null=True, blank=True, help_text=_("Peer interface name"))
+    interface_name = models.CharField(
+        max_length=255, null=True, blank=True, help_text=_("Peer interface name")
+    )
 
     class HandleRef:
         tag = "peer_port"
@@ -1066,11 +1073,11 @@ class PeerSession(PolicyHolderMixin, Base):
 
     @property
     def ip4(self):
-        return self.port.object.port_info_object.ipaddr4
+        return ip_address_string(self.port.object.ip_address_4)
 
     @property
     def ip6(self):
-        return self.port.object.port_info_object.ipaddr6
+        return ip_address_string(self.port.object.ip_address_6)
 
     @property
     def peer_ip4(self):
@@ -1082,7 +1089,7 @@ class PeerSession(PolicyHolderMixin, Base):
 
     @property
     def peer_is_managed(self):
-        return (self.peer_port.port_info.port > 0)
+        return self.peer_port.port_info.port > 0
 
     @property
     def user(self):
