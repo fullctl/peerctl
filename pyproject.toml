@@ -23,7 +23,7 @@ peerctl = "peerctl.cli:main"
 python = "^3.7"
 fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "prep-release" }
 
-netom = { git = "https://github.com/20c/netom.git", branch = "update-deps" }
+netom = { git = "https://github.com/20c/netom.git", branch = "prep-release" }
 
 [tool.poetry.dev-dependencies]
 # tests
