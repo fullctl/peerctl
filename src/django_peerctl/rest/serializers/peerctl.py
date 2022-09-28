@@ -573,11 +573,11 @@ class PeerSession(ModelSerializer):
     def get_policy(self, obj, version):
 
         if obj and obj.status == "ok":
-            if hasattr(self, f"_policy{version}"):
-                policy = getattr(self, f"_policy{version}")
+            if hasattr(obj, f"_policy{version}"):
+                policy = getattr(obj, f"_policy{version}")
             else:
                 policy = get_best_policy(obj, version, raise_error=False)
-                setattr(self, f"_policy{version}", policy)
+                setattr(obj, f"_policy{version}", policy)
             if policy:
                 return {
                     "id": policy.id,

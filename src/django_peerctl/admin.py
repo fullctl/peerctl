@@ -135,10 +135,16 @@ class PeerSessionAdmin(admin.ModelAdmin):
         return obj.peer_port.peer_net.peer
 
     def ix_id(self, obj):
-        return obj.port.object.port_info_object.ix.id
+        try:
+            return obj.port.object.port_info_object.ix.id
+        except AttributeError:
+            return 0
 
     def ix_name(self, obj):
-        return obj.port.object.port_info_object.ix.name
+        try:
+            return obj.port.object.port_info_object.ix.name
+        except AttributeError:
+            return ""
 
     def ipaddr4(self, obj):
         return obj.port.object.port_info_object.ipaddr4
