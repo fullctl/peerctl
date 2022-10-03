@@ -159,9 +159,10 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
         instances = [
             port
-            for port in models.Port().objects(org=request.org.remote_id, status="ok")
+            for port in models.Port().objects(org=request.org.remote_id, join="device", status="ok")
             if port.id in port_ids
         ]
+
         serializer = self.serializer_class(instances, many=True)
 
         data = sorted(serializer.data, key=lambda x: x["ix_name"])
@@ -624,6 +625,12 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     def create_floating(self, request, asn, net, port_pk, *args, **kwargs):
 
         data = request.data.copy()
+
+        if not data.get("peer_prefixes4"):
+            data["peer_prefixes4"] = 0
+
+        if not data.get("peer_prefixes6"):
+            data["peer_prefixes6"] = 0
 
         serializer = Serializers.create_floating_peer_session(
             data=data, context={"asn": asn}
