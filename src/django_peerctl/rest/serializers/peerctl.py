@@ -520,15 +520,23 @@ class PeerSession(ModelSerializer):
     policy4_id = serializers.SerializerMethodField()
     policy4_name = serializers.SerializerMethodField()
     policy4_inherited = serializers.SerializerMethodField()
+    policy4_peer_group = serializers.SerializerMethodField()
+    policy4_import = serializers.SerializerMethodField()
+    policy4_export = serializers.SerializerMethodField()
 
     policy6_id = serializers.SerializerMethodField()
     policy6_name = serializers.SerializerMethodField()
     policy6_inherited = serializers.SerializerMethodField()
+    policy6_peer_group = serializers.SerializerMethodField()
+    policy6_import = serializers.SerializerMethodField()
+    policy6_export = serializers.SerializerMethodField()
 
     peer_id = serializers.PrimaryKeyRelatedField(
         source="peer_port", queryset=models.PeerPort.objects.all()
     )
     peer_asn = serializers.SerializerMethodField()
+    peer_name = serializers.SerializerMethodField()
+    peer_type = serializers.SerializerMethodField()
     peer_interface = serializers.SerializerMethodField()
     peer_maxprefix4 = serializers.SerializerMethodField()
     peer_maxprefix6 = serializers.SerializerMethodField()
@@ -539,6 +547,8 @@ class PeerSession(ModelSerializer):
     port_id = serializers.IntegerField(source="port")
     port_display_name = serializers.SerializerMethodField()
     port_interface = serializers.SerializerMethodField()
+
+    md5 = serializers.SerializerMethodField()
 
     ref_tag = "peer_session"
 
@@ -551,6 +561,7 @@ class PeerSession(ModelSerializer):
             "port_display_name",
             "ip4",
             "ip6",
+            "md5",
             "peer_id",
             "peer_asn",
             "peer_interface",
@@ -559,12 +570,20 @@ class PeerSession(ModelSerializer):
             "peer_is_managed",
             "peer_maxprefix4",
             "peer_maxprefix6",
+            "peer_name",
+            "peer_type",
             "policy4_id",
             "policy4_name",
             "policy4_inherited",
+            "policy4_import",
+            "policy4_export",
+            "policy4_peer_group",
             "policy6_id",
             "policy6_name",
             "policy6_inherited",
+            "policy6_import",
+            "policy6_export",
+            "policy6_peer_group",
             "device_name",
             "device_id",
             "status",
@@ -582,6 +601,9 @@ class PeerSession(ModelSerializer):
                 return {
                     "id": policy.id,
                     "name": policy.name,
+                    "import_policy": policy.import_policy,
+                    "export_policy": policy.export_policy,
+                    "peer_group": policy.peer_group,
                     "inherited": getattr(obj, f"policy{version}_inherited"),
                 }
         return {}
@@ -595,6 +617,15 @@ class PeerSession(ModelSerializer):
     def get_policy4_inherited(self, obj):
         return self.get_policy(obj, 4).get("inherited", None)
 
+    def get_policy4_import(self, obj):
+        return self.get_policy(obj, 4).get("import_policy", None)
+
+    def get_policy4_export(self, obj):
+        return self.get_policy(obj, 4).get("export_policy", None)
+
+    def get_policy4_peer_group(self, obj):
+        return self.get_policy(obj, 4).get("peer_group", None)
+
     def get_policy6_id(self, obj):
         return self.get_policy(obj, 6).get("id", None)
 
@@ -603,6 +634,24 @@ class PeerSession(ModelSerializer):
 
     def get_policy6_inherited(self, obj):
         return self.get_policy(obj, 6).get("inherited", None)
+
+    def get_policy6_import(self, obj):
+        return self.get_policy(obj, 6).get("import_policy", None)
+
+    def get_policy6_export(self, obj):
+        return self.get_policy(obj, 6).get("export_policy", None)
+
+    def get_policy6_peer_group(self, obj):
+        return self.get_policy(obj, 6).get("peer_group", None)
+
+    def get_md5(self, obj):
+        return obj.peer_port.peer_net.md5
+
+    def get_peer_type(self, obj):
+        return "external"
+
+    def get_peer_name(self, obj):
+        return obj.peer_port.peer_net.peer.name
 
     def get_peer_asn(self, obj):
         return obj.peer_port.peer_net.peer.asn

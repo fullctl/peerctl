@@ -625,6 +625,12 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         data = request.data.copy()
 
+        if not data.get("peer_prefixes4"):
+            data["peer_prefixes4"] = 0
+
+        if not data.get("peer_prefixes6"):
+            data["peer_prefixes6"] = 0
+
         serializer = Serializers.create_floating_peer_session(
             data=data, context={"asn": asn}
         )

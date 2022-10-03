@@ -961,7 +961,8 @@ class DeviceObject(devicectl.DeviceCtlEntity):
         peer_groups = {}
         self._peer_groups_netom0_data(net, 4, peer_groups, **kwargs)
         self._peer_groups_netom0_data(net, 6, peer_groups, **kwargs)
-        return {"peer_groups": peer_groups}
+        r ={"peer_groups": peer_groups}
+        return r
 
 
 class Device(devicectl.Device):
