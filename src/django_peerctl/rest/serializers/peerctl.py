@@ -154,6 +154,8 @@ class Port(serializers.Serializer):
         return instance.port_info_object.ref.speed
 
     def get_device(self, instance):
+        if getattr(instance, "device", None):
+            return instance.device.__dict__
         return instance.devices[0].__dict__
 
     def get_policy(self, instance, version):

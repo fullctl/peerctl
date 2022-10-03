@@ -159,9 +159,10 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
         instances = [
             port
-            for port in models.Port().objects(org=request.org.remote_id, status="ok")
+            for port in models.Port().objects(org=request.org.remote_id, join="device", status="ok")
             if port.id in port_ids
         ]
+
         serializer = self.serializer_class(instances, many=True)
 
         data = sorted(serializer.data, key=lambda x: x["ix_name"])
