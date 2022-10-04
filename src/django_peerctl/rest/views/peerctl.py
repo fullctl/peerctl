@@ -166,8 +166,11 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
         instances = [
             port
-            for port in models.Port().objects(org=request.org.remote_id, join="device", status="ok")
-            if port.id in port_ids and (not filter_device or port.device_id == int(filter_device))
+            for port in models.Port().objects(
+                org=request.org.remote_id, join="device", status="ok"
+            )
+            if port.id in port_ids
+            and (not filter_device or port.device_id == int(filter_device))
         ]
 
         # prefetch netixlans/ixctl members
