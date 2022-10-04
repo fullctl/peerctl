@@ -79,7 +79,4 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
             continue
         if PortInfo.objects.filter(port=port.id).exists():
             continue
-        PortInfo.objects.create(
-            net = networks[verified_asns[0]],
-            port = port.id
-        )
+        PortInfo.objects.create(net=networks[verified_asns[0]], port=port.id)

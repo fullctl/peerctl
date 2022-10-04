@@ -242,6 +242,7 @@
               {% trans "Device" %}
 
               <select --data-api-load="yes"
+                id="devices-list"
                 data-api-base="{% url "proxies-api-devicectl-list" org_tag=request.org.slug %}"
                 data-name-field="display_name"
                 data-api-method="put"
