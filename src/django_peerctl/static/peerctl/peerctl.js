@@ -138,6 +138,7 @@ $peerctl.PeeringLists = $tc.extend(
           select.val(select.find('option').first().val());
         this.$w.devicectl_port.device_id = select.val();
         this.$w.devicectl_port.load();
+        fullctl.peerctl.$t.sessions_summary.$w.select_device.load();
       });
 
       $(this.$w.select_port.element).on("change", () => {
@@ -322,8 +323,17 @@ $peerctl.SessionsSummary = $tc.extend(
         return this.setup_select_filter('#page-summary-sessions select[data-element="select_device"]');
       });
 
+      this.$w.select_port.format_request_url = (url) => {
+        let device_filter = this.$w.select_device.element.val();
+        if(device_filter != "all") {
+          url = url + "?device="+device_filter;
+        }
+        return url;
+      };
 
-      $(this.$w.select_port).one("load:after", () => {
+
+      $(this.$w.select_device).one("load:after", () => {
+        console.log("LOADED");
         this.sync();
       });
 
@@ -351,8 +361,16 @@ $peerctl.SessionsSummary = $tc.extend(
       });
 
       $(this.$w.select_device.element).on("change", () => {
+        if(this.$w.select_device.element.val() == "all") {
+          this.$w.select_port.element.parents('.toolbar-control-group').hide();
+          this.$w.select_port.element.empty();
+        } else {
+          this.$w.select_port.element.parents('.toolbar-control-group').show();
+          this.$w.select_port.load();
+        }
         this.sync();
       });
+
 
     },
 
