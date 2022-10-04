@@ -152,16 +152,30 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, *args, **kwargs):
+
+        filter_device = request.GET.get("device")
+
+        # collect port ids
+
         port_ids = [
             int(obj.port)
             for obj in models.PortInfo.objects.filter(net__org=request.org, port__gt=0)
         ]
 
+        # load ports
+
         instances = [
             port
             for port in models.Port().objects(org=request.org.remote_id, join="device", status="ok")
-            if port.id in port_ids
+            if port.id in port_ids and (not filter_device or port.device_id == int(filter_device))
         ]
+
+        # prefetch netixlans/ixctl members
+
+        for member in sot.InternetExchangeMember().objects(asn=asn):
+            for port in instances:
+                if port.port_info_object.ref_id == member.ref_id:
+                    port.port_info_object._ref = member
 
         serializer = self.serializer_class(instances, many=True)
 
