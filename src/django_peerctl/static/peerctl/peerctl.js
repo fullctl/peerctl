@@ -387,9 +387,8 @@ $peerctl.SessionsSummary = $tc.extend(
           action += "/port/" + port_filter;
         }
 
-        this.$w.list_peer_sessions.action = action;
-
       }
+      this.$w.list_peer_sessions.action = action;
       this.$w.list_peer_sessions.load();
       this.$e.btn_api_view.attr("href", this.$w.list_peer_sessions.base_url+this.$w.list_peer_sessions.action);
     },
