@@ -339,12 +339,12 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @action(
         detail=False,
         methods=["get"],
-        url_path="port/(?P<port_pk>[^/]+)/device/(?P<device_pk>[^/]+)",
+        url_path="device/(?P<device_pk>[^/]+)/port/(?P<port_pk>[^/]+)",
     )
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_port_and_device(
-        self, request, asn, net, port_pk, device_pk, *args, **kwargs
+        self, request, asn, net, device_pk, port_pk, *args, **kwargs
     ):
         port = models.Port().object(id=port_pk)
         instances = port.peer_session_qs_prefetched.filter(status="ok")
