@@ -6,16 +6,7 @@ import fullctl.service_bridge.pdbctl as pdbctl
 import reversion
 
 from django_peerctl.email import send_mail_from_default
-from django_peerctl.models import (
-    AuditLog,
-    EmailLog,
-    EmailTemplate,
-    Network,
-    PeerNetwork,
-    PeerPort,
-    PeerSession,
-    Port,
-)
+from django_peerctl.models import AuditLog, EmailLog, PeerPort, PeerSession, Port
 
 
 class PeerSessionWorkflow:

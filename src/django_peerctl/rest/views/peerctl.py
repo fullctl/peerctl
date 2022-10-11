@@ -608,7 +608,10 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_policy(self, request, asn, net, port_pk, pk, *args, **kwargs):
-        port = models.Port().object(port_pk)
+
+        # make sure port exists
+        models.Port().object(port_pk)
+
         peer_session = models.PeerSession.objects.get(id=pk)
 
         ip_version = int(request.data.get("ipv"))

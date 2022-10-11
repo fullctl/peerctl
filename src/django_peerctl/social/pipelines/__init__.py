@@ -62,7 +62,6 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
         org.slug, required_ports, "pdb", device_type="bird"
     )
 
-    port_ids = [port["id"] for port in ports]
     ports = {port["name"]: port for port in ports}
 
     for ixlan_id, members in required_port_infos.items():

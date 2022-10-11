@@ -25,7 +25,7 @@ from fullctl.django.models.concrete import Instance, Organization
 from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
-from netfields import InetAddressField, MACAddressField
+from netfields import InetAddressField
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
@@ -409,7 +409,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         defined the free usage limit will be returned
         """
 
-        # XXX aaactl metered / plans
+        # TODO aaactl metered / plans
         return 99999
 
         # if self.org_id and self.org.max_sessions:
@@ -579,7 +579,7 @@ class InternetExchange(sot.ReferenceMixin, Base):
                 # concat ix name and lan name
                 name=f"{ix.name}".strip(),
                 name_long=getattr(ix, "name_long", ix.name),
-                # XXX: ixctl needs to provide country for source of truth
+                # TODO: ixctl needs to provide country for source of truth
                 # exchanges
                 country=getattr(ix, "country", "US"),
                 ref_id=ix.ref_id,
@@ -657,7 +657,7 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     @property
     def mac_address(self):
-        # XXX devicectl
+        # TODO devicectl / ixctl ?
         return ""
 
     @property
@@ -711,8 +711,6 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     def __str__(self):
         return "Port"
-        # XXX
-        return f"Port({self.pk}): {self.port_info}"
 
 
 class Port(devicectl.Port):
@@ -1358,7 +1356,7 @@ class EmailTemplate(Base, TemplateBase):
         return data
 
 
-# XXX dont need anymore (fullctl auditlog)
+# TODO  dont need anymore (fullctl auditlog)
 @grainy_model(
     namespace="peerctl.net", namespace_instance="{namespace}.{instance.net.asn}"
 )
@@ -1399,22 +1397,7 @@ class AuditLog(HandleRefModel):
 
     @classmethod
     def log_peer_session(cls, event, peer_session, user):
-        # XXX
         return
-        peer_port = peer_session.peer_port
-        return cls.log(
-            peer_port.peer_net.net,
-            event=event,
-            user=user,
-            ix=peer_session.port.port_info_object.ix_name,
-            ix_id=peer_session.port.port_info_object.ix.id,
-            asn=peer_port.peer_net.peer.asn,
-            net=peer_port.peer_net.peer.name,
-            net_id=peer_port.peer_net.peer.id,
-            ip4=f"{peer_port.port_info.ipaddr4}",
-            ip6=f"{peer_port.port_info.ipaddr6}",
-            status=peer_session.status,
-        )
 
     @classmethod
     def log_peer_session_request(cls, peer_session, user):

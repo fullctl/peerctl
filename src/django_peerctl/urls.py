@@ -1,11 +1,12 @@
-import fullctl.django.rest.urls.service_bridge_proxy as service_bridge
 import fullctl.django.rest.urls.service_bridge_proxy as proxy
 from django.conf import settings
 from django.urls import include, path
-from fullctl.django.views.template import TemplateFileView
 
 import django_peerctl.views as views
 from django_peerctl.legacy.views import device_template_base, email_template_base
+
+# from fullctl.django.views.template import TemplateFileView
+
 
 proxy.setup(
     "devicectl",
