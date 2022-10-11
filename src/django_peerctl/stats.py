@@ -62,7 +62,8 @@ def count_peers():
         except ReferenceNotFoundError:
             pass
 
-    sort = lambda x: x[0]
+    def sort(x):
+        return x[0]
 
     return {
         "all": qset.count(),

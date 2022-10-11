@@ -87,7 +87,7 @@ class PortInfoAdmin(admin.ModelAdmin):
     def pdb(self, obj):
         try:
             return obj.pdb.id
-        except:
+        except Exception:
             return f"PDB Missing (id={obj.ref_id})"
 
 

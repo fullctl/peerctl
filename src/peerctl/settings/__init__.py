@@ -1,6 +1,6 @@
 import os
-import sys
 
+import netom
 from fullctl.django import settings
 
 SERVICE_TAG = "peerctl"
@@ -120,8 +120,6 @@ settings_manager.set_option("GOOGLE_ANALYTICS_ID", "")
 # PEERCTL
 
 # netom integration (templating)
-
-import netom
 
 settings_manager.set_option("NETOM_DIR", os.path.dirname(netom.__file__))
 settings_manager.set_option(

@@ -15,10 +15,8 @@ class create_revision:
         @reversion.create_revision()
         def wrapper(*args, **kwargs):
             if isinstance(args[0], django.http.HttpRequest):
-                self = None
                 request = args[0]
             else:
-                self = args[0]
                 request = args[1]
 
             if request.user:

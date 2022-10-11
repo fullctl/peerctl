@@ -1,10 +1,8 @@
 import fullctl.service_bridge.devicectl as devicectl
-import fullctl.service_bridge.ixctl as ixctl
-import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from fullctl.django.auth import permissions
 
-from django_peerctl.models import Network, Port, PortInfo
+from django_peerctl.models import PortInfo
 from django_peerctl.utils import get_network
 
 

@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from fullctl.django.decorators import load_instance, require_auth
 

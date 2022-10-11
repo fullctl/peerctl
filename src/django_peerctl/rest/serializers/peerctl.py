@@ -1,20 +1,13 @@
-import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
-import fullctl.service_bridge.sot as sot
-from django.utils.translation import ugettext_lazy as _
+
+# from django.utils.translation import ugettext_lazy as _
 from fullctl.django.rest.decorators import serializer_registry
-from fullctl.django.rest.serializers import (
-    ModelSerializer,
-    RequireContext,
-    SoftRequiredValidator,
-)
+from fullctl.django.rest.serializers import ModelSerializer
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
-from rest_framework.validators import UniqueTogetherValidator
+from rest_framework.exceptions import ValidationError  # noqa
 
 import django_peerctl.models as models
 from django_peerctl.helpers import get_best_policy
-from django_peerctl.peer_session_workflow import PeerSessionEmailWorkflow
 
 Serializers, register = serializer_registry()
 

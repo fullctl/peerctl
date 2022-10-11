@@ -1,9 +1,7 @@
-import fullctl.service_bridge.ixctl as ixctl
-import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
-from fullctl.django.rest.decorators import billable, load_object
+from fullctl.django.rest.decorators import load_object
 from fullctl.django.rest.mixins import CachedObjectMixin
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -86,7 +84,7 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
         if is_global6 == "false":
             is_global6 = False
 
-        b = serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True)
 
         policy = serializer.save(net=net, status="ok")
 
@@ -115,7 +113,7 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
         if is_global6 == "false":
             is_global6 = False
 
-        b = serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True)
 
         serializer.save()
 
@@ -636,7 +634,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         peer_session = models.PeerSession.objects.get(id=pk)
 
         if int(peer_session.port.id) == int(port_pk):
-            r = super().destroy(request, asn, port, pk)
+            super().destroy(request, asn, port, pk)
         return Response(self.serializer_class(peer_session).data)
 
     @action(detail=False, methods=["post"])
@@ -672,7 +670,7 @@ class UserPreferences(CachedObjectMixin, viewsets.ModelViewSet):
     def update(self, request, pk=None, *args, **kwargs):
         user = models.UserPreferences.get_or_create(request.user)
         serializer = self.serializer_class(user, data=request.data)
-        b = serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True)
         serializer.save(user_id=request.user.id, status="ok")
         return Response(serializer.data)
 
@@ -713,7 +711,7 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
-        b = serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True)
         serializer.save(net_id=net.id, status="ok")
         return Response(serializer.data)
 
@@ -793,7 +791,7 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
-        b = serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True)
         serializer.save(net_id=net.id, status="ok")
         return Response(serializer.data)
 

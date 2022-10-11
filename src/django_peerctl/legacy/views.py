@@ -1,29 +1,11 @@
 import os
 
 from django.conf import settings as dj_settings
-from django.contrib.auth import authenticate, login, logout
-from django.http import (
-    HttpResponse,
-    HttpResponseBadRequest,
-    HttpResponseForbidden,
-    HttpResponseNotFound,
-    HttpResponseRedirect,
-    JsonResponse,
-)
-from django.shortcuts import redirect, render
-from django.template import RequestContext, loader
-from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
-from django_grainy.util import Permissions
-
-# from django_peerctl import settings
-
-base_env = {}
-
-# -- util ----
-
+from django.http import HttpResponse
 
 from django_peerctl import const, models
-from django_peerctl.stats import site_stats
+
+base_env = {}
 
 
 def email_template_base(request, template_id):
