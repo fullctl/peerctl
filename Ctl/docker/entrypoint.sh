@@ -34,7 +34,7 @@ case "$@" in
     source venv/bin/activate
     cd main
     export DJANGO_SETTINGS_MODULE=peerctl.settings
-    pytest tests/ -vv --cov-report=term-missing --cov-report=xml --cov={$COVERAGE_REPOS}
+    pytest tests/ -vv --cov-report=term-missing --cov-report=xml --cov=django_peerctl --cov=peerctl
     ;;
   "test_mode" )
     source venv/bin/activate

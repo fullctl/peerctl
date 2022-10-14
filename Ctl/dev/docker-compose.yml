@@ -28,7 +28,7 @@ services:
       # this needs to be set in the shell, compose env vars aren't read yet
       - "${DJANGO_PORT:-8000}:8000"
     volumes:
-      - ../../src:/srv/service/main
+      - ../../src:/srv/service/main:Z
 
 volumes:
   postgres_data:
