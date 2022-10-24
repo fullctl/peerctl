@@ -1202,7 +1202,7 @@ class TemplateBase(models.Model):
             # templates/peerctl/<handle_ref_tag>
             loader = FileSystemLoader(self.template_loader_paths)
 
-        env = Environment(trim_blocks=True, loader=loader)
+        env = Environment(trim_blocks=True, loader=loader, autoescape=True)
 
         env.filters["make_variable_name"] = make_variable_name
 
