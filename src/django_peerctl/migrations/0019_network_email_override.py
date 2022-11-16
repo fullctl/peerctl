@@ -6,13 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('django_peerctl', '0018_peerport_interface_name'),
+        ("django_peerctl", "0018_peerport_interface_name"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='network',
-            name='email_override',
-            field=models.EmailField(blank=True, help_text='Will override the From: address for email communications from this network', max_length=254, null=True),
+            model_name="network",
+            name="email_override",
+            field=models.EmailField(
+                blank=True,
+                help_text="Will override the From: address for email communications from this network",
+                max_length=254,
+                null=True,
+            ),
         ),
     ]

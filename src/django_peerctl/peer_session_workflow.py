@@ -11,7 +11,6 @@ from django_peerctl.models import (
     EmailLog,
     PeerPort,
     PeerSession,
-    Port,
     PortInfo,
 )
 
