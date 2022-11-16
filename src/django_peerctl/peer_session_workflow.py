@@ -6,7 +6,14 @@ import fullctl.service_bridge.pdbctl as pdbctl
 import reversion
 
 from django_peerctl.email import send_mail_from_noreply
-from django_peerctl.models import AuditLog, EmailLog, PeerPort, PeerSession, Port, PortInfo
+from django_peerctl.models import (
+    AuditLog,
+    EmailLog,
+    PeerPort,
+    PeerSession,
+    Port,
+    PortInfo,
+)
 
 
 class PeerSessionWorkflow:
@@ -31,7 +38,9 @@ class PeerSessionWorkflow:
             member = self.member
         if not port:
             port = self.port
-        peer_port = PeerPort.get_or_create_from_members(port.port_info_object.ref, member)
+        peer_port = PeerPort.get_or_create_from_members(
+            port.port_info_object.ref, member
+        )
         if create:
             peer_session = PeerSession.get_or_create(
                 port, peer_port, create_status="pending"
@@ -95,7 +104,8 @@ class PeerSessionWorkflow:
                     if peer.id == self.member.id:
                         continue
                     other_peer_session = self.peer_session(
-                        member=peer, port=PortInfo.objects.get(ref_id=member.ref_id).port.object
+                        member=peer,
+                        port=PortInfo.objects.get(ref_id=member.ref_id).port.object,
                     )
                     if other_peer_session.status != "pending":
                         continue

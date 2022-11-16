@@ -535,8 +535,8 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
             net.save()
 
         workflow = PeerSessionEmailWorkflow(port, member)
-        workflow.cc=request.data.get("cc_reply_to")
-        workflow.test_mode=request.data.get("test_mode")
+        workflow.cc = request.data.get("cc_reply_to")
+        workflow.test_mode = request.data.get("test_mode")
 
         if email_template_id > 0:
             email_template = models.EmailTemplate.objects.get(id=email_template_id)

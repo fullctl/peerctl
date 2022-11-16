@@ -7,7 +7,9 @@ from django.conf import settings
 from django.core.mail.message import EmailMultiAlternatives
 
 
-def send_mail(subject, body, from_address, to_addresses, reply_to=None, cc=None, **kwargs):
+def send_mail(
+    subject, body, from_address, to_addresses, reply_to=None, cc=None, **kwargs
+):
 
     """
     send an email
@@ -33,7 +35,6 @@ def send_mail(subject, body, from_address, to_addresses, reply_to=None, cc=None,
         headers = {"Reply-To": reply_to}
     else:
         headers = {}
-
 
     if cc:
         headers.update(CC=", ".join(cc))
@@ -85,6 +86,7 @@ def send_mail_from_default(subject, body, to_addresses, reply_to=None, **kwargs)
         **kwargs,
     )
 
+
 # TODO move to fullctl
 def send_mail_from_noreply(subject, body, to_addresses, reply_to=None, **kwargs):
     return send_mail(
@@ -95,7 +97,6 @@ def send_mail_from_noreply(subject, body, to_addresses, reply_to=None, **kwargs)
         reply_to=reply_to,
         **kwargs,
     )
-
 
 
 def bulk_email_recipients(net, recipients=None, role="policy", **kwargs):

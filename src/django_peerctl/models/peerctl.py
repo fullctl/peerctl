@@ -255,7 +255,13 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
     as_set_override = models.CharField(null=True, blank=True, max_length=255)
 
-    email_override = models.EmailField(null=True, blank=True, help_text=_("Will override the From: address for email communications from this network"))
+    email_override = models.EmailField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "Will override the From: address for email communications from this network"
+        ),
+    )
 
     class HandleRef:
         tag = "net"
@@ -299,7 +305,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     @ref_fallback("")
     def peer_contact_email(self):
         """returns email address suitable for peering requests"""
-        return (self.email_override or get_peer_contact_email(self.asn))
+        return self.email_override or get_peer_contact_email(self.asn)
 
     @property
     def peer_contact_email_no_override(self):
