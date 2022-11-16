@@ -7,7 +7,7 @@ from django.conf import settings
 from django.core.mail.message import EmailMultiAlternatives
 
 
-def send_mail(subject, body, from_address, to_addresses, reply_to=None, **kwargs):
+def send_mail(subject, body, from_address, to_addresses, reply_to=None, cc=None, **kwargs):
 
     """
     send an email
@@ -20,6 +20,7 @@ def send_mail(subject, body, from_address, to_addresses, reply_to=None, **kwargs
 
     Keyword Arguments:
         - reply_to(str): set reply to address to this
+        - cc(list<str>): set cc addresses
         - debug_address(str): if specified and settings.DEBUG_EMAIL is True
             override recipients to this address
         - prefix (bool): if true prefix subject with release env
@@ -32,6 +33,10 @@ def send_mail(subject, body, from_address, to_addresses, reply_to=None, **kwargs
         headers = {"Reply-To": reply_to}
     else:
         headers = {}
+
+
+    if cc:
+        headers.update(CC=", ".join(cc))
 
     if debug:
         to_addresses_original = to_addresses
@@ -69,6 +74,7 @@ def send_mail(subject, body, from_address, to_addresses, reply_to=None, **kwargs
     }
 
 
+# TODO move to fullctl
 def send_mail_from_default(subject, body, to_addresses, reply_to=None, **kwargs):
     return send_mail(
         subject,
@@ -78,6 +84,18 @@ def send_mail_from_default(subject, body, to_addresses, reply_to=None, **kwargs)
         reply_to=reply_to,
         **kwargs,
     )
+
+# TODO move to fullctl
+def send_mail_from_noreply(subject, body, to_addresses, reply_to=None, **kwargs):
+    return send_mail(
+        subject,
+        body,
+        getattr(settings, "NO_REPLY_EMAIL"),
+        to_addresses,
+        reply_to=reply_to,
+        **kwargs,
+    )
+
 
 
 def bulk_email_recipients(net, recipients=None, role="policy", **kwargs):

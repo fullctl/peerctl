@@ -1209,6 +1209,13 @@ $peerctl.modals.RequestPeering = $tc.extend(
         return url.replace("port_id", fullctl.peerctl.port()).replace("peer_id", peer.id);
       };
       $(form).on("api-write:success", (ev, endpoint, data, response)=>{
+
+        if(form.element.find('#test-mode').is(":checked")) {
+          console.log(response);
+          alert("Test email has been sent");
+          return;
+        }
+
         this.hide();
         peer.peer_session_status = response.first().peer_session_status;
         peer.peer_session = response.first().peer_session;

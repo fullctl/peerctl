@@ -520,14 +520,23 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
     # XXX throttle scopes
 
     @load_object("net", models.Network, asn="asn")
-    @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def create(self, request, asn, net, port_pk, port, member_pk, *args, **kwargs):
+    def create(self, request, asn, net, port_pk, member_pk, *args, **kwargs):
+        port = models.Port().object(port_pk)
         member = get_member(member_pk)
-        workflow = PeerSessionEmailWorkflow(port, member)
-
+        reply_to = request.data.get("reply_to")
         email_template_id = int(request.data.get("email_template", 0))
         content = request.data.get("body")
+
+        # update reply-to if specified
+        if reply_to != net.email_override:
+            net.email_override = reply_to
+            net.full_clean()
+            net.save()
+
+        workflow = PeerSessionEmailWorkflow(port, member)
+        workflow.cc=request.data.get("cc_reply_to")
+        workflow.test_mode=request.data.get("test_mode")
 
         if email_template_id > 0:
             email_template = models.EmailTemplate.objects.get(id=email_template_id)
@@ -544,6 +553,9 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
             raise ValidationError({"non_field_errors": [f"{exc}"]})
         except UsageLimitError as exc:
             raise ValidationError({"non_field_errors": [["usage_limit", f"{exc}"]]})
+
+        if workflow.test_mode:
+            return Response({})
 
         serializer = Serializers.peer(
             [ps.peer_port.port_info.ref for ps in peer_session],

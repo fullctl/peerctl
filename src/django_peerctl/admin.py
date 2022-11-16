@@ -44,6 +44,7 @@ class NetworkAdmin(admin.ModelAdmin):
         "policy6",
         "created",
         "updated",
+        "email_override",
     )
     search_fields = ("asn", "name")
     readonly_fields = ("policy4", "policy6")

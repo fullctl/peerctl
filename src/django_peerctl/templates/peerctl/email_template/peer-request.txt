@@ -7,7 +7,6 @@ peering exchanges.
 For more information on {{ my.company_name }}, please visit:
 
 Website: {{ my.website }}
-Peering Information: https://peerwith.me/{{ my.asn }}
 
 We would like to peer at the following mutual location(s):
 
