@@ -305,7 +305,6 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     optional_port = True
     ref_tag = "sessions_summary"
 
-
     def _filter_peer(self, sessions, peer):
         if not peer:
             return sessions
@@ -323,7 +322,6 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
             elif str(session.peer_port.peer_net.peer.asn) == peer:
                 r.append(session)
         return r
-
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
@@ -378,7 +376,6 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
         serializer = self.serializer_class(instances, many=True)
 
         return Response(serializer.data)
-
 
     @action(
         detail=False,
