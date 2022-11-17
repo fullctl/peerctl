@@ -11,6 +11,10 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return new $peerctl.PeeringLists();
       });
 
+      this.tool("networks", () => {
+        return new $peerctl.Networks();
+      });
+
       this.tool("sessions_summary", () => {
         return new $peerctl.SessionsSummary();
       });
@@ -32,6 +36,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       this.$t.policies.activate();
       this.$t.email_templates.activate();
       this.$t.device_templates.activate();
+      this.$t.networks.activate();
 
       this.port_settings = $('#port-settings');
 
@@ -96,6 +101,93 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
   },
   $ctl.application.Application
 );
+
+$peerctl.Networks = $tc.extend(
+  "Networks",
+  {
+
+    Networks : function() {
+      this.Tool("networks");
+    },
+
+    init : function() {
+      this.widget("list", ($e) => {
+        return new twentyc.rest.List(
+          this.template("list", this.$e.body)
+        );
+      })
+
+      this.$w.list.format_request_url = (url) => {
+      	return url.replace(/asn/, this.input_network_search.val());
+      }
+
+      $(this.$w.list).on("api-read:success", (ev, endpoint, payload, response) => {
+
+        if(!response.first()) {
+          $('#network-search-result-name').text("");
+          $('#network-search-result-asn').text("");
+          this.peer = null;
+          return;
+        }
+
+        this.peer = response.first();
+
+        $('#network-search-result-name').text(response.first().name);
+        $('#network-search-result-asn').text(response.first().asn);
+      });
+
+      this.$w.list.formatters.row = (row, data) => {
+        row.data("ix-id", data.ix_id);
+      }
+
+      $(this.$w.list).on("load:after", () => {
+        this.$e.request_peering.show();
+      });
+
+      this.input_network_search = $ctl.peerctl.$c.toolbar.$e.network_search;
+
+      this.input_network_search.on("keydown", function(ev){
+        if(ev.which == 13) {
+          this.sync();
+        }
+      }.bind(this));
+
+      this.$w.list.element.find("[data-element=request_peering]").on("click", () => {
+        this.request_peering();
+      });
+
+
+    },
+
+    sync : function() {
+      this.$w.list.load();
+    },
+
+    request_peering : function() {
+
+      if(!this.peer) {
+        return alert("No network in results");
+      }
+
+      var selected = this.$w.list.element.find('input[type=checkbox]:checked').parent().parent()
+      var ix_ids = []
+
+      selected.each(function() {
+        console.log(this);
+        ix_ids.push($(this).data("ix-id"));
+      });
+
+      new $peerctl.modals.RequestPeeringFromAsn(
+        this.peer,
+        ix_ids,
+      );
+
+    }
+
+
+  },
+  $ctl.application.Tool
+)
 
 $peerctl.PeeringLists = $tc.extend(
   "PeeringLists",
@@ -450,7 +542,7 @@ $peerctl.SessionsSummary = $tc.extend(
 
       this.$w.list_peer_sessions.action = action;
       this.$w.list_peer_sessions.load();
-      this.$e.btn_api_view.attr("href", this.$w.list_peer_sessions.base_url+this.$w.list_peer_sessions.action);
+      this.$e.btn_api_view.attr("href", this.$w.list_peer_sessions.base_url+"/"+this.$w.list_peer_sessions.action);
     },
 
     setup_select_filter : function(selector) {
@@ -1142,8 +1234,9 @@ $peerctl.TemplatePreview = $tc.extend(
 $peerctl.EmailTemplatePreview = $tc.extend(
   "EmailTemplatePreview",
   {
-    EmailTemplatePreview: function(jq, type, peer) {
+    EmailTemplatePreview: function(jq, type, peer, ix_ids) {
       this.peer = peer;
+      this.ix_ids = ix_ids;
       this.TemplatePreview(jq, $peerctl.EmailTemplateSelect, type);
     },
 
@@ -1151,6 +1244,8 @@ $peerctl.EmailTemplatePreview = $tc.extend(
       return {
         type: this.type,
         peer: this.peer.id,
+        asn: this.peer.asn,
+        ix_ids: this.ix_ids,
         peer_session: this.peer.peer_session
       }
     }
@@ -1298,6 +1393,46 @@ $peerctl.modals.RequestPeering = $tc.extend(
         if(peer.peer_session_status == "ok") {
           fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(peer.id)
         }
+      });
+
+      this.Modal("save_lg", title, form.element);
+      form.wire_submit(this.$e.button_submit);
+
+      this.$e.button_submit.empty().append($('<span>').addClass("icon icon-mail fullctl")).append($('<span>').addClass("label").text('Send'));
+    }
+
+  },
+  $ctl.application.Modal
+);
+
+
+$peerctl.modals.RequestPeeringFromAsn = $tc.extend(
+  "RequestPeeringFromAsn",
+  {
+    RequestPeeringFromAsn: function(peer, ix_ids) {
+
+      var current_step = "peer-request";
+      var title = "Peering Request";
+
+      var form = new $peerctl.EmailTemplatePreview(
+        $ctl.template('form_request_peering_from_asn'),
+        current_step,
+        peer,
+        ix_ids
+      );
+      form.fill(peer);
+
+      form.element.find('.'+current_step).addClass("highlight");
+
+      $(form).on("api-write:success", (ev, endpoint, data, response)=>{
+
+        if(form.element.find('#test-mode').is(":checked")) {
+          console.log(response);
+          alert("Test email has been sent");
+          return;
+        }
+
+        this.hide();
       });
 
       this.Modal("save_lg", title, form.element);

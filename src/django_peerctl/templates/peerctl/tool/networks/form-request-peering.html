@@ -1,6 +1,6 @@
 {% load i18n %}
-<form data-template="form_request_peering"
-  data-api-base="{% url "peerctl_api:email_workflow-list" asn=selected_asn port_pk="port_id" member_pk="peer_id" %}"
+<form data-template="form_request_peering_from_asn"
+  data-api-base="{% url "peerctl_api:email_asn_request_peering-list" asn=selected_asn %}"
   data-api-method="post">
 
   <div class="row">
@@ -32,8 +32,6 @@
         </div>
         <ul class="list-group list-group-flush">
           <li class="list-group-item peer-request" data-field="step_request">{% trans "Request" %}</li>
-          <li class="list-group-item peer-config-complete" data-field="step_configured">{% trans "Configured" %}</li>
-          <li class="list-group-item peer-session-live" data-field="step_live">{% trans "Session Live" %}</li>
         </ul>
       </div>
     </div>
@@ -42,6 +40,9 @@
   {% include "peerctl/tool/email-template-preview.html" %}
 
   <div class="row mb-3">
+    <div data-api-submit="yes">
+      <input type="hidden" name="asn" data-field="asn">
+    </div>
     <div class="col" data-api-submit="yes">
       <input type="checkbox" class="form-check-input" id="test-mode" name="test_mode" />
       <label for="test-mode" class="form-check-label">{% trans "Send test email to Reply-To address" %}</label>

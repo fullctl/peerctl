@@ -6,7 +6,7 @@ import fullctl.service_bridge.pdbctl as pdbctl
 import reversion
 
 from django_peerctl.email import send_mail_from_noreply
-from django_peerctl.models import AuditLog, EmailLog, PeerPort, PeerSession, PortInfo
+from django_peerctl.models import Network, AuditLog, EmailLog, PeerPort, PeerSession, PortInfo
 
 
 class PeerSessionWorkflow:
@@ -282,3 +282,100 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         for peer_session in peer_session_list:
             AuditLog.log_peer_session_mod(peer_session, user)
         return peer_session_list
+
+
+class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
+
+    """
+    Peer Session setup workflow with email
+    notifications to the other party
+    """
+
+    cc = False
+    test_mode = False
+
+    def __init__(self, my_asn, their_asn, ix_ids):
+        self.net = Network.objects.get(asn=my_asn)
+        self.other_net = pdbctl.Network().first(asn=their_asn)
+        self.ix_ids = ix_ids or []
+        self.member = pdbctl.NetworkIXLan().first(asn=their_asn)
+
+    def contact_email(self, asn):
+        """
+        Returns the contact email address for peering requests associated
+        with the specified member (through net.poc_set_active)
+
+        Will return None if no suitable contact can be found.
+        """
+
+        if self.test_mode:
+            return self.reply_to_email
+
+        poc = pdbctl.NetworkContact().first(
+            asn=asn, require_email=True, role="Policy"
+        )
+
+        if not poc:
+            return None
+        return poc.email
+
+    @property
+    def reply_to_email(self):
+        return self.net.peer_contact_email
+
+    def render_email_body(self, email_template, required_type):
+        if email_template.type != required_type:
+            raise ValueError(
+                f"Email template wrong type, '{required_type}' type required"
+            )
+
+        email_template.context["peer"] = self.member.__dict__
+        if self.ix_ids:
+            email_template.context["selected_exchanges"] = list(pdbctl.InternetExchange().objects(ids=self.ix_ids))
+
+        return email_template.render()
+
+    def request(self, user, email_template, *args, **kwargs):
+        my_asn = self.net.asn
+        peer_asn = self.other_net.asn
+
+        subject = "Peering request to {} (AS{}) from {} (AS{})".format(
+            self.other_net.name,
+            peer_asn,
+            self.net.name,
+            my_asn,
+        )
+        body = self.render_email_body(email_template, "peer-request")
+
+        contact = self.contact_email(peer_asn)
+
+        send_mail_from_noreply(
+            subject,
+            body,
+            [contact],
+            reply_to=self.reply_to_email,
+            debug_address=user.email,
+            cc=self.cc_address,
+        )
+
+        if self.test_mode:
+            return
+
+        EmailLog.log_peer_session_workflow(
+            my_asn, peer_asn, user, contact, subject, body
+        )
+
+    def config_complete(self, user, email_template, *args, **kwargs):
+        return
+
+    def finalize(self, user, email_template, *args, **kwargs):
+        return
+
+    def progress(self, *args, **kwargs):
+        return self.request(*args, **kwargs)
+
+    @property
+    def next_step(self):
+        return "peer-request"
+
+

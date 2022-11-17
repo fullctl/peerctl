@@ -1,6 +1,7 @@
 import ipaddress
 
 import fullctl.service_bridge.sot as sot
+import fullctl.service_bridge.pdbctl as pdbctl
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
 from fullctl.django.rest.decorators import load_object
@@ -12,7 +13,7 @@ from rest_framework.response import Response
 import django_peerctl.models as models
 from django_peerctl.const import DEVICE_TEMPLATE_TYPES, DEVICE_TYPES
 from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
-from django_peerctl.peer_session_workflow import PeerSessionEmailWorkflow
+from django_peerctl.peer_session_workflow import PeerSessionEmailWorkflow, PeerRequestToAsnWorkflow
 from django_peerctl.rest.decorators import grainy_endpoint
 from django_peerctl.rest.route.peerctl import route
 from django_peerctl.rest.serializers.peerctl import Serializers, ValidationError
@@ -295,6 +296,37 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 def get_member(pk, join=None):
     ref_source, ref_id = pk.split(":")
     return models.PortInfo.ref_bridge(ref_source).object(ref_id, join=join)
+
+@route
+class NetworkSearch(viewsets.GenericViewSet):
+
+    serializer_class = Serializers.network_search
+    require_asn = False
+    lookup_url_kwarg = "asn"
+
+    def retrieve(self, request, asn, **kwargs):
+        network = pdbctl.Network().first(asn=asn)
+
+        poc = pdbctl.NetworkContact().first(asn=asn, require_email=True, role="policy")
+
+        if not network:
+            return Response([])
+
+        locations = {}
+
+        for netixlan in pdbctl.NetworkIXLan().objects(asn=asn, join="ix"):
+            locations[netixlan.ix.id] = {
+                "asn": network.asn,
+                "name": network.name,
+                "ix_id": netixlan.ix.id,
+                "ix_name": netixlan.ix.name,
+                "peer_session_contact": poc.email,
+            }
+
+        locations = sorted(list(locations.values()), key=lambda x: x["ix_name"])
+
+        serializer = self.serializer_class(locations, many=True)
+        return Response(serializer.data)
 
 
 @route
@@ -608,6 +640,54 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+@route
+class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
+
+    serializer_class = Serializers.peer_session
+    queryset = models.PeerSession.objects.all()
+    require_asn = True
+
+    ref_tag = "email_asn_request_peering"
+
+    # XXX throttle scopes
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def create(self, request, asn, net, *args, **kwargs):
+
+        reply_to = request.data.get("reply_to")
+        email_template_id = int(request.data.get("email_template", 0))
+        content = request.data.get("body")
+
+        # update reply-to if specified
+        if reply_to != net.email_override:
+            net.email_override = reply_to
+            net.full_clean()
+            net.save()
+
+        workflow = PeerRequestToAsnWorkflow(asn, request.data.get("asn"), request.data.get("ix_ids"))
+        workflow.cc = request.data.get("cc_reply_to")
+        workflow.test_mode = request.data.get("test_mode")
+
+        if email_template_id > 0:
+            email_template = models.EmailTemplate.objects.get(id=email_template_id)
+        else:
+            email_template = models.EmailTemplate(type=workflow.next_step, net=net)
+
+        # if content is passed with request, override it
+        if content:
+            email_template.content_override = content
+
+        try:
+            peer_session = workflow.progress(request.user, email_template)
+        except TemplateRenderError as exc:
+            raise ValidationError({"non_field_errors": [f"{exc}"]})
+        except UsageLimitError as exc:
+            raise ValidationError({"non_field_errors": [["usage_limit", f"{exc}"]]})
+
+        return Response({})
+
+
 # peer session view
 # create
 
@@ -803,8 +883,14 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
         if "peer" in request.data:
 
             email_template.context["peer"] = get_member(request.data["peer"])
+        elif "asn" in request.data:
+            email_template.context["peer"] = sot.InternetExchangeMember().first(asn=request.data["asn"])
         else:
             email_template.context["peer"] = sot.InternetExchangeMember().first(asn=asn)
+
+
+        if "ix_ids" in request.data:
+            email_template.context["selected_exchanges"] = list(pdbctl.InternetExchange().objects(ids=request.data["ix_ids"]))
 
         if "peer_session" in request.data:
             email_template.context["sessions"] = models.PeerSession.objects.filter(

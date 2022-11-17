@@ -8,10 +8,17 @@ For more information on {{ my.company_name }}, please visit:
 
 Website: {{ my.website }}
 
+{% if selected_exchanges %}
+We would like to peer at the following exchange(s):
+
+{% for exchange in selected_exchanges %}- {{ exchange.name }}
+{% endfor %}
+{% elif mutual_locations %}
 We would like to peer at the following mutual location(s):
 
 {% for exchange in mutual_locations %}- {{ exchange.name }}
 {% endfor %}
+{% endif %}
 
 Please notify us once your sessions have been configured and enabled by responding to this email.
 

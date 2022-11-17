@@ -1359,6 +1359,9 @@ class EmailTemplate(Base, TemplateBase):
         else:
             data.update({"sessions": []})
 
+        if "selected_exchanges" in ctx:
+            data.update(selected_exchanges=ctx["selected_exchanges"])
+
         return data
 
 

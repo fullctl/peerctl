@@ -755,3 +755,19 @@ class UserPreferences(ModelSerializer):
     class Meta:
         model = models.UserPreferences
         fields = ["id", "email_opt_features", "email_opt_offers"]
+
+
+@register
+class NetworkSearch(serializers.Serializer):
+
+    asn = serializers.IntegerField()
+    name = serializers.CharField()
+    ix_id = serializers.IntegerField()
+    ix_name = serializers.CharField()
+    peer_session_contact = serializers.CharField()
+
+    ref_tag = "network_search"
+    class Meta:
+        fields = ["asn", "name", "ix_id", "ix_name", "peer_session_contact"]
+
+
