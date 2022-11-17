@@ -6,7 +6,14 @@ import fullctl.service_bridge.pdbctl as pdbctl
 import reversion
 
 from django_peerctl.email import send_mail_from_noreply
-from django_peerctl.models import Network, AuditLog, EmailLog, PeerPort, PeerSession, PortInfo
+from django_peerctl.models import (
+    AuditLog,
+    EmailLog,
+    Network,
+    PeerPort,
+    PeerSession,
+    PortInfo,
+)
 
 
 class PeerSessionWorkflow:
@@ -311,9 +318,7 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
         if self.test_mode:
             return self.reply_to_email
 
-        poc = pdbctl.NetworkContact().first(
-            asn=asn, require_email=True, role="Policy"
-        )
+        poc = pdbctl.NetworkContact().first(asn=asn, require_email=True, role="Policy")
 
         if not poc:
             return None
@@ -331,7 +336,9 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
 
         email_template.context["peer"] = self.member.__dict__
         if self.ix_ids:
-            email_template.context["selected_exchanges"] = list(pdbctl.InternetExchange().objects(ids=self.ix_ids))
+            email_template.context["selected_exchanges"] = list(
+                pdbctl.InternetExchange().objects(ids=self.ix_ids)
+            )
 
         return email_template.render()
 
@@ -377,5 +384,3 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
     @property
     def next_step(self):
         return "peer-request"
-
-

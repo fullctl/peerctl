@@ -767,7 +767,6 @@ class NetworkSearch(serializers.Serializer):
     peer_session_contact = serializers.CharField()
 
     ref_tag = "network_search"
+
     class Meta:
         fields = ["asn", "name", "ix_id", "ix_name", "peer_session_contact"]
-
-
