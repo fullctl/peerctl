@@ -207,29 +207,28 @@
 
     <!-- MENU TEMPLATE -->
 
-    <div data-template="menu" class="marg-top-lg">
-      <div class="row">
+    <div data-template="menu">
 
-        <div class="col-auto mt-1 me-auto">
-          <div class="row">
-              <div class="toolbar-field col-auto">
-                {% trans "Policy IPv4" %}
-
-                <select
-                  class="port-policy-4"
-                  data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
-                  data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
-                  data-api-method="put"
-                  data-null-option="0;{% trans "Inherit Policy" %}"
-                  data-element="port_policy_4">
-                </select>
-              </div>
-
-            <div class="toolbar-field col-auto">
-              {% trans "Policy IPv6" %}
-
+      <div id="port-settings" style="display:none">
+          <div class="row mb-3">
+            <div class="col">
+              <label class="form-label">{% trans "Policy IPv4" %}</label>
               <select
-                class="port-policy-6"
+                class="form-control port-policy-4"
+                data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
+                data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
+                data-api-method="put"
+                data-null-option="0;{% trans "Inherit Policy" %}"
+                data-element="port_policy_4">
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col">
+              <label class="form-label">{% trans "Policy IPv6" %}</label>
+              <select
+                class="form-control port-policy-6"
                 data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
                 data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
                 data-api-method="put"
@@ -237,11 +236,13 @@
                 data-element="port_policy_6">
               </select>
             </div>
+          </div>
 
-            <div class="toolbar-field col-auto">
-              {% trans "Device" %}
-
+          <div class="row mb-3">
+            <div class="col">
+              <label class="form-label">{% trans "Device" %}</label>
               <select --data-api-load="yes"
+                class="form-control"
                 id="devices-list"
                 data-api-base="{% url "proxies-api-devicectl-list" org_tag=request.org.slug %}"
                 data-name-field="display_name"
@@ -249,11 +250,13 @@
                 data-element="devicectl_device">
               </select>
             </div>
+          </div>
 
-            <div class="toolbar-field col-auto">
-              {% trans "Port" %}
-
+          <div class="row mb-3">
+            <div class="col">
+              <label class="form-label">{% trans "Port" %}</label>
               <select
+                class="form-control"
                 data-name-field="display_name"
                 data-null-option="0;-"
                 data-api-base="{% url "peerctl_api:port-list-available-ports" asn=selected_asn pk=0 %}"
@@ -262,10 +265,29 @@
                 data-element="devicectl_port">
               </select>
             </div>
+          </div>
 
+          <div class="row">
+            <div class="col">
+              <div class="alert alert-info">
+                {% blocktrans %}
+                WARNING - changing the port will update the reference to the devicectl port
+                for this peerctl port, moving all peering sessions in the process.
+                {% endblocktrans %}
+              </div>
+            </div>
+          </div>
+      </div>
+
+
+
+
+      <div class="row">
+
+        <div class="col-auto mt-1 me-auto">
+          <div class="row">
           </div>
         </div>
-
         <div class="col-auto mt-1 right">
           <div class="row">
 

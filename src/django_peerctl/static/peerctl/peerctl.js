@@ -6,6 +6,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
     Peerctl: function() {
       this.Application("peerctl");
 
+			this.autoload_page();
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();
       });
@@ -32,12 +33,28 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       this.$t.email_templates.activate();
       this.$t.device_templates.activate();
 
+      this.port_settings = $('#port-settings');
+
+      $(this.$c.toolbar.$e.button_port_settings).on("click", () => {
+        new $peerctl.modals.PortSettings();
+      });
+
       $('a[data-select-asn]').click(function(){
         window.location.href = "?asn="+$(this).data("select-asn");
       });
+      $(this.$c.toolbar.$e.peer_filter).on("keydown", (ev)=>{
+        if(ev.which == 13) {
+          this.$t.sessions_summary.sync();
+        }
+      });
+
+      $('#tab-peering-lists').on('show.bs.tab', () => {
+        this.$t.peering_lists.sync_url(
+          this.port()
+        );
+      });
 
     },
-
 
     permission_ui : function() {
       let $e = this.$c.toolbar.$e;
@@ -57,14 +74,6 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       delete this.$t.peering_lists.ports[id];
       delete this.urlkeys[id];
       delete this.port_slugs[id];
-    },
-
-    sync_url: function(id) {
-			return;
-      var port = this.ports[id];
-      var url = new URL(window.location)
-      url.pathname = `/${fullctl.org.slug}`
-      window.history.pushState({}, '', url);
     },
 
     sync_except: function(tool) {
@@ -142,8 +151,8 @@ $peerctl.PeeringLists = $tc.extend(
       });
 
       $(this.$w.select_port.element).on("change", () => {
-        this.sync(); // TODO : update this.sync
-        //this.sync_url(this.$w.select_port.element.val())
+        this.sync();
+        this.sync_url(this.$w.select_port.element.val())
       });
 
       var peering_lists = this;
@@ -188,13 +197,27 @@ $peerctl.PeeringLists = $tc.extend(
       return this.ports[this.port()]
     },
 
+    sync_url: function(id) {
+      window.history.pushState({}, '', "#page-peering-lists;"+id);
+    },
+
     sync : function(port_id) {
       let port = this.port_object();
       this.$e.menu.find(".ixctl-controls").hide();
 
-
+      // no port supplied to sync, get from select eleement
       if (!port_id) {
         port_id = (port?port.id:null);
+      }
+
+      // no port selected, get from autoload arguments
+      if (!port_id) {
+        if($ctl.peerctl.autoload_args) {
+          if($ctl.peerctl.autoload_args[0] == "page-peering-lists") {
+            port_id = $ctl.peerctl.autoload_args[1] || null;
+             this.sync_url(port_id);
+          }
+        }
       }
 
       this.$w.select_port.load(port_id).then(() => {
@@ -323,6 +346,11 @@ $peerctl.SessionsSummary = $tc.extend(
         return this.setup_select_filter('#page-summary-sessions select[data-element="select_device"]');
       });
 
+      this.widget("select_facility", ($e) => {
+        return this.setup_select_filter('#page-summary-sessions select[data-element="select_facility"]');
+      });
+
+
       this.$w.select_port.format_request_url = (url) => {
         let device_filter = this.$w.select_device.element.val();
         if(device_filter != "all") {
@@ -331,8 +359,11 @@ $peerctl.SessionsSummary = $tc.extend(
         return url;
       };
 
+      this.$w.select_device.format_request_url = (url) => {
+        return url.replace(/fac_tag/g, this.$w.select_facility.element.val());
+      };
 
-      $(this.$w.select_device).one("load:after", () => {
+      $(this.$w.select_facility).one("load:after", () => {
         this.sync();
       });
 
@@ -365,10 +396,30 @@ $peerctl.SessionsSummary = $tc.extend(
           this.$w.select_port.element.empty();
         } else {
           this.$w.select_port.element.parents('.toolbar-control-group').show();
+          this.$w.select_port.element.empty();
           this.$w.select_port.load();
         }
         this.sync();
       });
+
+      $(this.$w.select_facility.element).on("change", () => {
+        if(this.$w.select_facility.element.val() == "all") {
+          this.$w.select_device.element.parents('.toolbar-control-group').hide();
+          this.$w.select_port.element.parents('.toolbar-control-group').hide();
+          this.$w.select_device.element.empty();
+          this.$w.select_port.element.empty();
+        } else {
+          this.$w.select_device.element.parents('.toolbar-control-group').show();
+          this.$w.select_port.element.parents('.toolbar-control-group').hide();
+          this.$w.select_device.element.empty();
+          this.$w.select_port.element.empty();
+          this.$w.select_device.load();
+        }
+        this.sync();
+      });
+
+      this.$w.select_facility.load()
+
 
 
     },
@@ -376,18 +427,27 @@ $peerctl.SessionsSummary = $tc.extend(
     sync: function() {
       let port_filter = this.$w.select_port.element.val();
       let device_filter = this.$w.select_device.element.val();
+      let facility_filter = this.$w.select_facility.element.val();
       this.$w.list_peer_sessions.action = "";
 
       var action = "";
 
-      if(!isNaN(parseInt(device_filter))) {
-        action = "device/" + device_filter;
-
-        if(!isNaN(parseInt(port_filter))) {
-          action += "/port/" + port_filter;
-        }
-
+      if(port_filter && !isNaN(port_filter)) {
+        action = "port/"+port_filter;
+      } else if(device_filter && !isNaN(device_filter)) {
+        action = "device/"+device_filter;
+      } else if(facility_filter != "all") {
+        action = "facility/"+facility_filter;
       }
+
+      this.$w.list_peer_sessions.payload = function() {
+        let peer_filter = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
+        if(peer_filter && peer_filter != "") {
+          return {peer:peer_filter}
+        }
+        return {};
+      }
+
       this.$w.list_peer_sessions.action = action;
       this.$w.list_peer_sessions.load();
       this.$e.btn_api_view.attr("href", this.$w.list_peer_sessions.base_url+this.$w.list_peer_sessions.action);
@@ -1126,6 +1186,22 @@ $peerctl.DeviceTemplatePreview = $tc.extend(
 
 
 $peerctl.modals = {};
+
+$peerctl.modals.PortSettings = $tc.extend(
+  "PortSettings",
+  {
+
+    PortSettings: function() {
+      var port_settings = $ctl.peerctl.port_settings;
+      var container = $('<div class="row">');
+      container.append(port_settings);
+      this.Modal("no_button", "Port settings", container);
+      port_settings.show();
+    }
+
+  },
+  $ctl.application.Modal
+);
 
 $peerctl.modals.MD5 = $tc.extend(
   "MD5",

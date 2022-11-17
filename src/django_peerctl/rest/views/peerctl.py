@@ -1,3 +1,5 @@
+import ipaddress
+
 import fullctl.service_bridge.sot as sot
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
@@ -303,10 +305,32 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     optional_port = True
     ref_tag = "sessions_summary"
 
+
+    def _filter_peer(self, sessions, peer):
+        if not peer:
+            return sessions
+        try:
+            peer = str(ipaddress.ip_interface(peer))
+        except ValueError:
+            pass
+
+        r = []
+        for session in sessions:
+            if session.peer_ip4 == peer or session.peer_ip6 == peer:
+                r.append(session)
+            elif session.peer_port.peer_net.peer.name.lower().find(peer.lower()) > -1:
+                r.append(session)
+            elif str(session.peer_port.peer_net.peer.asn) == peer:
+                r.append(session)
+        return r
+
+
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
         instances = net.peer_session_set.filter(status="ok")
+
+        instances = self._filter_peer(instances, request.GET.get("peer"))
 
         serializer = self.serializer_class(instances, many=True)
 
@@ -319,6 +343,8 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
         port = models.Port().object(id=port_pk)
         instances = port.peer_session_qs_prefetched.filter(status="ok")
 
+        instances = self._filter_peer(instances, request.GET.get("peer"))
+
         serializer = self.serializer_class(instances, many=True)
 
         return Response(serializer.data)
@@ -330,9 +356,29 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
         device = models.Device().object(id=device_pk)
         instances = device.peer_session_qs.filter(status="ok")
 
+        instances = self._filter_peer(instances, request.GET.get("peer"))
+
         serializer = self.serializer_class(instances, many=True)
 
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="facility/(?P<facility_tag>[^/]+)")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list_by_facility(self, request, asn, net, facility_tag, *args, **kwargs):
+        devices = models.Device().objects(facility_slug=facility_tag)
+
+        instances = []
+
+        for device in devices:
+            instances.extend(list(device.peer_session_qs.filter(status="ok")))
+
+        instances = self._filter_peer(instances, request.GET.get("peer"))
+
+        serializer = self.serializer_class(instances, many=True)
+
+        return Response(serializer.data)
+
 
     @action(
         detail=False,

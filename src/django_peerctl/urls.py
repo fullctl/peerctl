@@ -14,7 +14,10 @@ proxy.setup(
         "devicectl",
         settings.DEVICECTL_URL,
         [
-            ("device/{org_tag}/{pk}/", "device/<str:org_tag>/{pk}", "detail"),
+            ("facility/{org_tag}/{fac_tag}/devices/", "facility/<str:org_tag>/<str:fac_tag>/devices/", "facility-devices"),
+            ("facility/{org_tag}/{fac_tag}/", "facility/<str:org_tag>/<str:fac_tag>/", "facility-detail"),
+            ("facility/{org_tag}", "facility/<str:org_tag>/", "facility-list"),
+            ("device/{org_tag}/{pk}/", "device/<str:org_tag>/<int:pk>/", "detail"),
             ("device/{org_tag}", "device/<str:org_tag>/", "list"),
         ],
     ),
