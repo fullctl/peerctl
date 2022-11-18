@@ -29,3 +29,8 @@ button.peer_session-live {
 div.peers-row {
   border-left: 4px solid transparent;
 }
+
+.compact-list div.compact-row {
+  padding: 3px;
+  margin-left: 15px;
+}

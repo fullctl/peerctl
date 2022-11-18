@@ -305,31 +305,59 @@ def get_member(pk, join=None):
 class NetworkSearch(viewsets.GenericViewSet):
 
     serializer_class = Serializers.network_search
-    require_asn = False
-    lookup_url_kwarg = "asn"
+    require_asn = True
+    lookup_url_kwarg = "other_asn"
 
-    def retrieve(self, request, asn, **kwargs):
-        network = pdbctl.Network().first(asn=asn)
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def retrieve(self, request, asn, other_asn, **kwargs):
+        network = pdbctl.Network().first(asn=other_asn)
 
-        poc = pdbctl.NetworkContact().first(asn=asn, require_email=True, role="policy")
+        poc = pdbctl.NetworkContact().first(asn=other_asn, require_email=True, role="policy")
 
         if not network:
             return Response([])
 
-        locations = {}
+        result = {
+            "asn": network.asn,
+            "name": network.name,
+            "peer_session_contact": poc.email,
+            "mutual_locations": {},
+            "their_locations": {},
+            "our_locations": {}
+        }
 
-        for netixlan in pdbctl.NetworkIXLan().objects(asn=asn, join="ix"):
-            locations[netixlan.ix.id] = {
-                "asn": network.asn,
-                "name": network.name,
-                "ix_id": netixlan.ix.id,
-                "ix_name": netixlan.ix.name,
-                "peer_session_contact": poc.email,
+        locations_them = {}
+        locations_us = {}
+
+        for netixlan in pdbctl.NetworkIXLan().objects(asns=[asn, other_asn], join="ix"):
+            if netixlan.asn == int(asn):
+                locations_us[netixlan.ix.id] = netixlan.ix.name
+            elif netixlan.asn == int(other_asn):
+                locations_them[netixlan.ix.id] = netixlan.ix.name
+
+        for ix_id, ix_name in locations_them.items():
+            result["their_locations"][ix_id] = {
+                "ix_name": ix_name,
+                "ix_id": ix_id
             }
 
-        locations = sorted(list(locations.values()), key=lambda x: x["ix_name"])
+        for ix_id, ix_name in locations_us.items():
+            result["our_locations"][ix_id] = {
+                "ix_name": ix_name,
+                "ix_id": ix_id
+            }
 
-        serializer = self.serializer_class(locations, many=True)
+        for ix_id in result["their_locations"].keys() & result["our_locations"].keys():
+            result["mutual_locations"][ix_id] = result["their_locations"].get(ix_id, result["our_locations"].get(ix_id))
+            del result["their_locations"][ix_id]
+            del result["our_locations"][ix_id]
+
+
+        result["their_locations"] = sorted(list(result["their_locations"].values()), key=lambda x: x["ix_name"])
+        result["our_locations"] = sorted(list(result["our_locations"].values()), key=lambda x: x["ix_name"])
+        result["mutual_locations"] = sorted(list(result["mutual_locations"].values()), key=lambda x: x["ix_name"])
+
+        serializer = self.serializer_class(result)
         return Response(serializer.data)
 
 

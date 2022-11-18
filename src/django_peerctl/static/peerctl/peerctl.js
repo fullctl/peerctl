@@ -118,7 +118,7 @@ $peerctl.Networks = $tc.extend(
       })
 
       this.$w.list.format_request_url = (url) => {
-      	return url.replace(/asn/, this.input_network_search.val());
+        return url.replace(/other_asn/, this.input_network_search.val());
       }
 
       $(this.$w.list).on("api-read:success", (ev, endpoint, payload, response) => {
@@ -127,17 +127,57 @@ $peerctl.Networks = $tc.extend(
           $('#network-search-result-name').text("");
           $('#network-search-result-asn').text("");
           this.peer = null;
+          $('#searched-asn').text("");
           return;
         }
 
         this.peer = response.first();
 
-        $('#network-search-result-name').text(response.first().name);
-        $('#network-search-result-asn').text(response.first().asn);
+        $('#network-search-result-name').text(this.peer.name);
+        $('#network-search-result-asn').text(this.peer.asn);
+        $('#searched-asn').text(this.peer.asn);
       });
 
       this.$w.list.formatters.row = (row, data) => {
         row.data("ix-id", data.ix_id);
+
+        var cont_us = $('<div>');
+        var cont_them = $('<div>');
+        var cont_mutual = $('<div>');
+        var loc,i;
+
+
+        for(i=0; i< data.our_locations.length; i++) {
+          loc = data.our_locations[i];
+          $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
+            $('<input type="checkbox">')
+          ).append(
+            $('<span>').text(loc.ix_name)
+          ).appendTo(cont_us);
+        }
+
+        for(i=0; i< data.their_locations.length; i++) {
+          loc = data.their_locations[i];
+          $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
+            $('<input type="checkbox">')
+          ).append(
+            $('<span>').text(loc.ix_name)
+          ).appendTo(cont_them);
+        }
+
+        for(i=0; i< data.mutual_locations.length; i++) {
+          loc = data.mutual_locations[i];
+          $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
+            $('<input type="checkbox">')
+          ).append(
+            $('<span>').text(loc.ix_name)
+          ).appendTo(cont_mutual);
+        }
+
+        row.find('.our-locations').append(cont_us);
+        row.find('.their-locations').append(cont_them);
+        row.find('.mutual-locations').append(cont_mutual);
+
       }
 
       $(this.$w.list).on("load:after", () => {
@@ -169,7 +209,7 @@ $peerctl.Networks = $tc.extend(
         return alert("No network in results");
       }
 
-      var selected = this.$w.list.element.find('input[type=checkbox]:checked').parent().parent()
+      var selected = this.$w.list.element.find('input[type=checkbox]:checked').parent()
       var ix_ids = []
 
       selected.each(function() {
