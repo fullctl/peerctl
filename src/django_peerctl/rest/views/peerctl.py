@@ -312,7 +312,9 @@ class NetworkSearch(viewsets.GenericViewSet):
     def retrieve(self, request, asn, other_asn, **kwargs):
         network = pdbctl.Network().first(asn=other_asn)
 
-        poc = pdbctl.NetworkContact().first(asn=other_asn, require_email=True, role="policy")
+        poc = pdbctl.NetworkContact().first(
+            asn=other_asn, require_email=True, role="policy"
+        )
 
         if not network:
             return Response([])
@@ -323,7 +325,7 @@ class NetworkSearch(viewsets.GenericViewSet):
             "peer_session_contact": poc.email,
             "mutual_locations": {},
             "their_locations": {},
-            "our_locations": {}
+            "our_locations": {},
         }
 
         locations_them = {}
@@ -336,26 +338,27 @@ class NetworkSearch(viewsets.GenericViewSet):
                 locations_them[netixlan.ix.id] = netixlan.ix.name
 
         for ix_id, ix_name in locations_them.items():
-            result["their_locations"][ix_id] = {
-                "ix_name": ix_name,
-                "ix_id": ix_id
-            }
+            result["their_locations"][ix_id] = {"ix_name": ix_name, "ix_id": ix_id}
 
         for ix_id, ix_name in locations_us.items():
-            result["our_locations"][ix_id] = {
-                "ix_name": ix_name,
-                "ix_id": ix_id
-            }
+            result["our_locations"][ix_id] = {"ix_name": ix_name, "ix_id": ix_id}
 
         for ix_id in result["their_locations"].keys() & result["our_locations"].keys():
-            result["mutual_locations"][ix_id] = result["their_locations"].get(ix_id, result["our_locations"].get(ix_id))
+            result["mutual_locations"][ix_id] = result["their_locations"].get(
+                ix_id, result["our_locations"].get(ix_id)
+            )
             del result["their_locations"][ix_id]
             del result["our_locations"][ix_id]
 
-
-        result["their_locations"] = sorted(list(result["their_locations"].values()), key=lambda x: x["ix_name"])
-        result["our_locations"] = sorted(list(result["our_locations"].values()), key=lambda x: x["ix_name"])
-        result["mutual_locations"] = sorted(list(result["mutual_locations"].values()), key=lambda x: x["ix_name"])
+        result["their_locations"] = sorted(
+            list(result["their_locations"].values()), key=lambda x: x["ix_name"]
+        )
+        result["our_locations"] = sorted(
+            list(result["our_locations"].values()), key=lambda x: x["ix_name"]
+        )
+        result["mutual_locations"] = sorted(
+            list(result["mutual_locations"].values()), key=lambda x: x["ix_name"]
+        )
 
         serializer = self.serializer_class(result)
         return Response(serializer.data)

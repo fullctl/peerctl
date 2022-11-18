@@ -756,6 +756,7 @@ class UserPreferences(ModelSerializer):
         model = models.UserPreferences
         fields = ["id", "email_opt_features", "email_opt_offers"]
 
+
 @register
 class NetworkLocation(serializers.Serializer):
     ix_id = serializers.IntegerField()
@@ -765,6 +766,7 @@ class NetworkLocation(serializers.Serializer):
 
     class Meta:
         fields = ["ix_id", "ix_name"]
+
 
 @register
 class NetworkSearch(serializers.Serializer):
@@ -780,4 +782,11 @@ class NetworkSearch(serializers.Serializer):
     ref_tag = "network_search"
 
     class Meta:
-        fields = ["asn", "name", "peer_session_contact", "mutual_locations", "their_locations", "our_locations"]
+        fields = [
+            "asn",
+            "name",
+            "peer_session_contact",
+            "mutual_locations",
+            "their_locations",
+            "our_locations",
+        ]
