@@ -5,8 +5,15 @@ Classes describing the workflow of setting up a peering session
 import fullctl.service_bridge.pdbctl as pdbctl
 import reversion
 
-from django_peerctl.email import send_mail_from_default
-from django_peerctl.models import AuditLog, EmailLog, PeerPort, PeerSession, Port
+from django_peerctl.email import send_mail_from_noreply
+from django_peerctl.models import (
+    AuditLog,
+    EmailLog,
+    Network,
+    PeerPort,
+    PeerSession,
+    PortInfo,
+)
 
 
 class PeerSessionWorkflow:
@@ -31,7 +38,9 @@ class PeerSessionWorkflow:
             member = self.member
         if not port:
             port = self.port
-        peer_port = PeerPort.get_or_create_from_members(port.port_info.ref, member)
+        peer_port = PeerPort.get_or_create_from_members(
+            port.port_info_object.ref, member
+        )
         if create:
             peer_session = PeerSession.get_or_create(
                 port, peer_port, create_status="pending"
@@ -56,7 +65,7 @@ class PeerSessionWorkflow:
 
     @property
     def my_asn(self):
-        return self.port.port_info.ref.asn
+        return self.port.port_info_object.ref.asn
 
     @property
     def peer_asn(self):
@@ -65,7 +74,7 @@ class PeerSessionWorkflow:
     def progress(self, *args, **kwargs):
         peer_session = self.peer_session(create=False)
 
-        self.port.port_info.net.validate_limits()
+        self.port.port_info_object.net.validate_limits()
 
         if not peer_session or peer_session.status == "deleted":
             return self.request(*args, **kwargs)
@@ -87,7 +96,7 @@ class PeerSessionWorkflow:
 
         # automatically create peering sessions at
         # mutual locations
-        mutual = self.port.port_info.net.get_mutual_locations(self.peer_asn)
+        mutual = self.port.port_info_object.net.get_mutual_locations(self.peer_asn)
         all_requested = [peer_session]
         for ixlan_id, members in list(mutual.items()):
             for member in members[self.my_asn]:
@@ -95,7 +104,8 @@ class PeerSessionWorkflow:
                     if peer.id == self.member.id:
                         continue
                     other_peer_session = self.peer_session(
-                        member=peer, port=Port.get_or_create(member)
+                        member=peer,
+                        port=PortInfo.objects.get(ref_id=member.ref_id).port.object,
                     )
                     if other_peer_session.status != "pending":
                         continue
@@ -129,14 +139,19 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
     notifications to the other party
     """
 
-    @classmethod
-    def contact_email(cls, member):
+    cc = False
+    test_mode = False
+
+    def contact_email(self, member):
         """
         Returns the contact email address for peering requests associated
         with the specified member (through net.poc_set_active)
 
         Will return None if no suitable contact can be found.
         """
+
+        if self.test_mode:
+            return self.reply_to_email
 
         poc = pdbctl.NetworkContact().first(
             asn=member.asn, require_email=True, role="Policy"
@@ -148,7 +163,13 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
 
     @property
     def reply_to_email(self):
-        return self.port.port_info.net.peer_contact_email
+        return self.port.port_info_object.net.peer_contact_email
+
+    @property
+    def cc_address(self):
+        if not self.cc:
+            return None
+        return [self.reply_to_email]
 
     def render_email_body(self, email_template, required_type):
         if email_template.type != required_type:
@@ -161,26 +182,30 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         return email_template.render()
 
     def request(self, user, email_template, *args, **kwargs):
-        my_asn = self.port.port_info.ref.asn
+        my_asn = self.port.port_info_object.ref.asn
         peer_asn = self.member.asn
 
         subject = "Peering request to {} (AS{}) from {} (AS{})".format(
             self.member.name,
             self.member.asn,
-            self.port.port_info.ref.name,
-            self.port.port_info.ref.asn,
+            self.port.port_info_object.ref.name,
+            self.port.port_info_object.ref.asn,
         )
         body = self.render_email_body(email_template, "peer-request")
 
         contact = self.contact_email(self.member)
 
-        send_mail_from_default(
+        send_mail_from_noreply(
             subject,
             body,
             [contact],
             reply_to=self.reply_to_email,
             debug_address=user.email,
+            cc=self.cc_address,
         )
+
+        if self.test_mode:
+            return
 
         EmailLog.log_peer_session_workflow(
             my_asn, peer_asn, user, contact, subject, body
@@ -194,7 +219,7 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         return peer_session_list
 
     def config_complete(self, user, email_template, *args, **kwargs):
-        my_asn = self.port.port_info.ref.asn
+        my_asn = self.port.port_info_object.ref.asn
         peer_asn = self.member.asn
 
         email_template.context["sessions"] = [self.peer_session()]
@@ -202,20 +227,24 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         subject = "Peering between {} (AS{}) and {} (AS{}) has been configured".format(
             self.member.name,
             self.member.asn,
-            self.port.port_info.ref.name,
-            self.port.port_info.ref.asn,
+            self.port.port_info_object.ref.name,
+            self.port.port_info_object.ref.asn,
         )
         body = self.render_email_body(email_template, "peer-config-complete")
 
         contact = self.contact_email(self.member)
 
-        send_mail_from_default(
+        send_mail_from_noreply(
             subject,
             body,
             [contact],
             reply_to=self.reply_to_email,
             debug_address=user.email,
+            cc=self.cc_address,
         )
+
+        if self.test_mode:
+            return
 
         EmailLog.log_peer_session_workflow(
             my_asn, peer_asn, user, contact, subject, body
@@ -227,7 +256,7 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         return peer_session_list
 
     def finalize(self, user, email_template, *args, **kwargs):
-        my_asn = self.port.port_info.ref.asn
+        my_asn = self.port.port_info_object.ref.asn
         peer_asn = self.member.asn
 
         email_template.context["sessions"] = [self.peer_session()]
@@ -235,18 +264,22 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         subject = "Peering between {} (AS{}) and {} (AS{}) has been enabled".format(
             self.member.name,
             self.member.asn,
-            self.port.port_info.ref.name,
-            self.port.port_info.ref.asn,
+            self.port.port_info_object.ref.name,
+            self.port.port_info_object.ref.asn,
         )
         body = self.render_email_body(email_template, "peer-session-live")
         contact = self.contact_email(self.member)
-        send_mail_from_default(
+        send_mail_from_noreply(
             subject,
             body,
             [contact],
             reply_to=self.reply_to_email,
             debug_address=user.email,
+            cc=self.cc_address,
         )
+
+        if self.test_mode:
+            return
 
         EmailLog.log_peer_session_workflow(
             my_asn, peer_asn, user, contact, subject, body
@@ -256,3 +289,98 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         for peer_session in peer_session_list:
             AuditLog.log_peer_session_mod(peer_session, user)
         return peer_session_list
+
+
+class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
+
+    """
+    Peer Session setup workflow with email
+    notifications to the other party
+    """
+
+    cc = False
+    test_mode = False
+
+    def __init__(self, my_asn, their_asn, ix_ids):
+        self.net = Network.objects.get(asn=my_asn)
+        self.other_net = pdbctl.Network().first(asn=their_asn)
+        self.ix_ids = ix_ids or []
+        self.member = pdbctl.NetworkIXLan().first(asn=their_asn)
+
+    def contact_email(self, asn):
+        """
+        Returns the contact email address for peering requests associated
+        with the specified member (through net.poc_set_active)
+
+        Will return None if no suitable contact can be found.
+        """
+
+        if self.test_mode:
+            return self.reply_to_email
+
+        poc = pdbctl.NetworkContact().first(asn=asn, require_email=True, role="Policy")
+
+        if not poc:
+            return None
+        return poc.email
+
+    @property
+    def reply_to_email(self):
+        return self.net.peer_contact_email
+
+    def render_email_body(self, email_template, required_type):
+        if email_template.type != required_type:
+            raise ValueError(
+                f"Email template wrong type, '{required_type}' type required"
+            )
+
+        email_template.context["peer"] = self.member.__dict__
+        if self.ix_ids:
+            email_template.context["selected_exchanges"] = list(
+                pdbctl.InternetExchange().objects(ids=self.ix_ids)
+            )
+
+        return email_template.render()
+
+    def request(self, user, email_template, *args, **kwargs):
+        my_asn = self.net.asn
+        peer_asn = self.other_net.asn
+
+        subject = "Peering request to {} (AS{}) from {} (AS{})".format(
+            self.other_net.name,
+            peer_asn,
+            self.net.name,
+            my_asn,
+        )
+        body = self.render_email_body(email_template, "peer-request")
+
+        contact = self.contact_email(peer_asn)
+
+        send_mail_from_noreply(
+            subject,
+            body,
+            [contact],
+            reply_to=self.reply_to_email,
+            debug_address=user.email,
+            cc=self.cc_address,
+        )
+
+        if self.test_mode:
+            return
+
+        EmailLog.log_peer_session_workflow(
+            my_asn, peer_asn, user, contact, subject, body
+        )
+
+    def config_complete(self, user, email_template, *args, **kwargs):
+        return
+
+    def finalize(self, user, email_template, *args, **kwargs):
+        return
+
+    def progress(self, *args, **kwargs):
+        return self.request(*args, **kwargs)
+
+    @property
+    def next_step(self):
+        return "peer-request"

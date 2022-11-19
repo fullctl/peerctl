@@ -255,7 +255,13 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
     as_set_override = models.CharField(null=True, blank=True, max_length=255)
 
-    # default_policy
+    email_override = models.EmailField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "Will override the From: address for email communications from this network"
+        ),
+    )
 
     class HandleRef:
         tag = "net"
@@ -299,6 +305,11 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     @ref_fallback("")
     def peer_contact_email(self):
         """returns email address suitable for peering requests"""
+        return self.email_override or get_peer_contact_email(self.asn)
+
+    @property
+    def peer_contact_email_no_override(self):
+        """returns email address suitable for peering requests (ignores email_override)"""
         return get_peer_contact_email(self.asn)
 
     @property
@@ -1336,10 +1347,10 @@ class EmailTemplate(Base, TemplateBase):
                         {
                             "peer_ip4": session.peer_port.port_info.ipaddr4,
                             "peer_ip6": session.peer_port.port_info.ipaddr6,
-                            "ip4": session.port.port_info.ipaddr4,
-                            "ip6": session.port.port_info.ipaddr6,
-                            "prefix_length4": session.port.port_info.info_prefixes4,
-                            "prefix_length6": session.port.port_info.info_prefixes6,
+                            "ip4": session.port.object.port_info_object.ipaddr4,
+                            "ip6": session.port.object.port_info_object.ipaddr6,
+                            "prefix_length4": session.port.object.port_info_object.info_prefixes4,
+                            "prefix_length6": session.port.object.port_info_object.info_prefixes6,
                         }
                         for session in ctx.get("sessions")
                     ]
@@ -1347,6 +1358,9 @@ class EmailTemplate(Base, TemplateBase):
             )
         else:
             data.update({"sessions": []})
+
+        if "selected_exchanges" in ctx:
+            data.update(selected_exchanges=ctx["selected_exchanges"])
 
         return data
 

@@ -755,3 +755,38 @@ class UserPreferences(ModelSerializer):
     class Meta:
         model = models.UserPreferences
         fields = ["id", "email_opt_features", "email_opt_offers"]
+
+
+@register
+class NetworkLocation(serializers.Serializer):
+    ix_id = serializers.IntegerField()
+    ix_name = serializers.CharField()
+
+    ref_tag = "network_location"
+
+    class Meta:
+        fields = ["ix_id", "ix_name"]
+
+
+@register
+class NetworkSearch(serializers.Serializer):
+
+    asn = serializers.IntegerField()
+    name = serializers.CharField()
+    peer_session_contact = serializers.CharField()
+
+    mutual_locations = NetworkLocation(many=True)
+    their_locations = NetworkLocation(many=True)
+    our_locations = NetworkLocation(many=True)
+
+    ref_tag = "network_search"
+
+    class Meta:
+        fields = [
+            "asn",
+            "name",
+            "peer_session_contact",
+            "mutual_locations",
+            "their_locations",
+            "our_locations",
+        ]

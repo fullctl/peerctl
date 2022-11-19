@@ -69,7 +69,7 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
                 network, ports[f"pdb:{member.ref_id}"]["id"], member
             )
 
-    for port in devicectl.Port().objects():
+    for port in devicectl.Port().objects(org=org.permission_id):
         if port.is_management:
             continue
         if not port.ip_address_4 and not port.ip_address_6:

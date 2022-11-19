@@ -41,7 +41,7 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
       id="tab-summary-sessions"
       data-bs-toggle="tab"
       role="tab"
-      aria-controls="summary-sessions"
+      aria-controls="page-summary-sessions"
       aria-selected="false"
       data-second-tab="#summary-sessions-body"
       href="#page-summary-sessions">{% trans "Summary" %}</a>
@@ -50,16 +50,25 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
       id="tab-peering-lists"
       data-bs-toggle="tab"
       role="tab"
-      aria-controls="peering-lists"
+      aria-controls="page-peering-lists"
       aria-selected="true"
       data-second-tab="#peering-lists-body"
       href="#page-peering-lists">{% trans "Peering" %}</a>
 
     <a class="nav-link"
+      id="tab-networks"
+      data-bs-toggle="tab"
+      role="tab"
+      aria-controls="page-networks"
+      aria-selected="true"
+      data-second-tab="#networks-body"
+      href="#page-networks">{% trans "Networks" %}</a>
+
+    <a class="nav-link"
       id="tab-policies"
       data-bs-toggle="tab"
       role="tab"
-      aria-controls="policies"
+      aria-controls="page-policies"
       aria-selected="true"
       data-second-tab="#policies-body"
       href="#page-policies">{% trans "Policies" %}</a>
@@ -67,7 +76,7 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
     <a class="nav-link"
       data-bs-toggle="tab"
       role="tab"
-      aria-controls="templates"
+      aria-controls="page-templates"
       aria-selected="false"
       data-second-tab="#templates-body"
       href="#page-templates">{% trans "Templates" %}</a>
@@ -123,6 +132,9 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
   <div class="tab-pane" id="page-policies" role="tabpanel" aria-labelledby="tab-policies">
   </div>
 
+  <div class="tab-pane" id="page-networks" role="tabpanel" aria-labelledby="tab-networks">
+    {% include "peerctl/tool/networks/search-form.html" %}
+  </div>
 
   <div class="tab-pane" id="page-templates" role="tabpanel" aria-labelledby="tab-templates">
     {% include "peerctl/tool/peering-templates/nav.html" %}
@@ -143,6 +155,10 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 
   <div class="tab-pane" id="peering-lists-body" role="tabpanel" aria-labelledby="tab-peering-lists">
     {% include "peerctl/tool/peering-lists/main.html" %}
+  </div>
+
+  <div class="tab-pane" id="networks-body" role="tabpanel" aria-labelledby="tab-networks">
+    {% include "peerctl/tool/networks/main.html" %}
   </div>
 
   <div class="tab-pane" id="policies-body" role="tabpanel" aria-labelledby="tab-policies">
