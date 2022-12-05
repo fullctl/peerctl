@@ -929,7 +929,7 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
 
         if "ix_ids" in request.data:
             email_template.context["selected_exchanges"] = list(
-                pdbctl.InternetExchange().objects(ids=request.data["ix_ids"])
+               models. MutualLocation(ix, net, None) for ix in pdbctl.InternetExchange().objects(ids=request.data["ix_ids"])
             )
 
         if "peer_session" in request.data:
