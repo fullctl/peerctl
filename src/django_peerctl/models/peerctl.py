@@ -598,7 +598,6 @@ class InternetExchange(sot.ReferenceMixin, Base):
 
 
 class MutualLocation:
-
     def __init__(self, ix, net, peer_net):
 
         self.ix = ix
@@ -633,6 +632,7 @@ class MutualLocation:
             if port_info.ref_ix_id and port_info.ref_ix_id == self.ix.ref_id:
                 self._portinfo = port_info
                 return port_info
+
 
 class PortPolicy(PolicyHolderMixin, Base):
 
@@ -1364,7 +1364,11 @@ class EmailTemplate(Base, TemplateBase):
             for ix_id in self.net.get_mutual_locations(peer.asn):
                 ix_source, ix_id = ix_id.split(":")
                 mutual_locations.append(
-                    MutualLocation(InternetExchange.get_or_create(int(ix_id), ix_source), self.net, peer)
+                    MutualLocation(
+                        InternetExchange.get_or_create(int(ix_id), ix_source),
+                        self.net,
+                        peer,
+                    )
                 )
             data.update(
                 {

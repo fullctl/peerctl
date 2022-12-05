@@ -716,7 +716,7 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
             email_template.content_override = content
 
         try:
-            peer_session = workflow.progress(request.user, email_template)
+            workflow.progress(request.user, email_template)
         except TemplateRenderError as exc:
             raise ValidationError({"non_field_errors": [f"{exc}"]})
         except UsageLimitError as exc:
@@ -929,7 +929,8 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
 
         if "ix_ids" in request.data:
             email_template.context["selected_exchanges"] = list(
-               models. MutualLocation(ix, net, None) for ix in pdbctl.InternetExchange().objects(ids=request.data["ix_ids"])
+                models.MutualLocation(ix, net, None)
+                for ix in pdbctl.InternetExchange().objects(ids=request.data["ix_ids"])
             )
 
         if "peer_session" in request.data:
