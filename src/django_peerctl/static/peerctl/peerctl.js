@@ -500,7 +500,11 @@ $peerctl.SessionsSummary = $tc.extend(
       });
 
       this.$e.btn_add_peer_session.click(() => {
-        new $ctl.application.Peerctl.ModalFloatingSession();
+        new $ctl.application.Peerctl.ModalFloatingSession(
+          this.$w.select_facility.element.val(),
+          this.$w.select_device.element.val(),
+          this.$w.select_port.element.val(),
+        );
       });
 
       this.widget("list_peer_sessions", ($e) => {
@@ -609,18 +613,43 @@ $peerctl.SessionsSummary = $tc.extend(
 $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
   "ModalFloatingSession",
   {
-    ModalFloatingSession : function() {
+    ModalFloatingSession : function(facility, device, port) {
       var modal = this;
       var title = "Add peer session"
       var form = this.form = new twentyc.rest.Form(
         $ctl.template("form_floating_session")
       );
 
+      this.preselect_port = port;
+
+      this.select_facility = new twentyc.rest.Select(this.form.element.find('#facility'));
+      this.select_device = new twentyc.rest.Select(this.form.element.find('#device'));
       this.select_port = new twentyc.rest.Select(this.form.element.find('#port'));
       this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
       this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
 
-      this.select_port.load();
+      this.select_device.format_request_url = (url) => {
+        return url.replace("fac_tag", this.select_facility.element.val());
+      };
+
+      this.select_port.format_request_url = (url) => {
+        return url + "?device="+(this.select_device.element.val() || 0);
+      };
+
+      $(this.select_facility).on("load:after", () => { this.select_device.load(device && device != "all" ? device : null); });
+      this.select_facility.element.on("change", () => { this.select_device.load(); });
+
+      $(this.select_device).on("load:after", () => {
+        if(this.preselect_port && this.preselect_port != "all") {
+          this.select_port.load(this.preselect_port);
+          this.preselect_port = null;
+        } else {
+          this.select_port.load();
+        }
+      });
+      this.select_device.element.on("change", () => { this.select_port.load(); });
+
+      this.select_facility.load(facility && facility != "all" ? facility : null);
       this.select_policy_4.load();
       this.select_policy_6.load();
 
