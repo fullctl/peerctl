@@ -374,7 +374,6 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
         if self.test_mode:
             return
 
-
     def config_complete(self, user, email_template, *args, **kwargs):
         return
 
