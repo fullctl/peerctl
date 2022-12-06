@@ -35,23 +35,47 @@
           <div data-field="peer_ip6"></div>
         </td>
         <td class="secondary">
-            <select
-              data-api-base="/"
-              data-api-method="put"
-              data-api-load="yes"
-              data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
-              class="peer_session-policy-4"
-              data-proxy-data=".port-policy-4"></select>
+
+          <div class="dropdown">
+            <button type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="button dropdown-toggle" data-element="edit_policy4">
+              <span class="fullctl label" data-field="policy4_name"></span>
+            </button>
+            <div class="dropdown-menu">
+              <a class="dropdown-item">
+              <select
+                style="overflow:hidden; background: transparent;"
+                data-api-base="/"
+                data-api-method="put"
+                data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
+                class="peer_session-policy-4"
+                data-proxy-data=".port-policy-4">
+              </select>
+              </a>
+            </div>
+          </div>
+
         </td>
         <td class="secondary">
 
-            <select
-              data-api-base="/"
-              data-api-method="put"
-              data-api-load="yes"
-              data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
-              class="peer_session-policy-6"
-              data-proxy-data=".port-policy-6"></select>
+          <div class="dropdown">
+            <button type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="button dropdown-toggle" data-element="edit_policy6">
+              <span class="fullctl label" data-field="policy6_name"></span>
+            </button>
+            <div class="dropdown-menu">
+              <a class="dropdown-item">
+              <select
+                style="overflow:hidden; background: transparent;"
+                data-api-base="/"
+                data-api-method="put"
+                data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
+                class="peer_session-policy-6"
+                data-proxy-data=".port-policy-6">
+              </select>
+              </a>
+            </div>
+          </div>
+
+
 
         </td>
         <td data-field="port_display_name"></td>

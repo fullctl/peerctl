@@ -59,6 +59,12 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         );
       });
 
+      $('#tab-summary-sessions').on('show.bs.tab', () => {
+        this.$t.sessions_summary.sync_url(true);
+      });
+
+
+
     },
 
     permission_ui : function() {
@@ -346,7 +352,9 @@ $peerctl.PeeringLists = $tc.extend(
         if($ctl.peerctl.autoload_args) {
           if($ctl.peerctl.autoload_args[0] == "page-peering-lists") {
             port_id = $ctl.peerctl.autoload_args[1] || null;
-             this.sync_url(port_id);
+            if(port_id == "null")
+              port_id = null;
+            this.sync_url(port_id);
           }
         }
       }
@@ -510,13 +518,40 @@ $peerctl.SessionsSummary = $tc.extend(
         var w = new twentyc.rest.List($('#summary-sessions-body table'));
 
         w.formatters.row = (row, data) => {
-          new $peerctl.PeerSessionPolicySelect(
-            row.find('.peer_session-policy-4'), 4, data.id
-          ).element.val(data.policy4_id);
+          var policy4_select = new $peerctl.PeerSessionPolicySelect(
+            row.find('.peer_session-policy-4'), 4, data.port_id, data.id
+          );
+          var policy6_select = new $peerctl.PeerSessionPolicySelect(
+            row.find('.peer_session-policy-6'), 6, data.port_id, data.id
+          );
 
-          new $peerctl.PeerSessionPolicySelect(
-            row.find('.peer_session-policy-6'), 6, data.id
-          ).element.val(data.policy6_id);
+          var policy4_edit = row.find('[data-element="edit_policy4"]');
+          var policy6_edit = row.find('[data-element="edit_policy6"]');
+
+          policy4_edit.attr("id", "policy4-edit-"+data.id);
+          policy4_edit.dropdown();
+          $(policy4_select).on("api-write:success", ()=>{policy4_edit.dropdown("hide"); w.load(); });
+
+          policy4_edit.on("show.bs.dropdown", () => {
+            policy4_select.load().then(() => {
+              policy4_select.element.prop("size", policy4_select.element.find("option").length);
+              policy4_select.element.val(data.policy4_inherited ? 0 : data.policy4_id);
+            });
+          });
+
+          policy6_edit.attr("id", "policy6-edit-"+data.id);
+          policy6_edit.dropdown();
+          $(policy6_select).on("api-write:success", ()=>{policy6_edit.dropdown("hide"); w.load(); });
+
+          policy6_edit.on("show.bs.dropdown", () => {
+            policy6_select.load().then(() => {
+              policy6_select.element.prop("size", policy6_select.element.find("option").length);
+              policy6_select.element.val(data.policy6_inherited ? 0 : data.policy6_id);
+            });
+          });
+
+
+
         }
         return w;
       });
@@ -525,6 +560,7 @@ $peerctl.SessionsSummary = $tc.extend(
         this.sync();
       });
 
+      var autoload = ($ctl.peerctl.autoload_args[0] == "page-summary-sessions");
       $(this.$w.select_device.element).on("change", () => {
         if(this.$w.select_device.element.val() == "all") {
           this.$w.select_port.element.parents('.toolbar-control-group').hide();
@@ -533,7 +569,7 @@ $peerctl.SessionsSummary = $tc.extend(
         } else {
           this.$w.select_port.element.parents('.toolbar-control-group').show();
           this.$w.select_port.element.empty();
-          this.$w.select_port.load($ctl.peerctl.autoload_arg(3)).then(() => { this.sync(); });
+          this.$w.select_port.load(autoload ? $ctl.peerctl.autoload_arg(3) : null).then(() => { this.sync(); });
         }
       });
 
@@ -549,19 +585,25 @@ $peerctl.SessionsSummary = $tc.extend(
           this.$w.select_port.element.parents('.toolbar-control-group').hide();
           this.$w.select_device.element.empty();
           this.$w.select_port.element.empty();
-          this.$w.select_device.load($ctl.peerctl.autoload_arg(2)).then(() => { this.sync(); });
+          this.$w.select_device.load(autoload ? $ctl.peerctl.autoload_arg(2) : null).then(() => { this.sync(); });
         }
       });
 
-      $ctl.peerctl.$c.toolbar.$e.peer_filter.val($ctl.peerctl.autoload_arg(4));
+      $ctl.peerctl.$c.toolbar.$e.peer_filter.val(autoload ? $ctl.peerctl.autoload_arg(4) : null);
 
-      this.$w.select_facility.load($ctl.peerctl.autoload_arg(1));
+      this.$w.select_facility.load(autoload ? $ctl.peerctl.autoload_arg(1) : null);
 
     },
 
-    sync_url: function(facility, device, port, q) {
+    sync_url: function(force) {
+      if(this.$w.select_facility.element.is(":visible") || force) {
+        let port = this.$w.select_port.element.val();
+        let device = this.$w.select_device.element.val();
+        let facility = this.$w.select_facility.element.val();
+        let q = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
 
-      window.history.pushState({}, '', "#page-summary-sessions;"+(facility||'')+";"+(device||'')+";"+(port||"")+";"+(q||""));
+        window.history.pushState({}, '', "#page-summary-sessions;"+(facility||'')+";"+(device||'')+";"+(port||"")+";"+(q||""));
+      }
     },
 
     sync: function() {
@@ -592,12 +634,7 @@ $peerctl.SessionsSummary = $tc.extend(
       this.$w.list_peer_sessions.load();
       this.$e.btn_api_view.attr("href", this.$w.list_peer_sessions.base_url+"/"+this.$w.list_peer_sessions.action);
 
-      this.sync_url(
-        facility_filter,
-        device_filter,
-        port_filter,
-        peer_filter
-      );
+      this.sync_url();
     },
 
     setup_select_filter : function(selector) {
@@ -912,9 +949,10 @@ $peerctl.PortPolicySelect = $tc.extend(
 $peerctl.PeerSessionPolicySelect = $tc.extend(
   "PeerSessionPolicySelect",
   {
-    PeerSessionPolicySelect : function(jq, ip_version, peer_session_id) {
+    PeerSessionPolicySelect : function(jq, ip_version, port_id, peer_session_id) {
       this.PortPolicySelect(jq, ip_version);
       this.peer_session_id = peer_session_id;
+      this.port_id = port_id;
     },
     payload : function() {
       return {
@@ -925,7 +963,7 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
     format_request_url: function(url,method) {
       if(method == "put") {
         url = this.element.data("api-action");
-        return url.replace("port_id", fullctl.peerctl.port()).replace("peer_session_id", this.peer_session_id);
+        return url.replace("port_id", this.port_id).replace("peer_session_id", this.peer_session_id);
       }
       return url;
     }
@@ -1113,11 +1151,11 @@ $peerctl.PeerSessionList = $tc.extend(
     },
     fill_policy_selects : function(port_row, data) {
       new $peerctl.PeerSessionPolicySelect(
-        port_row.find('.peer_session-policy-4'), 4, data.peer_session
+        port_row.find('.peer_session-policy-4'), 4, $ctl.peerctl.port(), data.peer_session
       ).element.val(data.policy4_id);
 
       new $peerctl.PeerSessionPolicySelect(
-        port_row.find('.peer_session-policy-6'), 6, data.peer_session
+        port_row.find('.peer_session-policy-6'), 6, $ctl.peerctl.port(), data.peer_session
       ).element.val(data.policy6_id);
 
     }
