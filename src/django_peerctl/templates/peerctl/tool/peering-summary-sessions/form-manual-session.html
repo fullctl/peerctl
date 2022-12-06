@@ -6,8 +6,37 @@
   >
   <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label class="form-label" for="priority">{% trans "Peer ASN" %}</label>
-      <input type="text" class="form-control" id="peer-asn" name="peer_asn" />
+      <label class="form-label" for="description">{% trans "Location" %}</label>
+      <span class="modal-control">
+      <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+      <select
+        class="form-control"
+        id="facility"
+        name="facility"
+        data-name-field="slug"
+        data-id-field="slug"
+        data-api-base="{% url "proxies-api-devicectl-facility-list" org_tag=request.org.slug %}"
+        >
+      <select>
+      </span>
+    </div>
+  </div>
+
+
+  <div class="row mb-3">
+    <div class="col-12" data-api-submit="yes">
+      <label class="form-label" for="description">{% trans "Device" %}</label>
+      <span class="modal-control">
+      <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+      <select
+        class="form-control"
+        id="device"
+        name="device"
+        data-name-field="display_name"
+        data-api-base="{% url "proxies-api-devicectl-facility-devices" org_tag=request.org.slug fac_tag="fac_tag" %}"
+        >
+      <select>
+      </span>
     </div>
   </div>
 
@@ -21,7 +50,6 @@
         id="port"
         name="port"
         data-name-field="ix_name"
-        data-api-load="yes"
         data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
         >
       <select>
@@ -29,6 +57,15 @@
     </div>
 
   </div>
+
+  <div class="row mb-3">
+    <div class="col-12" data-api-submit="yes">
+      <label class="form-label" for="priority">{% trans "Peer ASN" %}</label>
+      <input type="text" class="form-control" id="peer-asn" name="peer_asn" />
+    </div>
+  </div>
+
+
   <div class="row mb-3">
     <div class="col-6" data-api-submit="yes">
       <label class="form-label" for="ip_address_4">{% trans "Peer IP4 Address" %}</label>

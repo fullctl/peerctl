@@ -205,12 +205,12 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
             cc=self.cc_address,
         )
 
-        if self.test_mode:
-            return
-
         EmailLog.log_peer_session_workflow(
             my_asn, peer_asn, user, contact, subject, body
         )
+
+        if self.test_mode:
+            return
 
         peer_session_list = super().request()
 
@@ -244,12 +244,12 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
             cc=self.cc_address,
         )
 
-        if self.test_mode:
-            return
-
         EmailLog.log_peer_session_workflow(
             my_asn, peer_asn, user, contact, subject, body
         )
+
+        if self.test_mode:
+            return
 
         peer_session_list = super().config_complete()
         for peer_session in peer_session_list:
@@ -279,12 +279,12 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
             cc=self.cc_address,
         )
 
-        if self.test_mode:
-            return
-
         EmailLog.log_peer_session_workflow(
             my_asn, peer_asn, user, contact, subject, body
         )
+
+        if self.test_mode:
+            return
 
         peer_session_list = super().finalize()
         for peer_session in peer_session_list:
@@ -367,12 +367,12 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
             cc=self.cc_address,
         )
 
-        if self.test_mode:
-            return
-
         EmailLog.log_peer_session_workflow(
             my_asn, peer_asn, user, contact, subject, body
         )
+
+        if self.test_mode:
+            return
 
     def config_complete(self, user, email_template, *args, **kwargs):
         return

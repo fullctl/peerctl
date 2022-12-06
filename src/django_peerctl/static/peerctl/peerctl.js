@@ -279,7 +279,6 @@ $peerctl.PeeringLists = $tc.extend(
           select.val(select.find('option').first().val());
         this.$w.devicectl_port.device_id = select.val();
         this.$w.devicectl_port.load();
-        fullctl.peerctl.$t.sessions_summary.$w.select_device.load();
       });
 
       $(this.$w.select_port.element).on("change", () => {
@@ -500,7 +499,11 @@ $peerctl.SessionsSummary = $tc.extend(
       });
 
       this.$e.btn_add_peer_session.click(() => {
-        new $ctl.application.Peerctl.ModalFloatingSession();
+        new $ctl.application.Peerctl.ModalFloatingSession(
+          this.$w.select_facility.element.val(),
+          this.$w.select_device.element.val(),
+          this.$w.select_port.element.val(),
+        );
       });
 
       this.widget("list_peer_sessions", ($e) => {
@@ -526,12 +529,12 @@ $peerctl.SessionsSummary = $tc.extend(
         if(this.$w.select_device.element.val() == "all") {
           this.$w.select_port.element.parents('.toolbar-control-group').hide();
           this.$w.select_port.element.empty();
+          this.sync();
         } else {
           this.$w.select_port.element.parents('.toolbar-control-group').show();
           this.$w.select_port.element.empty();
-          this.$w.select_port.load();
+          this.$w.select_port.load($ctl.peerctl.autoload_arg(3)).then(() => { this.sync(); });
         }
-        this.sync();
       });
 
       $(this.$w.select_facility.element).on("change", () => {
@@ -540,26 +543,32 @@ $peerctl.SessionsSummary = $tc.extend(
           this.$w.select_port.element.parents('.toolbar-control-group').hide();
           this.$w.select_device.element.empty();
           this.$w.select_port.element.empty();
+          this.sync();
         } else {
           this.$w.select_device.element.parents('.toolbar-control-group').show();
           this.$w.select_port.element.parents('.toolbar-control-group').hide();
           this.$w.select_device.element.empty();
           this.$w.select_port.element.empty();
-          this.$w.select_device.load();
+          this.$w.select_device.load($ctl.peerctl.autoload_arg(2)).then(() => { this.sync(); });
         }
-        this.sync();
       });
 
-      this.$w.select_facility.load()
+      $ctl.peerctl.$c.toolbar.$e.peer_filter.val($ctl.peerctl.autoload_arg(4));
 
+      this.$w.select_facility.load($ctl.peerctl.autoload_arg(1));
 
+    },
 
+    sync_url: function(facility, device, port, q) {
+
+      window.history.pushState({}, '', "#page-summary-sessions;"+(facility||'')+";"+(device||'')+";"+(port||"")+";"+(q||""));
     },
 
     sync: function() {
       let port_filter = this.$w.select_port.element.val();
       let device_filter = this.$w.select_device.element.val();
       let facility_filter = this.$w.select_facility.element.val();
+      let peer_filter = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
       this.$w.list_peer_sessions.action = "";
 
       var action = "";
@@ -573,7 +582,6 @@ $peerctl.SessionsSummary = $tc.extend(
       }
 
       this.$w.list_peer_sessions.payload = function() {
-        let peer_filter = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
         if(peer_filter && peer_filter != "") {
           return {peer:peer_filter}
         }
@@ -583,6 +591,13 @@ $peerctl.SessionsSummary = $tc.extend(
       this.$w.list_peer_sessions.action = action;
       this.$w.list_peer_sessions.load();
       this.$e.btn_api_view.attr("href", this.$w.list_peer_sessions.base_url+"/"+this.$w.list_peer_sessions.action);
+
+      this.sync_url(
+        facility_filter,
+        device_filter,
+        port_filter,
+        peer_filter
+      );
     },
 
     setup_select_filter : function(selector) {
@@ -609,18 +624,43 @@ $peerctl.SessionsSummary = $tc.extend(
 $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
   "ModalFloatingSession",
   {
-    ModalFloatingSession : function() {
+    ModalFloatingSession : function(facility, device, port) {
       var modal = this;
       var title = "Add peer session"
       var form = this.form = new twentyc.rest.Form(
         $ctl.template("form_floating_session")
       );
 
+      this.preselect_port = port;
+
+      this.select_facility = new twentyc.rest.Select(this.form.element.find('#facility'));
+      this.select_device = new twentyc.rest.Select(this.form.element.find('#device'));
       this.select_port = new twentyc.rest.Select(this.form.element.find('#port'));
       this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
       this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
 
-      this.select_port.load();
+      this.select_device.format_request_url = (url) => {
+        return url.replace("fac_tag", this.select_facility.element.val());
+      };
+
+      this.select_port.format_request_url = (url) => {
+        return url + "?device="+(this.select_device.element.val() || 0);
+      };
+
+      $(this.select_facility).on("load:after", () => { this.select_device.load(device && device != "all" ? device : null); });
+      this.select_facility.element.on("change", () => { this.select_device.load(); });
+
+      $(this.select_device).on("load:after", () => {
+        if(this.preselect_port && this.preselect_port != "all") {
+          this.select_port.load(this.preselect_port);
+          this.preselect_port = null;
+        } else {
+          this.select_port.load();
+        }
+      });
+      this.select_device.element.on("change", () => { this.select_port.load(); });
+
+      this.select_facility.load(facility && facility != "all" ? facility : null);
       this.select_policy_4.load();
       this.select_policy_6.load();
 
