@@ -85,7 +85,7 @@ class Port(serializers.Serializer):
     net = serializers.IntegerField(read_only=True)
     asn = serializers.IntegerField(read_only=True)
     peers = serializers.SerializerMethodField()
-    display_name = serializers.CharField(read_only=True)
+    display_name = serializers.SerializerMethodField()
 
     ix = serializers.SerializerMethodField()
     ix_name = serializers.SerializerMethodField()
@@ -133,15 +133,18 @@ class Port(serializers.Serializer):
 
     @models.ref_fallback("")
     def get_ix_name(self, instance):
+        self.get_device(instance)
         if not self.get_ix(instance):
-            self.get_device(instance)
             return f"{instance.device.name} {instance.virtual_port_name}: {instance.display_name}"
 
         ix = models.InternetExchange.objects.get(
             ref_id=instance.port_info_object.ref_ix_id
         )
-        name = f"{ix.name}: {instance.ip_address_4}"
+        name = f"{instance.device.name} {ix.name}: {instance.ip_address_4}"
         return name
+
+    def get_display_name(self, instance):
+        return f"{instance.virtual_port_name}: {instance.display_name}"
 
     @models.ref_fallback(0)
     def get_speed(self, instance):
@@ -673,7 +676,7 @@ class PeerSession(ModelSerializer):
         return obj.devices[0].id
 
     def get_port_interface(self, obj):
-        return obj.port.object.name
+        return obj.port.object.virtual_port_name
 
     def get_port_display_name(self, obj):
         return (
