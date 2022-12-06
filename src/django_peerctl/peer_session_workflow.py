@@ -9,6 +9,7 @@ from django_peerctl.email import send_mail_from_noreply
 from django_peerctl.models import (
     AuditLog,
     EmailLog,
+    MutualLocation,
     Network,
     PeerPort,
     PeerSession,
@@ -337,7 +338,8 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
         email_template.context["peer"] = self.member.__dict__
         if self.ix_ids:
             email_template.context["selected_exchanges"] = list(
-                pdbctl.InternetExchange().objects(ids=self.ix_ids)
+                MutualLocation(ix, self.net, self.other_net)
+                for ix in pdbctl.InternetExchange().objects(ids=self.ix_ids)
             )
 
         return email_template.render()

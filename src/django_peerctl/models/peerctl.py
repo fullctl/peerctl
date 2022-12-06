@@ -597,6 +597,43 @@ class InternetExchange(sot.ReferenceMixin, Base):
         return f"InternetExchange({self.id}): {self.name}"
 
 
+class MutualLocation:
+    def __init__(self, ix, net, peer_net):
+
+        self.ix = ix
+        self.net = net
+        self.peer_net = peer_net
+
+    @property
+    def name(self):
+        return self.ix.name
+
+    @property
+    def name_long(self):
+        return self.ix.name_long
+
+    @property
+    def country(self):
+        return self.ix.country
+
+    @property
+    def ip4(self):
+        return self.port_info.ipaddr4
+
+    @property
+    def ip6(self):
+        return self.port_info.ipaddr6
+
+    @property
+    def port_info(self):
+        if hasattr(self, "_portinfo"):
+            return self._portinfo
+        for port_info in self.net.port_info_qs.all():
+            if port_info.ref_ix_id and port_info.ref_ix_id == self.ix.ref_id:
+                self._portinfo = port_info
+                return port_info
+
+
 class PortPolicy(PolicyHolderMixin, Base):
 
     port = models.PositiveIntegerField(unique=True)
@@ -1327,7 +1364,11 @@ class EmailTemplate(Base, TemplateBase):
             for ix_id in self.net.get_mutual_locations(peer.asn):
                 ix_source, ix_id = ix_id.split(":")
                 mutual_locations.append(
-                    InternetExchange.get_or_create(int(ix_id), ix_source)
+                    MutualLocation(
+                        InternetExchange.get_or_create(int(ix_id), ix_source),
+                        self.net,
+                        peer,
+                    )
                 )
             data.update(
                 {
