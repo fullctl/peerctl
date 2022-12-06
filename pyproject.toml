@@ -51,8 +51,6 @@ mkdocs = "^1.2.3"
 ctl = ">=1"
 jinja2 = "^3"
 tmpl = ">=1"
-# v4 released 2022-03-31
-twine = "^3.3.0"
 
 [tool.isort]
 profile = "black"
