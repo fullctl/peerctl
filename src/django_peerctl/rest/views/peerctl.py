@@ -388,18 +388,18 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
                 r.append(session)
             elif str(session.peer_port.peer_net.peer.asn) == peer:
                 r.append(session)
+
         return r
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
         instances = net.peer_session_set.filter(status="ok")
-
         instances = self._filter_peer(instances, request.GET.get("peer"))
-
         serializer = self.serializer_class(instances, many=True)
+        data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
 
-        return Response(serializer.data)
+        return Response(data)
 
     @action(detail=False, methods=["get"], url_path="port/(?P<port_pk>[^/]+)")
     @load_object("net", models.Network, asn="asn")
@@ -407,12 +407,10 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     def list_by_port(self, request, asn, net, port_pk, *args, **kwargs):
         port = models.Port().object(id=port_pk)
         instances = port.peer_session_qs_prefetched.filter(status="ok")
-
         instances = self._filter_peer(instances, request.GET.get("peer"))
-
         serializer = self.serializer_class(instances, many=True)
-
-        return Response(serializer.data)
+        data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
+        return Response(data)
 
     @action(detail=False, methods=["get"], url_path="device/(?P<device_pk>[^/]+)")
     @load_object("net", models.Network, asn="asn")
@@ -420,12 +418,10 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     def list_by_device(self, request, asn, net, device_pk, *args, **kwargs):
         device = models.Device().object(id=device_pk)
         instances = device.peer_session_qs.filter(status="ok")
-
         instances = self._filter_peer(instances, request.GET.get("peer"))
-
         serializer = self.serializer_class(instances, many=True)
-
-        return Response(serializer.data)
+        data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
+        return Response(data)
 
     @action(detail=False, methods=["get"], url_path="facility/(?P<facility_tag>[^/]+)")
     @load_object("net", models.Network, asn="asn")
@@ -439,10 +435,9 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
             instances.extend(list(device.peer_session_qs.filter(status="ok")))
 
         instances = self._filter_peer(instances, request.GET.get("peer"))
-
         serializer = self.serializer_class(instances, many=True)
-
-        return Response(serializer.data)
+        data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
+        return Response(data)
 
     @action(
         detail=False,
