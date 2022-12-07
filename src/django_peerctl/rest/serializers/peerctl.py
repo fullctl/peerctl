@@ -134,17 +134,35 @@ class Port(serializers.Serializer):
     @models.ref_fallback("")
     def get_ix_name(self, instance):
         self.get_device(instance)
-        if not self.get_ix(instance):
-            return f"{instance.device.name}: {instance.virtual_port_name} {instance.display_name}"
+
+        parts = []
+        if instance.device and not instance.device.name.startswith("pdb:"):
+            parts.append(instance.device.name)
 
         ix = models.InternetExchange.objects.get(
             ref_id=instance.port_info_object.ref_ix_id
         )
-        name = f"{instance.device.name} {ix.name}: {instance.virtual_port_name} {instance.ip_address_4}"
-        return name
+
+        if ix:
+            parts.append(ix.name)
+        else:
+            parts.append(instance.display_name)
+
+        parts.append(instance.ip_address_4)
+
+        if instance.virtual_port_name and not instance.virtual_port_name.startswith(
+            "pdb:"
+        ):
+            parts.append(instance.virtual_port_name)
+
+        return " ".join(parts)
 
     def get_display_name(self, instance):
-        return f"{instance.virtual_port_name}: {instance.display_name}"
+        if instance.virtual_port_name and not instance.virtual_port_name.startswith(
+            "pdb:"
+        ):
+            return f"{instance.virtual_port_name}: {instance.display_name}"
+        return instance.display_name
 
     @models.ref_fallback(0)
     def get_speed(self, instance):
