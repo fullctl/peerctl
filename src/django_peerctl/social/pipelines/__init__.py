@@ -69,11 +69,14 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
                 network, ports[f"pdb:{member.ref_id}"]["id"], member
             )
 
-    for port in devicectl.Port().objects(org=org.permission_id):
-        if port.is_management:
-            continue
-        if not port.ip_address_4 and not port.ip_address_6:
-            continue
-        if PortInfo.objects.filter(port=port.id).exists():
-            continue
-        PortInfo.objects.create(net=networks[verified_asns[0]], port=port.id)
+    # There is no reason to create PortInfo objects for PNIs here
+    # as PortInfo objects currently only inform IXIs
+    #
+    #for port in devicectl.Port().objects(org=org.permission_id):
+    #    if port.is_management:
+    #        continue
+    #    if not port.ip_address_4 and not port.ip_address_6:
+    #        continue
+    #    if PortInfo.objects.filter(port=port.id).exists():
+    #        continue
+    #    PortInfo.objects.create(net=networks[verified_asns[0]], port=port.id)
