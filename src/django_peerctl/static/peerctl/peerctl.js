@@ -272,6 +272,10 @@ $peerctl.PeeringLists = $tc.extend(
         return $('#page-peering-lists [data-element="toggle_available_peers"]');
       });
 
+      this.$w.select_port.format_request_url = (url) => {
+        return url + "?ixi=1";
+      };
+
 
       $(this.$w.select_port).on("load:after", (e, select) => {
         this.$w.devicectl_device.load();

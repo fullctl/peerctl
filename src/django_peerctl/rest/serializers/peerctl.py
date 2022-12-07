@@ -136,13 +136,16 @@ class Port(serializers.Serializer):
         self.get_device(instance)
         if not self.get_ix(instance):
             if instance.virtual_port_name and not instance.virtual_port_name.startswith("pdb:"):
-                return f"{instance.device.name} {instance.display_name} {instance.virtual_port_name}"
-            return f"{instance.display_name}"
+                return f"{instance.device.name} {instance.display_name} {instance.virtual_port_name} "
+            return f"{instance.device.name} {instance.display_name}"
 
         ix = models.InternetExchange.objects.get(
             ref_id=instance.port_info_object.ref_ix_id
         )
-        name = f"{instance.device.name} {ix.name} {instance.ip_address_4}"
+        if instance.virtual_port_name and not instance.virtual_port_name.startswith("pdb:"):
+            name = f"{instance.device.name} {ix.name} {instance.ip_address_4} {instance.virtual_port_name}"
+        else:
+            name = f"{instance.device.name} {ix.name} {instance.ip_address_4}"
         return name
 
     def get_display_name(self, instance):

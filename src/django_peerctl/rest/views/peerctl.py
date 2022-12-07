@@ -158,13 +158,19 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     def list(self, request, asn, *args, **kwargs):
 
         filter_device = request.GET.get("device")
+        ixi = request.GET.get("ixi")
+
+        qset = models.PortInfo.objects.filter(net__org=request.org, port__gt=0)
+
+        if ixi:
+
+            # only grab IXI ports
+
+            qset = qset.filter(ref_id__gt=0)
 
         # collect port ids
 
-        port_ids = [
-            int(obj.port)
-            for obj in models.PortInfo.objects.filter(net__org=request.org, port__gt=0)
-        ]
+        port_ids = [int(obj.port) for obj in qset]
 
         # load ports
 
