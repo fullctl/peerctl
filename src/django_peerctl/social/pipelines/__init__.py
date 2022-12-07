@@ -72,7 +72,7 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
     # There is no reason to create PortInfo objects for PNIs here
     # as PortInfo objects currently only inform IXIs
     #
-    #for port in devicectl.Port().objects(org=org.permission_id):
+    # for port in devicectl.Port().objects(org=org.permission_id):
     #    if port.is_management:
     #        continue
     #    if not port.ip_address_4 and not port.ip_address_6:

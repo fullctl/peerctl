@@ -662,12 +662,14 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
     def port_policy(self):
         if not hasattr(self, "_port_policy"):
             self._port_policy, _ = PortPolicy.objects.get_or_create(port=self.id)
+            self._port_policy._object = self
         return self._port_policy
 
     @property
     def port_info_object(self):
         if not hasattr(self, "_port_info"):
             self._port_info = PortInfo.objects.filter(port=self.id).first()
+            self._port_info.port._object = self
         return self._port_info
 
     @property
@@ -679,7 +681,11 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         """
         Return device for the port
         """
-        return [devicectl.Device().object(self.device_id)]
+        if self.device:
+            return [self.device]
+        if not hasattr(self, "_devices"):
+            self._devices = [devicectl.Device().object(self.device_id)]
+        return self._devices
 
     @ref_fallback([])
     def get_available_peers(self):
@@ -1150,6 +1156,8 @@ class PeerSession(PolicyHolderMixin, Base):
     def devices(self):
         devices = []
         if self.port:
+            if self.port.object.device:
+                return [self.port.object.device]
             return [device for device in Device().objects(port=int(self.port))]
         else:
             return devices
