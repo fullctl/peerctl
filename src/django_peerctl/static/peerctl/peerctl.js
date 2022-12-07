@@ -560,7 +560,7 @@ $peerctl.SessionsSummary = $tc.extend(
         this.sync();
       });
 
-      var autoload = ($ctl.peerctl.autoload_args[0] == "page-summary-sessions");
+      var autoload = ($ctl.peerctl.autoload_args && $ctl.peerctl.autoload_args[0] == "page-summary-sessions");
       $(this.$w.select_device.element).on("change", () => {
         if(this.$w.select_device.element.val() == "all") {
           this.$w.select_port.element.parents('.toolbar-control-group').hide();
