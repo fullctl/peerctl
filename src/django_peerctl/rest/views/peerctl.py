@@ -405,7 +405,13 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
         }
 
         peer_asns = list({i.peer_port.peer_net.peer.asn for i in instances})
-        peer_nets = {net.asn: net for net in pdbctl.Network().objects(asns=peer_asns)}
+        peer_nets = {}
+        if peer_asns:
+            peer_nets = {
+                net.asn: net for net in pdbctl.Network().objects(asns=peer_asns)
+            }
+        else:
+            peer_nets = {}
 
         for i in instances:
             port = ports.get(int(i.port))
