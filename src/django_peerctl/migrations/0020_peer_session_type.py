@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="peersession",
-            name="peer_net_type",
+            name="peer_session_type",
             field=models.CharField(
                 choices=[
                     ("peer", "Peer"),

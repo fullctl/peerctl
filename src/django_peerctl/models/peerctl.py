@@ -1099,7 +1099,7 @@ class PeerSession(PolicyHolderMixin, Base):
 
     port = ReferencedObjectField(bridge=Port)
     peer_port = models.ForeignKey(PeerPort, on_delete=models.CASCADE, related_name="+")
-    peer_net_type = models.CharField(
+    peer_session_type = models.CharField(
         max_length=255,
         choices=(
             ("peer", _("Peer")),

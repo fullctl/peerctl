@@ -469,7 +469,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
     md5 = serializers.CharField(allow_null=True, allow_blank=True)
     peer_asn = serializers.IntegerField()
     peer_interface = serializers.CharField(allow_null=True, allow_blank=True)
-    peer_net_type = serializers.CharField(default="peer")
+    peer_session_type = serializers.CharField(default="peer")
     port = serializers.IntegerField()
 
     ref_tag = "create_floating_peer_session"
@@ -485,7 +485,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
             "peer_interface",
             "peer_prefixes4",
             "peer_prefixes6",
-            "peer_net_type",
+            "peer_session_type",
             "port",
         ]
 
@@ -531,7 +531,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
             policy4_id=data["policy_4"] or None,
             policy6_id=data["policy_6"] or None,
             status="ok",
-            peer_net_type=data["peer_net_type"] or "peer",
+            peer_session_type=data["peer_session_type"] or "peer",
         )
 
 
@@ -594,7 +594,7 @@ class PeerSession(ModelSerializer):
             "peer_maxprefix6",
             "peer_name",
             "peer_type",
-            "peer_net_type",
+            "peer_session_type",
             "policy4_id",
             "policy4_name",
             "policy4_inherited",
