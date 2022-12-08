@@ -15,6 +15,7 @@
       <tr>
       <th>{% trans "ASN" %}</th>
       <th>{% trans "Ip" %}</th>
+      <th>{% trans "Type" %}</th>
       <th>{% trans "Policy IPv4" %}</th>
       <th>{% trans "Policy IPv6" %}</th>
       <th>{% trans "Port" %}</th>
@@ -34,6 +35,11 @@
           <div data-field="peer_ip4"></div>
           <div data-field="peer_ip6"></div>
         </td>
+
+        <td>
+          <div data-field="peer_net_type"></div>
+        </td>
+
         <td class="secondary">
 
           <div class="dropdown">

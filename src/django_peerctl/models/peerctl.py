@@ -1099,6 +1099,16 @@ class PeerSession(PolicyHolderMixin, Base):
 
     port = ReferencedObjectField(bridge=Port)
     peer_port = models.ForeignKey(PeerPort, on_delete=models.CASCADE, related_name="+")
+    peer_net_type = models.CharField(
+        max_length=255,
+        choices=(
+            ("peer", _("Peer")),
+            ("transit", _("Transit")),
+            ("customer", _("Customer")),
+            ("core", _("Core")),
+        ),
+        default="peer",
+    )
 
     class Meta:
         unique_together = ("port", "peer_port")

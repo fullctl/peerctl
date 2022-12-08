@@ -469,6 +469,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
     md5 = serializers.CharField(allow_null=True, allow_blank=True)
     peer_asn = serializers.IntegerField()
     peer_interface = serializers.CharField(allow_null=True, allow_blank=True)
+    peer_net_type = serializers.CharField(default="peer")
     port = serializers.IntegerField()
 
     ref_tag = "create_floating_peer_session"
@@ -484,6 +485,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
             "peer_interface",
             "peer_prefixes4",
             "peer_prefixes6",
+            "peer_net_type",
             "port",
         ]
 
@@ -529,6 +531,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
             policy4_id=data["policy_4"] or None,
             policy6_id=data["policy_6"] or None,
             status="ok",
+            peer_net_type=data["peer_net_type"] or "peer",
         )
 
 
@@ -564,6 +567,7 @@ class PeerSession(ModelSerializer):
     port_id = serializers.IntegerField(source="port")
     port_display_name = serializers.SerializerMethodField()
     port_interface = serializers.SerializerMethodField()
+    port_is_ix = serializers.SerializerMethodField()
 
     md5 = serializers.SerializerMethodField()
 
@@ -576,6 +580,7 @@ class PeerSession(ModelSerializer):
             "port_id",
             "port_interface",
             "port_display_name",
+            "port_is_ix",
             "ip4",
             "ip6",
             "md5",
@@ -589,6 +594,7 @@ class PeerSession(ModelSerializer):
             "peer_maxprefix6",
             "peer_name",
             "peer_type",
+            "peer_net_type",
             "policy4_id",
             "policy4_name",
             "policy4_inherited",
@@ -692,6 +698,10 @@ class PeerSession(ModelSerializer):
 
     def get_device_id(self, obj):
         return obj.devices[0].id
+
+    def get_port_is_ix(self, obj):
+        ix_id = obj.port.object.port_info_object.ref_ix_id
+        return ix_id is not None and ix_id != 0
 
     def get_port_interface(self, obj):
         return obj.port.object.virtual_port_name

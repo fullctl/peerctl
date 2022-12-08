@@ -59,9 +59,18 @@
   </div>
 
   <div class="row mb-3">
-    <div class="col-12" data-api-submit="yes">
-      <label class="form-label" for="priority">{% trans "Peer ASN" %}</label>
+    <div class="col-6" data-api-submit="yes">
+      <label class="form-label" for="peer_asn">{% trans "Peer ASN" %}</label>
       <input type="text" class="form-control" id="peer-asn" name="peer_asn" />
+    </div>
+    <div class="col-6" data-api-submit="yes">
+      <label class="form-label" for="peer_net_type">{% trans "Peer Network Type" %}</label>
+      <select class="form-control" id="peer-net-type" name="peer_net_type">
+        <option value="peer">{% trans "Peer" %}</option>
+        <option value="transit">{% trans "Transit" %}</option>
+        <option value="customer">{% trans "Customer" %}</option>
+        <option value="core">{% trans "Core" %}</option>
+      </select>
     </div>
   </div>
 
