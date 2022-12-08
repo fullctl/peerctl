@@ -747,6 +747,11 @@ $peerctl.SessionsSummary = $tc.extend(
         facility_filter = this.$w.select_facility.element.val();
         peer_filter = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
       }
+
+      if(peer_filter && !facility_filter) {
+        facility_filter = "all";
+      }
+
       this.$w.list_peer_sessions.action = "";
 
       // update the url with filter values
