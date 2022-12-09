@@ -41,58 +41,27 @@
         </td>
 
         <td class="secondary">
-
-          <div class="dropdown">
-            <button type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="button dropdown-toggle" data-element="edit_policy4">
-              <span class="fullctl label" data-field="policy4_name"></span>
-            </button>
-            <div class="dropdown-menu">
-              <a class="dropdown-item">
-              <select
-                style="overflow:hidden; background: transparent;"
-                data-api-base="/"
-                data-api-method="put"
-                data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
-                class="peer_session-policy-4"
-                data-proxy-data=".port-policy-4">
-              </select>
-              </a>
-            </div>
-          </div>
-
+          <span data-field="policy4_name"></span>
         </td>
         <td class="secondary">
-
-          <div class="dropdown">
-            <button type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="button dropdown-toggle" data-element="edit_policy6">
-              <span class="fullctl label" data-field="policy6_name"></span>
-            </button>
-            <div class="dropdown-menu">
-              <a class="dropdown-item">
-              <select
-                style="overflow:hidden; background: transparent;"
-                data-api-base="/"
-                data-api-method="put"
-                data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
-                class="peer_session-policy-6"
-                data-proxy-data=".port-policy-6">
-              </select>
-              </a>
-            </div>
-          </div>
-
-
-
+          <span data-field="policy6_name"></span>
         </td>
         <td data-field="port_display_name"></td>
         <td data-field="device_name"></td>
         <td class="control">
-        	<a class="button"
-            data-api-action="{id}"
-            data-api-callback="remove"
-            data-confirm="Remove peer session?"
-            data-api-method="DELETE"><span class="icon fullctl icon-delete"></span><span class="fullctl label">{% trans "Delete" %}</span>
-          </a>
+          <div class="row">
+            <div class="col-xs-12 col-lg-6">
+              <a class="button" data-action="edit_session"><span class="icon fullctl icon-edit"></span></span></a>
+            </div>
+            <div class="col-xs-12 col-lg-6">
+              <a class="button"
+              data-api-action="{id}"
+              data-api-callback="remove"
+              data-confirm="Remove peer session?"
+              data-api-method="DELETE"><span class="icon fullctl icon-delete"></span></span>
+              </a>
+            </div>
+          </div>
         </td>
       </tr>
   </tbody>
