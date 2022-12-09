@@ -460,12 +460,12 @@ class PeerDetails(serializers.Serializer):
 @register
 class CreateFloatingPeerSession(serializers.Serializer):
 
-    ip_address_4 = serializers.CharField(allow_null=True, allow_blank=True)
-    ip_address_6 = serializers.CharField(allow_null=True, allow_blank=True)
+    peer_ip4 = serializers.CharField(allow_null=True, allow_blank=True)
+    peer_ip6 = serializers.CharField(allow_null=True, allow_blank=True)
     policy_4 = serializers.IntegerField()
     policy_6 = serializers.IntegerField()
-    peer_prefixes4 = serializers.IntegerField(allow_null=True)
-    peer_prefixes6 = serializers.IntegerField(allow_null=True)
+    peer_maxprefix4 = serializers.IntegerField(allow_null=True)
+    peer_maxprefix6 = serializers.IntegerField(allow_null=True)
     md5 = serializers.CharField(allow_null=True, allow_blank=True)
     peer_asn = serializers.IntegerField()
     peer_interface = serializers.CharField(allow_null=True, allow_blank=True)
@@ -476,25 +476,25 @@ class CreateFloatingPeerSession(serializers.Serializer):
 
     class Meta:
         fields = [
-            "ip_address_4",
-            "ip_address_6",
+            "peer_ip4",
+            "peer_ip6",
             "policy_4",
             "policy_6",
             "md5",
             "peer_asn",
             "peer_interface",
-            "peer_prefixes4",
-            "peer_prefixes6",
+            "peer_maxprefix4",
+            "peer_maxprefix6",
             "peer_session_type",
             "port",
         ]
 
-    def validate_peer_prefixes4(self, value):
+    def validate_peer_maxprefix4(self, value):
         if value < 0:
             raise serializers.ValidationError("Cannot be negative")
         return value
 
-    def validate_peer_prefixes6(self, value):
+    def validate_peer_maxprefix6(self, value):
         if value < 0:
             raise serializers.ValidationError("Cannot be negative")
         return value
@@ -509,16 +509,16 @@ class CreateFloatingPeerSession(serializers.Serializer):
         port_info = models.PortInfo.objects.create(
             port=0,
             net=net,
-            ip_address_4=data["ip_address_4"],
-            ip_address_6=data["ip_address_6"],
+            ip_address_4=data["peer_ip4"],
+            ip_address_6=data["peer_ip6"],
         )
 
         peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
 
         peer_net = models.PeerNetwork.get_or_create(net, peer)
         peer_net.md5 = data["md5"]
-        peer_net.info_prefixes4 = data["peer_prefixes4"]
-        peer_net.info_prefixes6 = data["peer_prefixes6"]
+        peer_net.info_prefixes4 = data["peer_maxprefix4"]
+        peer_net.info_prefixes6 = data["peer_maxprefix6"]
         peer_net.save()
 
         peer_port = models.PeerPort.get_or_create(port_info, peer_net)
@@ -533,6 +533,48 @@ class CreateFloatingPeerSession(serializers.Serializer):
             status="ok",
             peer_session_type=data["peer_session_type"] or "peer",
         )
+
+
+@register
+class UpdatePeerSession(CreateFloatingPeerSession):
+
+    """
+    Used for updating PeerSession objects
+    """
+
+    ref_tag = "update_peer_session"
+
+    def save(self):
+
+        session = self.instance
+        data = self.validated_data
+        asn = self.context.get("asn")
+
+        net = models.Network.objects.get(asn=asn)
+        peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
+
+        peer_net = models.PeerNetwork.get_or_create(net, peer)
+        peer_net.md5 = data["md5"]
+        peer_net.info_prefixes4 = data["peer_maxprefix4"]
+        peer_net.info_prefixes6 = data["peer_maxprefix6"]
+        peer_net.save()
+
+        session.peer_port.port_info.net = net
+        session.peer_port.port_info.ip_address_4 = data["peer_ip4"]
+        session.peer_port.port_info.ip_address_6 = data["peer_ip6"]
+        session.peer_port.port_info.save()
+
+        session.peer_port.peer_net = peer_net
+        session.peer_port.interface_name = data["peer_interface"]
+        session.peer_port.save()
+
+        session.port = data["port"]
+        session.policy4_id = data["policy_4"] or None
+        session.policy6_id = data["policy_6"] or None
+        session.peer_session_type = data["peer_session_type"] or "peer"
+        session.save()
+
+        return session
 
 
 @register
@@ -563,6 +605,7 @@ class PeerSession(ModelSerializer):
 
     device_name = serializers.SerializerMethodField()
     device_id = serializers.SerializerMethodField()
+    facility_slug = serializers.SerializerMethodField()
 
     port_id = serializers.IntegerField(source="port")
     port_display_name = serializers.SerializerMethodField()
@@ -609,6 +652,7 @@ class PeerSession(ModelSerializer):
             "policy6_peer_group",
             "device_name",
             "device_id",
+            "facility_slug",
             "status",
         ]
 
@@ -698,6 +742,9 @@ class PeerSession(ModelSerializer):
 
     def get_device_id(self, obj):
         return obj.devices[0].id
+
+    def get_facility_slug(self, obj):
+        return obj.devices[0].facility_slug
 
     def get_port_is_ix(self, obj):
         ix_id = obj.port.object.port_info_object.ref_ix_id

@@ -848,14 +848,37 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         data = request.data.copy()
 
-        if not data.get("peer_prefixes4"):
-            data["peer_prefixes4"] = 0
+        if not data.get("peer_maxprefix4"):
+            data["peer_maxprefix4"] = 0
 
-        if not data.get("peer_prefixes6"):
-            data["peer_prefixes6"] = 0
+        if not data.get("peer_maxprefix6"):
+            data["peer_maxprefix6"] = 0
 
         serializer = Serializers.create_floating_peer_session(
             data=data, context={"asn": asn}
+        )
+
+        serializer.is_valid(raise_exception=True)
+
+        peer_session = serializer.save()
+
+        return Response(self.serializer_class(peer_session).data)
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def update(self, request, asn, net, port_pk, pk, *args, **kwargs):
+
+        data = request.data.copy()
+        session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
+
+        if not data.get("peer_maxprefix4"):
+            data["peer_maxprefix4"] = 0
+
+        if not data.get("peer_maxprefix6"):
+            data["peer_maxprefix6"] = 0
+
+        serializer = Serializers.update_peer_session(
+            session, data=data, context={"asn": asn}
         )
 
         serializer.is_valid(raise_exception=True)

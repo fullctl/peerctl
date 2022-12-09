@@ -87,12 +87,19 @@
         <td data-field="port_display_name"></td>
         <td data-field="device_name"></td>
         <td class="control">
-        	<a class="button"
-            data-api-action="{id}"
-            data-api-callback="remove"
-            data-confirm="Remove peer session?"
-            data-api-method="DELETE"><span class="icon fullctl icon-delete"></span><span class="fullctl label">{% trans "Delete" %}</span>
-          </a>
+          <div class="row">
+            <div class="col-xs-12 col-lg-6">
+              <a class="button" data-action="edit_session"><span class="icon fullctl icon-edit"></span></span></a>
+            </div>
+            <div class="col-xs-12 col-lg-6">
+              <a class="button"
+              data-api-action="{id}"
+              data-api-callback="remove"
+              data-confirm="Remove peer session?"
+              data-api-method="DELETE"><span class="icon fullctl icon-delete"></span></span>
+              </a>
+            </div>
+          </div>
         </td>
       </tr>
   </tbody>

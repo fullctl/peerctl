@@ -1,7 +1,7 @@
 
 {% load static i18n %}
 <form data-template="form_floating_session"
-  data-api-base="{% url "peerctl_api:peer_session-create-floating" asn=selected_asn port_pk=0 %}"
+  data-api-base="{% url "peerctl_api:peer_session-list" asn=selected_asn port_pk=0 %}"
   data-api-method="POST"
   >
   <div class="row mb-3">
@@ -77,8 +77,8 @@
 
   <div class="row mb-3">
     <div class="col-6" data-api-submit="yes">
-      <label class="form-label" for="ip_address_4">{% trans "Peer IP4 Address" %}</label>
-      <input type="text" class="form-control" id="ip-address-4" name="ip_address_4" />
+      <label class="form-label" for="peer_ip4">{% trans "Peer IP4 Address" %}</label>
+      <input type="text" class="form-control" id="peer-ip4" name="peer_ip4" />
     </div>
     <div class="col-6" data-api-submit="yes">
       <label class="form-label" for="policy_4">{% trans "Policy" %}</label>
@@ -98,8 +98,8 @@
   </div>
   <div class="row mb-3">
     <div class="col-6" data-api-submit="yes">
-      <label class="form-label" for="ip_address_6">{% trans "Peer IP6 Address" %}</label>
-      <input type="text" class="form-control" id="ip-address-6" name="ip_address_6" />
+      <label class="form-label" for="peer_ip6">{% trans "Peer IP6 Address" %}</label>
+      <input type="text" class="form-control" id="peer-ip6" name="peer_ip6" />
     </div>
     <div class="col-6" data-api-submit="yes">
       <label class="form-label" for="policy_6">{% trans "Policy" %}</label>
@@ -121,13 +121,13 @@
 
   <div class="row mb-3">
     <div class="col-6" data-api-submit="yes">
-      <label class="form-label" for="peer_prefixes4">{% trans "Max. v4 Prefixes" %}</label>
-      <input type="text" class="form-control" id="peer-prefixes4" name="peer_prefixes4">
+      <label class="form-label" for="peer_maxprefix4">{% trans "Max. v4 Prefixes" %}</label>
+      <input type="text" class="form-control" id="peer-maxprefix4" name="peer_maxprefix4">
     </div>
 
     <div class="col-6" data-api-submit="yes">
-      <label class="form-label" for="peer_prefixes6">{% trans "Max. v6 Prefixes" %}</label>
-      <input type="text" class="form-control" id="peer-prefixes6" name="peer_prefixes6">
+      <label class="form-label" for="peer_maxprefix6">{% trans "Max. v6 Prefixes" %}</label>
+      <input type="text" class="form-control" id="peer-maxprefix6" name="peer_maxprefix6">
     </div>
 
   </div>

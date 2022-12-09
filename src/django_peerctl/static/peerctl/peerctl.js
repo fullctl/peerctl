@@ -587,6 +587,11 @@ $peerctl.SessionsSummary = $tc.extend(
               policy6_select.element.val(data.policy6_inherited ? 0 : data.policy6_id);
             });
           });
+
+
+          row.find("[data-action=edit_session]").click(() => {
+            new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
+          });
         }
         return w;
       });
@@ -812,14 +817,14 @@ $peerctl.SessionsSummary = $tc.extend(
 $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
   "ModalFloatingSession",
   {
-    ModalFloatingSession : function(facility, device, port) {
+    ModalFloatingSession : function(facility, device, port, session) {
       var modal = this;
       var title = "Add peer session"
       var form = this.form = new twentyc.rest.Form(
         $ctl.template("form_floating_session")
       );
 
-      this.preselect_port = port;
+      this.session = session;
 
       this.select_facility = new twentyc.rest.Select(this.form.element.find('#facility'));
       this.select_device = new twentyc.rest.Select(this.form.element.find('#device'));
@@ -827,30 +832,73 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
       this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
       this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
 
+      if(facility == "all")
+        facility = null;
+
+      if(device == "all")
+        device = null;
+
+      if(port == "all")
+        port = null;
+
+      // edit existing session
+
+      if(session) {
+        title = "Edit Session ["+session.id+"]";
+        form.format_request_url = (url) => {
+          return url.replace("/12345/", session.id);
+        };
+        form.method = "PUT";
+        form.form_action = session.id;
+        form.fill(session);
+        device = session.device_id;
+        facility = session.facility_slug;
+        port = session.port_id;
+      } else {
+        form.form_action = "create_floating"
+      }
+
+      this.preselect_port = port;
+
+      $(this.select_facility).one("load:after", () => {
+        if(facility)
+          this.select_facility.element.val(facility);
+        this.select_device.load();
+      });
+
+      $(this.select_device).one("load:after", () => {
+        if(device)
+          this.select_device.element.val(device);
+        this.select_port.load();
+      });
+
+      $(this.select_port).one("load:after", () => {
+        if(port)
+          this.select_port.element.val(port);
+      });
+
       this.select_device.format_request_url = (url) => {
-        return url.replace("fac_tag", this.select_facility.element.val());
+        return url.replace("fac_tag", this.select_facility.element.val() || facility);
       };
 
       this.select_port.format_request_url = (url) => {
-        return url + "?device="+(this.select_device.element.val() || 0);
+        return url + "?device="+(this.select_device.element.val() || device || 0);
       };
 
-      $(this.select_facility).on("load:after", () => { this.select_device.load(device && device != "all" ? device : null); });
-      this.select_facility.element.on("change", () => { this.select_device.load(); });
-
-      $(this.select_device).on("load:after", () => {
-        if(this.preselect_port && this.preselect_port != "all") {
-          this.select_port.load(this.preselect_port);
-          this.preselect_port = null;
-        } else {
+      this.select_facility.element.on("change", () => {
+        this.select_device.element.empty();
+        this.select_port.element.empty();
+        this.select_device.load().then(() => {
           this.select_port.load();
-        }
+        });
       });
-      this.select_device.element.on("change", () => { this.select_port.load(); });
+      this.select_device.element.on("change", () => {
+        this.select_port.load();
+      });
 
-      this.select_facility.load(facility && facility != "all" ? facility : null);
-      this.select_policy_4.load();
-      this.select_policy_6.load();
+      this.select_facility.load();
+      this.select_policy_4.load(session ? session.policy4_id : null);
+      this.select_policy_6.load(session ? session.policy6_id : null);
 
       $(this.form).on("api-write:success", (ev, e, payload, response) => {
         modal.hide();
