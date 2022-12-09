@@ -556,39 +556,6 @@ $peerctl.SessionsSummary = $tc.extend(
         // handle policy editor widgets for each row
 
         w.formatters.row = (row, data) => {
-          var policy4_select = new $peerctl.PeerSessionPolicySelect(
-            row.find('.peer_session-policy-4'), 4, data.port_id, data.id
-          );
-          var policy6_select = new $peerctl.PeerSessionPolicySelect(
-            row.find('.peer_session-policy-6'), 6, data.port_id, data.id
-          );
-
-          var policy4_edit = row.find('[data-element="edit_policy4"]');
-          var policy6_edit = row.find('[data-element="edit_policy6"]');
-
-          policy4_edit.attr("id", "policy4-edit-"+data.id);
-          policy4_edit.dropdown();
-          $(policy4_select).on("api-write:success", ()=>{policy4_edit.dropdown("hide"); w.load(); });
-
-          policy4_edit.on("show.bs.dropdown", () => {
-            policy4_select.load().then(() => {
-              policy4_select.element.prop("size", policy4_select.element.find("option").length);
-              policy4_select.element.val(data.policy4_inherited ? 0 : data.policy4_id);
-            });
-          });
-
-          policy6_edit.attr("id", "policy6-edit-"+data.id);
-          policy6_edit.dropdown();
-          $(policy6_select).on("api-write:success", ()=>{policy6_edit.dropdown("hide"); w.load(); });
-
-          policy6_edit.on("show.bs.dropdown", () => {
-            policy6_select.load().then(() => {
-              policy6_select.element.prop("size", policy6_select.element.find("option").length);
-              policy6_select.element.val(data.policy6_inherited ? 0 : data.policy6_id);
-            });
-          });
-
-
           row.find("[data-action=edit_session]").click(() => {
             new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
           });
