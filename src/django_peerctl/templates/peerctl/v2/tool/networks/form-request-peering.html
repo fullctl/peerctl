@@ -1,0 +1,53 @@
+{% load i18n %}
+<form data-template="form_request_peering_from_asn"
+  data-api-base="{% url "peerctl_api:email_asn_request_peering-list" asn=selected_asn %}"
+  data-api-method="post">
+
+  <div class="row">
+    <div class="col-7">
+      <div class="card">
+        <div class="card-header peer-name" data-field="name">
+          Network
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item peer-asn" data-field="asn">ASN</li>
+          <li class="list-group-item peer-email" data-field="peer_session_contact">email address</li>
+        </ul>
+      </div>
+      <div class="row mb-3 marg-top-lg">
+        <div class="col-10" data-api-submit="yes">
+          <label class="form-label" for="from_address">{% trans "Reply-To" %}</label>
+          <input type="text" class="form-control" placeholder="{{ net.peer_contact_email_no_override }}" value="{{ net.email_override|default:"" }}" name="reply_to">
+        </div>
+				<div class="col-2" data-api-submit="yes" style="padding-top:20px">
+          <input type="checkbox" class="form-check-input" id="cc-reply-to" name="cc_reply_to" />
+          <label for="cc-reply-to" class="form-check-label">{% trans "CC" %}</label>
+				</div>
+      </div>
+    </div>
+    <div class="col-5">
+      <div class="card">
+        <div class="card-header">
+        {% trans "Workflow" %}
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item peer-request" data-field="step_request">{% trans "Request" %}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  {% include "peerctl/v2/tool/email-template-preview.html" %}
+
+  <div class="row mb-3">
+    <div data-api-submit="yes">
+      <input type="hidden" name="asn" data-field="asn">
+    </div>
+    <div class="col" data-api-submit="yes">
+      <input type="checkbox" class="form-check-input" id="test-mode" name="test_mode" />
+      <label for="test-mode" class="form-check-label">{% trans "Send test email to Reply-To address" %}</label>
+	  </div>
+	</div>
+
+
+</form>

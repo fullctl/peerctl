@@ -36,7 +36,7 @@ def view_instance(request, instance, **kwargs):
     env["selected_asn"] = net.asn
     env["asns"] = asns
 
-    return render(request, "peerctl/index.html", env)
+    return render(request, "theme-select.html", env)
 
 
 @require_auth()

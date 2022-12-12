@@ -1,0 +1,23 @@
+{% load i18n static %}
+<div class="tool" data-component="device_templates">
+
+  <div data-element="menu" class="row marg-top-lg">
+    <div class="col-5">
+      <h4>{% trans "Templates" %}</h4>
+    </div>
+    <div class="col-7">
+      <h4 data-element="editor_title">{% trans "Create new device template" %}</h4>
+    </div>
+  </div>
+  <div data-element="body" class="row">
+    <div data-element="list_container" class="col-5"></div>
+    <div data-element="editor" class="col-7 create controls">
+    </div>
+  </div>
+
+  <div class="templates">
+    <div data-template="menu"></div>
+    {% include "peerctl/v2/tool/peering-templates/device-template-editor.html" %}
+  </div>
+
+</div>
