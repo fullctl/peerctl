@@ -1,0 +1,103 @@
+{% load i18n static %}
+    <table class="table table-borderless"
+      data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
+      data-template="policy_list">
+
+      <tbody class="list-body"></tbody>
+
+      <tbody class="templates"><
+        <tr data-template="row">
+          <td data-field="name" class="highlight"></td>
+          <td data-field="is_global"></td>
+          <td data-field="controls" class="right">
+            <div class="row">
+            <div class="col-xs-12 col-lg-6">
+              <a data-action="edit_policy"><span class="icon peerctl icon-edit"></span><span class="label peerctl"></span></a>
+            </div>
+            <div class="col-xs-12 col-lg-6">
+          <a
+            data-api-action="{id}"
+            data-api-callback="remove"
+            data-confirm="Remove policy?"
+            data-api-method="DELETE"><span class="icon peerctl icon-delete"></span><span class="peerctl label"></span></a>
+            </div>
+          </td>
+        </tr>
+        <tr data-template="row" class="secondary">
+          <td colspan="3" class="property">
+            <div class="row">
+              <div class="col-12 field">
+              {% trans "Applied to" %} <span data-field="count_peers">0</span> {% trans "peers" %}
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+<form
+  data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
+  data-api-method="post"
+  data-api-action=""
+  data-template="form_policy">
+
+  <div class="row mb-3">
+    <div class="col-12" data-api-submit="yes">
+      <label for="name" class="form-label">{% trans "Name" %}</label>
+      <input class="form-control" type="text" id="name" name="name">
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-12" data-api-submit="yes">
+      <label for="import_policy" class="form-label">{% trans "Import policy" %}</label>
+      <input class="form-control" type="text" id="import_policy" name="import_policy">
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-12" data-api-submit="yes">
+      <label for="export_policy" class="form-label">{% trans "Export policy" %}</label>
+      <input class="form-control" type="text" id="export_policy" name="export_policy">
+    </div>
+  </div>
+
+
+  <div class="row mb-3">
+    <div class="col-12" data-api-submit="yes">
+      <label for="peer_group" class="form-label">{% trans "Peer group" %}</label>
+      <input class="form-control" type="text" id="peer_group" name="peer_group">
+    </div>
+  </div>
+
+  <div class="row form-check">
+    <div class="col-12" data-api-submit="yes">
+      <input type="checkbox" class="form-check-input" id="is_global4" name="is_global4" />
+      <label for="is_global4" class="form-check-label form-label">{% trans "Set as global v4 policy" %}</label>
+    </div>
+  </div>
+
+  <div class="row form-check">
+    <div class="col-12" data-api-submit="yes">
+      <input type="checkbox" class="form-check-input" id="is_global6" name="is_global6" />
+      <label for="is_global6" class="form-check-label from-label">{% trans "Set as global v6 policy" %}</label>
+    </div>
+  </div>
+
+
+
+
+  <div class="row">
+    <div class="col-6">
+      <a class="edit-toggled btn btn-secondary">{% trans "Cancel" %}</a>
+    </div>
+    <div class="right col-6">
+      <button class="submit">
+        <span class="icon icon-edit fullctl"></span>
+        <span class="label">{% trans "Save" %}</span></button>
+    </div>
+  </div>
+
+
+
+</form>

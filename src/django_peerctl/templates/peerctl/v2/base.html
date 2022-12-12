@@ -1,0 +1,175 @@
+{% extends "common/v2/app/base.html" %}
+{% load static i18n %}
+{% block "title" %}fullctl / peer{% endblock %}
+
+{% block "js" %}
+{{ block.super }}
+<script src="{% static "peerctl/peerctl.js" %}" type="text/javascript"></script>
+<script>
+$(fullctl.application).on("initialized", function(e, peerctl, id) {
+  peerctl.network = {
+    id: {{ net.id }},
+    as_set: "{{ net.as_set }}",
+    name : "{{ net.name }}"
+  }
+
+$('[data-second-tab]').on('show.bs.tab', function(e) {
+  let target = $(e.target).data('second-tab');
+  $(target)
+    .addClass('active show')
+    .siblings('.tab-pane.active')
+    .removeClass('active show')
+});
+});
+</script>
+{% endblock %}
+
+{% block "css" %}
+{{ block.super }}
+    <link href="https://fonts.googleapis.com/css?family=Fira+Sans:100,200,300,400,500,600&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css?family=Fira+Mono:100,200,300,400,500,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static "peerctl/peerctl.css" %}" />
+
+
+{% endblock %}
+
+{% block "header_middle" %}
+<div class="app-pages-nav nav h-100" data-component="pages">
+  <a class="nav-link active"
+    id="tab-summary-sessions"
+    data-bs-toggle="tab"
+    role="tab"
+    aria-controls="page-summary-sessions"
+    aria-selected="false"
+    data-second-tab="#summary-sessions-body"
+    href="#page-summary-sessions">{% trans "Summary" %}</a>
+
+  <a class="nav-link"
+    id="tab-peering-lists"
+    data-bs-toggle="tab"
+    role="tab"
+    aria-controls="page-peering-lists"
+    aria-selected="true"
+    data-second-tab="#peering-lists-body"
+    href="#page-peering-lists">{% trans "Peering" %}</a>
+
+  <a class="nav-link"
+    id="tab-networks"
+    data-bs-toggle="tab"
+    role="tab"
+    aria-controls="page-networks"
+    aria-selected="true"
+    data-second-tab="#networks-body"
+    href="#page-networks">{% trans "Networks" %}</a>
+
+  <a class="nav-link"
+    id="tab-policies"
+    data-bs-toggle="tab"
+    role="tab"
+    aria-controls="page-policies"
+    aria-selected="true"
+    data-second-tab="#policies-body"
+    href="#page-policies">{% trans "Policies" %}</a>
+
+  <a class="nav-link"
+    data-bs-toggle="tab"
+    role="tab"
+    aria-controls="page-templates"
+    aria-selected="false"
+    data-second-tab="#templates-body"
+    href="#page-templates">{% trans "Templates" %}</a>
+</div>
+<div id="data-urls" style="display:hidden">
+  <div class="policy" data-url="{% url "peerctl_api:policy-list" asn=selected_asn %}"></div>
+</div>
+{% endblock %}
+
+{% block "header_right" %}
+{% with app_id="peerctl" %}
+{{ block.super }}
+{% endwith %}
+{% endblock %}
+
+{% block "header_account_panel" %}
+{% with app_id="peerctl" %}
+
+      <span class="header-control">
+        <span class="icon">
+          <span class="inner-icon icon-list dropdown-icon"></span>
+        </span>
+        <button data-element="button_asn" class="button" type="button"  id="asn-menu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        AS{{ selected_asn }}
+        </button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="asn-menu">
+          {% for asn,net in asns.items %}
+          <a class="asn dropdown-item action" data-select-asn="{{ asn }}">
+            <span class="inner-icon icon-list dropdown-icon"></span><span>AS{{ asn }}</span></a>
+          {% endfor %}
+        </div>
+        <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+      </span>
+
+
+{{ block.super }}
+{% endwith %}
+{% endblock %}
+
+
+{% block "app_content_toolbar" %}
+
+<div class="tab-content" id="app-pages">
+  <div class="tab-pane show active" id="page-summary-sessions" role="tabpanel" aria-labelledby="tab-summary-sessions">
+    {% include "peerctl/tool/peering-summary-sessions/sessions-filter.html" %}
+  </div>
+
+  <div class="tab-pane" id="page-peering-lists" role="tabpanel" aria-labelledby="tab-peering-lists">
+    {% include "peerctl/tool/peering-lists/port-form.html" %}
+  </div>
+
+  <div class="tab-pane" id="page-policies" role="tabpanel" aria-labelledby="tab-policies">
+  </div>
+
+  <div class="tab-pane" id="page-networks" role="tabpanel" aria-labelledby="tab-networks">
+    {% include "peerctl/tool/networks/search-form.html" %}
+  </div>
+
+  <div class="tab-pane" id="page-templates" role="tabpanel" aria-labelledby="tab-templates">
+    {% include "peerctl/tool/peering-templates/nav.html" %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block "app_content_menu" %}
+<div class="menu-deco-border"></div>
+{% endblock %}
+
+{% block "app_content_main" %}
+<div class="tab-content" id="app-pages">
+  <div class="tab-pane show active" id="summary-sessions-body" role="tabpanel" aria-labelledby="tab-summary-sessions">
+    {% include "peerctl/tool/peering-summary-sessions/main.html" %}
+  </div>
+
+  <div class="tab-pane" id="peering-lists-body" role="tabpanel" aria-labelledby="tab-peering-lists">
+    {% include "peerctl/tool/peering-lists/main.html" %}
+  </div>
+
+  <div class="tab-pane" id="networks-body" role="tabpanel" aria-labelledby="tab-networks">
+    {% include "peerctl/tool/networks/main.html" %}
+  </div>
+
+  <div class="tab-pane" id="policies-body" role="tabpanel" aria-labelledby="tab-policies">
+    {% include "peerctl/tool/peering-templates/policies.html" %}
+  </div>
+
+
+  <div class="tab-pane" id="templates-body" role="tabpanel" aria-labelledby="tab-templates">
+    {% include "peerctl/tool/peering-templates/main.html" %}
+  </div>
+</div>
+{% endblock %}
+
+{% block "templates" %}
+{{ block.super }}
+
+{% endblock %}
