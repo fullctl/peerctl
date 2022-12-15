@@ -526,8 +526,24 @@ $peerctl.SessionsSummary = $tc.extend(
         );
       });
 
+      // set up delete selected button
+      let elem = document.createElement('div');
+      elem.innerHTML = `<button class="col-md-auto btn me-2 js-hide" data-btn-type="delete" data-element="button_delete_selected" type="button">
+            <div class="row align-items-center">
+              <div class="col label pe-0">Delete Selected</div>
+              <div class="col-auto">
+                  <span class="icon icon-delete"></span>
+              </div>
+            </div>
+          </button>`.trim();
+      this.delete_selected_button = elem.firstElementChild;
+      $(this.delete_selected_button).insertBefore(this.$w.btn_add_peer_session);
+
       this.widget("list_peer_sessions", ($e) => {
-        var w = new twentyc.rest.List($('#summary-sessions-body table'));
+        let w = new $ctl.widget.SelectionList(
+          $('#summary-sessions-body table'),
+          $(this.delete_selected_button)
+        );
 
         w.formatters.row = (row, data) => {
           var policy4_select = new $peerctl.PeerSessionPolicySelect(
@@ -563,9 +579,14 @@ $peerctl.SessionsSummary = $tc.extend(
           });
 
 
-
         }
         return w;
+      });
+      // set up delete select functionality
+      $(this.delete_selected_button).click(() => {
+        if (confirm("Remove selected Peer Sessions?")) {
+          this.$w.list_peer_sessions.delete_selected_list();
+        }
       });
 
       $(this.$w.select_port.element).on("change", () => {
