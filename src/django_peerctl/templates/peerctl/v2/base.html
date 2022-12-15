@@ -4,7 +4,7 @@
 
 {% block "js" %}
 {{ block.super }}
-<script src="{% static "peerctl/peerctl.js" %}" type="text/javascript"></script>
+<script src="{% static "peerctl/v2/peerctl.js" %}" type="text/javascript"></script>
 <script>
 $(fullctl.application).on("initialized", function(e, peerctl, id) {
   peerctl.network = {
@@ -93,7 +93,7 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 {% block "header_account_panel" %}
 {% with app_id="peerctl" %}
 
-      <span class="header-control">
+      <span class="header-control d-flex align-items-center h-100">
         <span class="icon">
           <span class="inner-icon icon-list dropdown-icon"></span>
         </span>
@@ -106,7 +106,7 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
             <span class="inner-icon icon-list dropdown-icon"></span><span>AS{{ asn }}</span></a>
           {% endfor %}
         </div>
-        <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+        <span class="icon icon-caret-down"></span>
       </span>
 
 
@@ -119,22 +119,22 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 
 <div class="tab-content" id="app-pages">
   <div class="tab-pane show active" id="page-summary-sessions" role="tabpanel" aria-labelledby="tab-summary-sessions">
-    {% include "peerctl/tool/peering-summary-sessions/sessions-filter.html" %}
+    {% include "peerctl/v2/tool/peering-summary-sessions/sessions-filter.html" %}
   </div>
 
   <div class="tab-pane" id="page-peering-lists" role="tabpanel" aria-labelledby="tab-peering-lists">
-    {% include "peerctl/tool/peering-lists/port-form.html" %}
+    {% include "peerctl/v2/tool/peering-lists/port-form.html" %}
   </div>
 
   <div class="tab-pane" id="page-policies" role="tabpanel" aria-labelledby="tab-policies">
   </div>
 
   <div class="tab-pane" id="page-networks" role="tabpanel" aria-labelledby="tab-networks">
-    {% include "peerctl/tool/networks/search-form.html" %}
+    {% include "peerctl/v2/tool/networks/search-form.html" %}
   </div>
 
   <div class="tab-pane" id="page-templates" role="tabpanel" aria-labelledby="tab-templates">
-    {% include "peerctl/tool/peering-templates/nav.html" %}
+    {% include "peerctl/v2/tool/peering-templates/nav.html" %}
   </div>
 </div>
 
@@ -147,24 +147,24 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 {% block "app_content_main" %}
 <div class="tab-content" id="app-pages">
   <div class="tab-pane show active" id="summary-sessions-body" role="tabpanel" aria-labelledby="tab-summary-sessions">
-    {% include "peerctl/tool/peering-summary-sessions/main.html" %}
+    {% include "peerctl/v2/tool/peering-summary-sessions/main.html" %}
   </div>
 
   <div class="tab-pane" id="peering-lists-body" role="tabpanel" aria-labelledby="tab-peering-lists">
-    {% include "peerctl/tool/peering-lists/main.html" %}
+    {% include "peerctl/v2/tool/peering-lists/main.html" %}
   </div>
 
   <div class="tab-pane" id="networks-body" role="tabpanel" aria-labelledby="tab-networks">
-    {% include "peerctl/tool/networks/main.html" %}
+    {% include "peerctl/v2/tool/networks/main.html" %}
   </div>
 
   <div class="tab-pane" id="policies-body" role="tabpanel" aria-labelledby="tab-policies">
-    {% include "peerctl/tool/peering-templates/policies.html" %}
+    {% include "peerctl/v2/tool/peering-templates/policies.html" %}
   </div>
 
 
   <div class="tab-pane" id="templates-body" role="tabpanel" aria-labelledby="tab-templates">
-    {% include "peerctl/tool/peering-templates/main.html" %}
+    {% include "peerctl/v2/tool/peering-templates/main.html" %}
   </div>
 </div>
 {% endblock %}
