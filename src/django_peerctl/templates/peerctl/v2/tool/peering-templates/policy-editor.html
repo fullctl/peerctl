@@ -1,5 +1,5 @@
 {% load i18n static %}
-    <table class="table table-borderless"
+    <table class="table table-borderless list-table small"
       data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
       data-template="policy_list">
 
@@ -9,18 +9,19 @@
         <tr data-template="row">
           <td data-field="name" class="highlight"></td>
           <td data-field="is_global"></td>
-          <td data-field="controls" class="right">
-            <div class="row">
-            <div class="col-xs-12 col-lg-6">
-              <a data-action="edit_policy"><span class="icon peerctl icon-edit"></span><span class="label peerctl"></span></a>
-            </div>
-            <div class="col-xs-12 col-lg-6">
-          <a
-            data-api-action="{id}"
-            data-api-callback="remove"
-            data-confirm="Remove policy?"
-            data-api-method="DELETE"><span class="icon peerctl icon-delete"></span><span class="peerctl label"></span></a>
-            </div>
+          <td data-field="controls" class="contorl right">
+              <a class="button col btn m-1" data-action="edit_policy">
+                <span class="icon peerctl icon-edit"></span>
+              </a>
+              <a
+                class="button col btn m-1"
+                data-api-action="{id}"
+                data-api-callback="remove"
+                data-confirm="Remove policy?"
+                data-api-method="DELETE"
+              >
+                <span class="icon peerctl icon-delete"></span>
+              </a>
           </td>
         </tr>
         <tr data-template="row" class="secondary">
@@ -89,12 +90,20 @@
 
   <div class="row">
     <div class="col-6">
-      <a class="edit-toggled btn btn-secondary">{% trans "Cancel" %}</a>
+      <a class="edit-toggled btn secondary btn-secondary">
+        <div class="row align-items-center">
+          <div class="col label pe-0">{% trans "Cancel" %}</div>
+          <div class="col-auto">
+            <span class="icon icon-cancel"></span>
+          </div>
+        </div>
+      </a>
     </div>
     <div class="right col-6">
-      <button class="submit">
-        <span class="icon icon-edit fullctl"></span>
-        <span class="label">{% trans "Save" %}</span></button>
+      <button class="submit primary btn">
+        <span class="label">{% trans "Save" %}</span>
+        <span class="icon icon-edit"></span>
+      </button>
     </div>
   </div>
 
