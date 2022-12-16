@@ -202,6 +202,12 @@ $peerctl.Networks = $tc.extend(
         }
       }.bind(this));
 
+      this.btn_network_search = $ctl.peerctl.$c.toolbar.$e.network_search_submit;
+
+      $(this.btn_network_search).click(function() {
+        this.sync();
+      }.bind(this));
+
       this.$w.list.element.find("[data-element=request_peering]").on("click", () => {
         this.request_peering();
       });
