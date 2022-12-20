@@ -35,6 +35,10 @@ div.peers-row {
   margin-left: 15px;
 }
 
+.compact-list div.compact-row input+span {
+ margin-left: 0.25rem;
+}
+
 .peering-templates-nav .nav-link {
   color: var(--foreground);
 }
