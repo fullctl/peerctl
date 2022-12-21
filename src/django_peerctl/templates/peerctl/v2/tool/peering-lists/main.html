@@ -121,9 +121,20 @@
                 </div></div>
               </div>
               <div class="col-9">
-                <div class="property"><div class="transparent-field">
-                  <button data-element="request_peering"><span class="icon fullctl icon-mail"></span><span class="label">{% trans "Request peering" %}</span></button>
-                </div></div>
+                <div class="property">
+                  <div class="transparent-field">
+                    <button class="primary btn | small" data-element="request_peering">
+                      <div class="row align-items-center">
+                        <div class="col label pe-0">
+                          {% trans "Request peering" %}
+                        </div>
+                        <div class="col-auto">
+                          <span class="icon fullctl icon-mail"></span>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="row">
@@ -194,7 +205,7 @@
           </div>
           <div class="col-xs-12 col-2 right">
             <div class="property"><div class="transparent-field">
-            <button class="peer_session-active-toggled" data-element="peer_session_device_config">
+            <button class="peer_session-active-toggled | secondary btn small" data-element="peer_session_device_config">
               <span class="icon fullctl icon-settings"></span>
               <span class="label">{% trans "Show Config" %}</span></button>
             </div>
@@ -282,37 +293,30 @@
 
 
 
-      <div class="row">
+      <div class="row mt-4">
 
-        <div class="col-auto mt-1 me-auto">
-          <div class="row">
-          </div>
-        </div>
-        <div class="col-auto mt-1 right">
-          <div class="row">
-
-            <div class="toolbar-field col">
-              <div class="row">
-                <div class="col-auto">
+            <div class="toolbar-field col-auto py-0">
+                <span class="me-2">
                   {% trans "Template" %}
-                </div>
-                <div class="col-auto">
-                  <select style="max-width: inherit;"
-                    data-api-base="{% url "peerctl_api:device_template-list-available" asn=selected_asn %}"
-                    data-element="port_device_template">
-                  </select>
-                </div>
-              </div>
+                </span>
+                <select class="secondary h-100 form-select" style="max-width: inherit;"
+                  data-api-base="{% url "peerctl_api:device_template-list-available" asn=selected_asn %}"
+                  data-element="port_device_template">
+                </select>
             </div>
 
-            <button class="col-auto py-2" data-element="device_config">
-              <span class="icon fullctl icon-settings"></span>
-              <span class="label">{% trans "Show config" %}</span>
+            <div class="col">
+
+            </div>
+
+            <button class="secondary col-md-auto btn ms-3" data-element="device_config">
+              <div class="row align-items-center">
+                <div class="col label pe-0">Show config</div>
+                <div class="col-auto">
+                  <span class="icon icon-view-settings"></span>
+                </div>
+              </div>
             </button>
-
-          </div>
-        </div>
-
       </div>
       <div class="row marg-top-lg ixctl-controls">
         <div class="col-xs-12 col-8">
