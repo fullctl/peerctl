@@ -1323,9 +1323,10 @@ $peerctl.PeerSessionList = $tc.extend(
           data.port_id
         );
 
-        var button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
+        let button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
 
         button_show_config.click(()=>{
+          console.log(data);
           new $peerctl.modals.DeviceConfig(data);
         });
 
@@ -1592,10 +1593,10 @@ $peerctl.DeviceTemplatePreview = $tc.extend(
     DeviceTemplatePreview: function(jq, device, type, peer) {
       this.peer = peer;
       this.device = device;
-      this.TemplatePreview(jq, $peerctl.DeviceTemplateSelect, type);
+      this.ConfigPreview(jq, $peerctl.DeviceTemplateSelect, type);
     },
 
-    preview_payload: function() {
+    payload: function() {
       var payload = {
         type: this.type,
         device: this.device.id
@@ -1608,7 +1609,7 @@ $peerctl.DeviceTemplatePreview = $tc.extend(
       return payload;
     }
   },
-  $peerctl.TemplatePreview
+  $ctl.ConfigPreview
 );
 
 
