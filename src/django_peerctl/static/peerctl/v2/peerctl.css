@@ -27,7 +27,32 @@ button.peer_session-live {
 }
 
 div.peers-row {
-  border-left: 4px solid transparent;
+  border-left: 4px solid;
+}
+
+div.peers-row.border-inactive {
+  border-color: var(--clr-accent-400);
+}
+
+div.peers-row.border-active {
+  border-color: var(--clr-primary-500);
+}
+
+.secondary .property .field [data-field="peeringdb"] .icon {
+  padding-left: 0.5ch;
+  background-color: var(--clr-accent-400);
+}
+
+.secondary .property .field [data-field="peeringdb"] a{
+  color: var(--clr-accent-400);
+}
+
+[data-theme="light"] .secondary .property .field [data-field="peeringdb"] a{
+  color: blue;
+}
+
+[data-theme="light"] .secondary .property .field [data-field="peeringdb"] .icon {
+  background-color: blue;
 }
 
 .compact-list div.compact-row {
@@ -41,4 +66,17 @@ div.peers-row {
 
 .peering-templates-nav .nav-link {
   color: var(--foreground);
+}
+
+.port-info .toolbar-field {
+  border: 1px solid var(--clr-border-200);
+}
+
+.port-info .toolbar-field span.icon:not(.inactive) {
+  background-color: var(--clr-accent-400);
+}
+
+.toggle-mutual-locations {
+  border: none;
+  background-color: transparent;
 }

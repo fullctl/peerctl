@@ -12,10 +12,11 @@
 </div>
 <div class="row mb-3">
   <div class="col-12" data-api-submit="yes">
-    <textarea
+    <pre class="codeblock"
       name="body"
       data-api-preview="{% url "peerctl_api:device_template-preview" asn=selected_asn pk="tmpl_id" %}"
       data-api-preview-default="{% url "peerctl_api:device_template-preview-default" asn=selected_asn %}"
-      class="form-control template-editor"></textarea>
+      class="form-control template-editor">
+    </pre>
   </div>
 </div>
