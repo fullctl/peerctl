@@ -580,6 +580,14 @@ class CreateFloatingPeerSession(serializers.Serializer):
 
 
 @register
+class CreatePartialPeerSession(CreateFloatingPeerSession):
+    port = serializers.IntegerField(
+        required=False, help_text=_("deviceCtl Port reference")
+    )
+    ref_tag = "create_partial_peer_session"
+
+
+@register
 class UpdatePeerSession(CreateFloatingPeerSession):
 
     """
@@ -619,6 +627,14 @@ class UpdatePeerSession(CreateFloatingPeerSession):
         session.save()
 
         return session
+
+
+@register
+class UpdatePartialPeerSession(UpdatePeerSession):
+    port = serializers.IntegerField(
+        required=False, help_text=_("deviceCtl Port reference")
+    )
+    ref_tag = "update_partial_peer_session"
 
 
 @register
@@ -824,22 +840,40 @@ class PeerSession(ModelSerializer):
         return obj.peer_port.peer_net.info_prefixes(6)
 
     def get_device_name(self, obj):
+        if not obj.port.object:
+            return None
+
         return obj.devices[0].display_name
 
     def get_device_id(self, obj):
+        if not obj.port.object:
+            return None
+
         return obj.devices[0].id
 
     def get_facility_slug(self, obj):
+        if not obj.port.object:
+            return None
+
         return obj.devices[0].facility_slug
 
     def get_port_is_ix(self, obj):
+        if not obj.port.object:
+            return False
+
         ix_id = obj.port.object.port_info_object.ref_ix_id
         return ix_id is not None and ix_id != 0
 
     def get_port_interface(self, obj):
-        return obj.port.object.virtual_port_name
+        if obj.port and obj.port.object:
+            return obj.port.object.virtual_port_name
+        return None
 
     def get_port_display_name(self, obj):
+
+        if not obj.port.object:
+            return ""
+
         return (
             obj.port.object.port_info_object.ix_name
             + " "

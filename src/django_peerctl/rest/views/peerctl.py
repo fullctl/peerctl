@@ -892,9 +892,6 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if not data.get("peer_maxprefix6"):
             data["peer_maxprefix6"] = 0
 
-        if not data.get("peer_asn"):
-            data["peer_asn"] = 0
-
         serializer = Serializers.create_floating_peer_session(
             data=data, context={"asn": asn}
         )
@@ -918,8 +915,86 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if not data.get("peer_maxprefix6"):
             data["peer_maxprefix6"] = 0
 
+        serializer = Serializers.update_peer_session(
+            session, data=data, context={"asn": asn}
+        )
+
+        serializer.is_valid(raise_exception=True)
+
+        peer_session = serializer.save()
+
+        return Response(self.serializer_class(peer_session).data)
+
+
+@route
+class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
+
+    serializer_class = Serializers.peer_session
+    queryset = models.PeerSession.objects.all()
+    require_asn = True
+
+    ref_tag = "partial_peer_session"
+
+    def get_serializer_dynamic(self, path, method, direction):
+
+        """
+        Retrieve correct serializer class for openapi schema
+        generation
+        """
+
+        if method == "POST":
+            return Serializers.create_partial_peer_session()
+        elif method == "PUT":
+            return Serializers.update_partial_peer_session()
+
+        return Serializers.peer_session()
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def create(self, request, asn, net, *args, **kwargs):
+
+        data = request.data.copy()
+
+        if not data.get("peer_maxprefix4"):
+            data["peer_maxprefix4"] = 0
+
+        if not data.get("peer_maxprefix6"):
+            data["peer_maxprefix6"] = 0
+
         if not data.get("peer_asn"):
             data["peer_asn"] = 0
+
+        if not data.get("port"):
+            data["port"] = 0
+
+        serializer = Serializers.create_floating_peer_session(
+            data=data, context={"asn": asn}
+        )
+
+        serializer.is_valid(raise_exception=True)
+
+        peer_session = serializer.save()
+
+        return Response(self.serializer_class(peer_session).data)
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def update(self, request, asn, net, pk, *args, **kwargs):
+
+        data = request.data.copy()
+        session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
+
+        if not data.get("peer_maxprefix4"):
+            data["peer_maxprefix4"] = 0
+
+        if not data.get("peer_maxprefix6"):
+            data["peer_maxprefix6"] = 0
+
+        if not data.get("peer_asn"):
+            data["peer_asn"] = 0
+
+        if not data.get("port"):
+            data["port"] = 0
 
         serializer = Serializers.update_peer_session(
             session, data=data, context={"asn": asn}
