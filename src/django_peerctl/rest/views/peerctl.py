@@ -769,6 +769,20 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     require_asn = True
     require_port = True
 
+    def get_serializer_dynamic(self, path, method, direction):
+
+        """
+        Retrieve correct serializer class for openapi schema
+        generation
+        """
+
+        if path == "/api/peer_session/{asn}/{port_pk}/create_floating/":
+            return Serializers.create_floating_peer_session()
+        elif method == "PUT":
+            return Serializers.update_peer_session()
+
+        return Serializers.peer_session()
+
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, port_pk, *args, **kwargs):
@@ -782,6 +796,9 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
             through_member = get_member(data.get("through"), join="ix")
         else:
             through_member = member
+
+        if not data.get("peer_asn"):
+            data["peer_asn"] = 0
 
         peer_port = models.PeerPort.get_or_create_from_members(
             port.port_info_object.ref, member
@@ -841,10 +858,31 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
             super().destroy(request, asn, port, pk)
         return Response(self.serializer_class(peer_session).data)
 
-    @action(detail=False, methods=["post"])
+    @action(
+        detail=False,
+        methods=["post"],
+        serializer_class=Serializers.create_floating_peer_session,
+    )
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create_floating(self, request, asn, net, port_pk, *args, **kwargs):
+
+        """
+        Creates a new peering session.
+
+        Note that unless you set at minimum the following:
+
+        - peer ipv4 or ipv6 address
+        - peer type
+        - peer asn
+        - ipv4 or ipv6 policy
+        - port
+
+        the session will come back with status `partial`
+
+        You may update / finish configuration of partial sessions using the PUT request
+        the peer session API
+        """
 
         data = request.data.copy()
 
@@ -853,6 +891,9 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         if not data.get("peer_maxprefix6"):
             data["peer_maxprefix6"] = 0
+
+        if not data.get("peer_asn"):
+            data["peer_asn"] = 0
 
         serializer = Serializers.create_floating_peer_session(
             data=data, context={"asn": asn}
@@ -876,6 +917,9 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         if not data.get("peer_maxprefix6"):
             data["peer_maxprefix6"] = 0
+
+        if not data.get("peer_asn"):
+            data["peer_asn"] = 0
 
         serializer = Serializers.update_peer_session(
             session, data=data, context={"asn": asn}
