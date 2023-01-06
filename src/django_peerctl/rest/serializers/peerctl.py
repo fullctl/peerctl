@@ -1,6 +1,5 @@
 import fullctl.service_bridge.pdbctl as pdbctl
-
-# from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _
 from fullctl.django.rest.decorators import serializer_registry
 from fullctl.django.rest.serializers import ModelSerializer
 from rest_framework import serializers
@@ -460,17 +459,61 @@ class PeerDetails(serializers.Serializer):
 @register
 class CreateFloatingPeerSession(serializers.Serializer):
 
-    peer_ip4 = serializers.CharField(allow_null=True, allow_blank=True)
-    peer_ip6 = serializers.CharField(allow_null=True, allow_blank=True)
-    policy_4 = serializers.IntegerField()
-    policy_6 = serializers.IntegerField()
-    peer_maxprefix4 = serializers.IntegerField(allow_null=True)
-    peer_maxprefix6 = serializers.IntegerField(allow_null=True)
-    md5 = serializers.CharField(allow_null=True, allow_blank=True)
-    peer_asn = serializers.IntegerField()
-    peer_interface = serializers.CharField(allow_null=True, allow_blank=True)
-    peer_session_type = serializers.CharField(default="peer")
-    port = serializers.IntegerField()
+    peer_ip4 = serializers.CharField(
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+        help_text=_("Peer IPv4 address"),
+    )
+    peer_ip6 = serializers.CharField(
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+        help_text=_("Peer IPv6 address"),
+    )
+    policy_4 = serializers.IntegerField(
+        required=False,
+        help_text=_(
+            "IPv4 Policy - session will use this peering policy, should be policy id"
+        ),
+    )
+    policy_6 = serializers.IntegerField(
+        required=False,
+        help_text=_(
+            "IPv6 Policy - session will use this peering policy, should be policy id"
+        ),
+    )
+    peer_maxprefix4 = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text=_(
+            "Number of IPv4 prefixes - if not specified, value will be pulled from PeeringDB if network exists"
+        ),
+    )
+    peer_maxprefix6 = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text=_(
+            "Number of IPv6 prefixes - if not specified, value will be pulled from PeeringDB if network exists"
+        ),
+    )
+    md5 = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text=_("Session MD5 password"),
+    )
+    peer_asn = serializers.IntegerField(
+        required=False, allow_null=True, help_text=_("ASN of the peer")
+    )
+    peer_interface = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text=_("Interface name of the peer port"),
+    )
+    peer_session_type = serializers.CharField(default="peer", required=False)
+    port = serializers.IntegerField(help_text=_("deviceCtl Port reference"))
 
     ref_tag = "create_floating_peer_session"
 
@@ -536,6 +579,14 @@ class CreateFloatingPeerSession(serializers.Serializer):
 
 
 @register
+class CreatePartialPeerSession(CreateFloatingPeerSession):
+    port = serializers.IntegerField(
+        required=False, help_text=_("deviceCtl Port reference")
+    )
+    ref_tag = "create_partial_peer_session"
+
+
+@register
 class UpdatePeerSession(CreateFloatingPeerSession):
 
     """
@@ -578,6 +629,14 @@ class UpdatePeerSession(CreateFloatingPeerSession):
 
 
 @register
+class UpdatePartialPeerSession(UpdatePeerSession):
+    port = serializers.IntegerField(
+        required=False, help_text=_("deviceCtl Port reference")
+    )
+    ref_tag = "update_partial_peer_session"
+
+
+@register
 class PeerSession(ModelSerializer):
     policy4_id = serializers.SerializerMethodField()
     policy4_name = serializers.SerializerMethodField()
@@ -613,6 +672,8 @@ class PeerSession(ModelSerializer):
     port_is_ix = serializers.SerializerMethodField()
 
     md5 = serializers.SerializerMethodField()
+
+    status = serializers.SerializerMethodField()
 
     ref_tag = "peer_session"
 
@@ -655,6 +716,46 @@ class PeerSession(ModelSerializer):
             "facility_slug",
             "status",
         ]
+
+    def get_status(self, obj):
+
+        """
+        returns peer-session, but will return `partial` if minimum amount
+        of information is missing
+        """
+
+        # if the session status is anything but `ok` we can just return
+        # as is
+
+        if obj.status != "ok":
+            return obj.status
+
+        # neither ipv4 nor ipv6 policy is set, partial config
+
+        if not self.get_policy4_id(obj) and not self.get_policy6_id(obj):
+            return "partial"
+
+        # no peer type is specified, partial config
+
+        if not self.get_peer_type(obj):
+            return "partial"
+
+        # neither peer ipv4 nor peer ipv6 address is set, partial config
+
+        if not obj.peer_ip4 and not obj.peer_ip6:
+            return "partial"
+
+        # peer asn not specified, partial config
+
+        if not self.get_peer_asn(obj):
+            return "partial"
+
+        # device and port not specified, partial config
+
+        if not self.get_device_id(obj):
+            return "partial"
+
+        return "ok"
 
     def get_policy(self, obj, version):
 
@@ -738,22 +839,40 @@ class PeerSession(ModelSerializer):
         return obj.peer_port.peer_net.info_prefixes(6)
 
     def get_device_name(self, obj):
+        if not obj.port.object:
+            return None
+
         return obj.devices[0].display_name
 
     def get_device_id(self, obj):
+        if not obj.port.object:
+            return None
+
         return obj.devices[0].id
 
     def get_facility_slug(self, obj):
+        if not obj.port.object:
+            return None
+
         return obj.devices[0].facility_slug
 
     def get_port_is_ix(self, obj):
+        if not obj.port.object:
+            return False
+
         ix_id = obj.port.object.port_info_object.ref_ix_id
         return ix_id is not None and ix_id != 0
 
     def get_port_interface(self, obj):
-        return obj.port.object.virtual_port_name
+        if obj.port and obj.port.object:
+            return obj.port.object.virtual_port_name
+        return None
 
     def get_port_display_name(self, obj):
+
+        if not obj.port.object:
+            return ""
+
         return (
             obj.port.object.port_info_object.ix_name
             + " "

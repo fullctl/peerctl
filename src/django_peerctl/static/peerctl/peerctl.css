@@ -34,3 +34,7 @@ div.peers-row {
   padding: 3px;
   margin-left: 15px;
 }
+
+tr.partial {
+  background-color: #d779791c;
+}

@@ -559,6 +559,10 @@ $peerctl.SessionsSummary = $tc.extend(
           row.find("[data-action=edit_session]").click(() => {
             new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
           });
+
+          if(data.status == "partial") {
+            row.addClass("partial");
+          }
         }
         return w;
       });
