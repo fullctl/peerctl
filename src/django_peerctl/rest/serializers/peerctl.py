@@ -1,4 +1,3 @@
-import fullctl.django.rest.serializers.meta as meta
 import fullctl.service_bridge.pdbctl as pdbctl
 from django.utils.translation import ugettext_lazy as _
 from fullctl.django.rest.decorators import serializer_registry
@@ -8,7 +7,6 @@ from rest_framework.exceptions import ValidationError  # noqa
 
 import django_peerctl.models as models
 from django_peerctl.helpers import get_best_policy
-from django_peerctl.meta import PeerSessionSchema
 
 Serializers, register = serializer_registry()
 
