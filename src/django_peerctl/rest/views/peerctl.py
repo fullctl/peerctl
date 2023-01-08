@@ -778,6 +778,8 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         if path == "/api/peer_session/{asn}/{port_pk}/create_floating/":
             return Serializers.create_floating_peer_session()
+        elif path == "/api/peer_session/{asn}/{port_pk}/{id}/update_meta/":
+            return Serializers.update_peer_session_meta()
         elif method == "PUT":
             return Serializers.update_peer_session()
 
@@ -923,6 +925,34 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         peer_session = serializer.save()
 
+        return Response(self.serializer_class(peer_session).data)
+
+    @action(
+        detail=True,
+        methods=["put", "post"],
+        serializer_class=Serializers.update_peer_session_meta,
+    )
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def update_meta(self, request, asn, net, port_pk, pk, *args, **kwargs):
+
+        data = request.data.copy()
+        session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
+
+        serializer = Serializers.update_peer_session_meta(
+            session, data=data, context={}
+        )
+
+        if "meta4" not in data:
+            data["meta4"] = session.meta4 or None
+
+
+        if "meta6" not in data:
+            data["meta6"] = session.meta6 or None
+
+
+        serializer.is_valid(raise_exception=True)
+        peer_session = serializer.save()
         return Response(self.serializer_class(peer_session).data)
 
 
