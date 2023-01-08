@@ -636,6 +636,45 @@ class UpdatePartialPeerSession(UpdatePeerSession):
     ref_tag = "update_partial_peer_session"
 
 
+class PeerSessionMeta(serializers.Serializer):
+
+    # TODO: gen rest seralizer from confu schema
+
+    last_updown = serializers.CharField()
+    session_state = serializers.CharField()
+
+    active = serializers.IntegerField()
+    received = serializers.IntegerField()
+    accepted = serializers.IntegerField()
+    damped = serializers.IntegerField()
+
+    class Meta:
+        fields = [
+            "last_updown",
+            "session_state",
+            "active",
+            "received" "accepted",
+            "damped",
+        ]
+
+
+@register
+class UpdatePeerSessionMeta(ModelSerializer):
+
+    """
+    This serializer is used to update session meta data
+    """
+
+    meta4 = PeerSessionMeta(required=False, allow_null=True)
+    meta6 = PeerSessionMeta(required=False, allow_null=True)
+
+    ref_tag = "update_peer_session_meta"
+
+    class Meta:
+        model = models.PeerSession
+        fields = ["meta4", "meta6"]
+
+
 @register
 class PeerSession(ModelSerializer):
     policy4_id = serializers.SerializerMethodField()
@@ -670,6 +709,9 @@ class PeerSession(ModelSerializer):
     port_display_name = serializers.SerializerMethodField()
     port_interface = serializers.SerializerMethodField()
     port_is_ix = serializers.SerializerMethodField()
+
+    meta4 = serializers.SerializerMethodField()
+    meta6 = serializers.SerializerMethodField()
 
     md5 = serializers.SerializerMethodField()
 
@@ -714,8 +756,18 @@ class PeerSession(ModelSerializer):
             "device_name",
             "device_id",
             "facility_slug",
+            "meta4",
+            "meta6",
             "status",
         ]
+
+    def get_meta4(self, obj):
+        # TODO: fill in defaults?
+        return obj.meta4
+
+    def get_meta6(self, obj):
+        # TODO: full in defaults?
+        return obj.meta6
 
     def get_status(self, obj):
 

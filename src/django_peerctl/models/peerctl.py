@@ -20,6 +20,7 @@ from django_grainy.decorators import grainy_model
 from django_handleref.models import HandleRefModel
 from django_inet.models import ASNField
 from fullctl.django.fields.service_bridge import ReferencedObjectField
+from fullctl.django.models.abstract import meta
 from fullctl.django.models.concrete import Instance, Organization  # noqa
 from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
@@ -30,6 +31,7 @@ from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
 from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
+from django_peerctl.meta import PeerSessionSchema
 from django_peerctl.models.tasks import SyncMacAddress
 from django_peerctl.templating import make_variable_name
 
@@ -1089,7 +1091,7 @@ class PeerPort(Base):
 # class BGPSession(Base):
 @grainy_model(namespace="peer_session")
 @reversion.register
-class PeerSession(PolicyHolderMixin, Base):
+class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     """
     preferences and policy for specific peer::ix::session
 
@@ -1110,12 +1112,24 @@ class PeerSession(PolicyHolderMixin, Base):
         default="peer",
     )
 
+    meta4 = models.JSONField(null=True)
+    meta6 = models.JSONField(null=True)
+
     class Meta:
         unique_together = ("port", "peer_port")
         db_table = "peerctl_peer_session"
 
     class HandleRef:
         tag = "peer_session"
+
+    class DataSchema:
+
+        """
+        Session meta data
+        """
+
+        meta4 = PeerSessionSchema()
+        meta6 = PeerSessionSchema()
 
     @classmethod
     @reversion.create_revision()

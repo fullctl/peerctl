@@ -564,6 +564,23 @@ $peerctl.SessionsSummary = $tc.extend(
             row.addClass("partial");
           }
         }
+
+        w.formatters.meta4 = (value) => {
+          if(!value)
+            return "-";
+
+          var node = $('<div>');
+          node.append($('<span>').text(value.last_updown));
+          node.append($('<button data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').prop("title", fullctl.formatters.meta_data(value).html()).tooltip().append(
+            $('<span class="icon fullctl icon-list">')
+          ));
+
+          return node;
+
+        };
+
+        w.formatters.meta6 = w.formatters.meta4;
+
         return w;
       });
 
