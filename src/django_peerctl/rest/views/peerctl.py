@@ -929,7 +929,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["put", "post"],
+        methods=["put"],
         serializer_class=Serializers.update_peer_session_meta,
     )
     @load_object("net", models.Network, asn="asn")
