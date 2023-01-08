@@ -13,13 +13,26 @@
   data-template="list">
   <thead>
       <tr>
-      <th>{% trans "ASN" %}</th>
-      <th>{% trans "Ip" %}</th>
-      <th>{% trans "Type" %}</th>
-      <th>{% trans "Policy IPv4" %}</th>
-      <th>{% trans "Policy IPv6" %}</th>
-      <th>{% trans "Port" %}</th>
-      <th>{% trans "Device" %}</th>
+      <th>
+        <div>{% trans "ASN" %}</div>
+        <div>{% trans "Type" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Ip4" %}</div>
+        <div>{% trans "Ip6" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Policy4" %}</div>
+        <div>{% trans "Policy6" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Port" %}</div>
+        <div>{% trans "Device" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Last Updown4" %}</div>
+        <div>{% trans "Last Updown6" %}</div>
+      </th>
       <th></th>
       </tr>
   </thead>
@@ -29,25 +42,30 @@
 
   <tbody class="templates">
       <tr data-template="row" class="with-border">
-        <td data-field="peer_asn" class="highlight"></td>
-
+        <td>
+          <div data-field="peer_asn" class="highlight"></div>
+          <div data-field="peer_session_type"></div>
+        </td>
         <td>
           <div data-field="peer_ip4"></div>
           <div data-field="peer_ip6"></div>
         </td>
-
+        <td class="secondary">
+          <div>
+            <span data-field="policy4_name"></span>
+          </div>
+          <div>
+            <span data-field="policy6_name"></span>
+          </div>
+        </td>
         <td>
-          <div data-field="peer_session_type"></div>
+          <div data-field="port_display_name"></div>
+          <div data-field="device_name"></div>
         </td>
-
-        <td class="secondary">
-          <span data-field="policy4_name"></span>
+        <td>
+          <div data-field="meta4"></div>
+          <div data-field="meta6"></div>
         </td>
-        <td class="secondary">
-          <span data-field="policy6_name"></span>
-        </td>
-        <td data-field="port_display_name"></td>
-        <td data-field="device_name"></td>
         <td class="control">
           <div class="row">
             <div class="col-xs-12 col-lg-6">
