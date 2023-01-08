@@ -20,8 +20,8 @@ from django_grainy.decorators import grainy_model
 from django_handleref.models import HandleRefModel
 from django_inet.models import ASNField
 from fullctl.django.fields.service_bridge import ReferencedObjectField
-from fullctl.django.models.concrete import Instance, Organization  # noqa
 from fullctl.django.models.abstract import meta
+from fullctl.django.models.concrete import Instance, Organization  # noqa
 from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
@@ -31,9 +31,9 @@ from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
 from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
+from django_peerctl.meta import PeerSessionSchema
 from django_peerctl.models.tasks import SyncMacAddress
 from django_peerctl.templating import make_variable_name
-from django_peerctl.meta import PeerSessionSchema
 
 # naming::
 # handleref tag $model_$model
@@ -1086,7 +1086,6 @@ class PeerPort(Base):
 
     def __str__(self):
         return f"PeerPort({self.id}): {self.port_info}"
-
 
 
 # class BGPSession(Base):

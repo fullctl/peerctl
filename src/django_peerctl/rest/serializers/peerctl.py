@@ -1,8 +1,8 @@
+import fullctl.django.rest.serializers.meta as meta
 import fullctl.service_bridge.pdbctl as pdbctl
 from django.utils.translation import ugettext_lazy as _
 from fullctl.django.rest.decorators import serializer_registry
 from fullctl.django.rest.serializers import ModelSerializer
-import fullctl.django.rest.serializers.meta as meta
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError  # noqa
 
@@ -638,7 +638,6 @@ class UpdatePartialPeerSession(UpdatePeerSession):
     ref_tag = "update_partial_peer_session"
 
 
-
 class PeerSessionMeta(serializers.Serializer):
 
     # TODO: gen rest seralizer from confu schema
@@ -656,10 +655,10 @@ class PeerSessionMeta(serializers.Serializer):
             "last_updown",
             "session_state",
             "active",
-            "received"
-            "accepted",
+            "received" "accepted",
             "damped",
         ]
+
 
 @register
 class UpdatePeerSessionMeta(ModelSerializer):
@@ -676,6 +675,7 @@ class UpdatePeerSessionMeta(ModelSerializer):
     class Meta:
         model = models.PeerSession
         fields = ["meta4", "meta6"]
+
 
 @register
 class PeerSession(ModelSerializer):

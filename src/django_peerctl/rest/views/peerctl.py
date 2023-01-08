@@ -946,10 +946,8 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if "meta4" not in data:
             data["meta4"] = session.meta4 or None
 
-
         if "meta6" not in data:
             data["meta6"] = session.meta6 or None
-
 
         serializer.is_valid(raise_exception=True)
         peer_session = serializer.save()
