@@ -555,16 +555,7 @@ $peerctl.SessionsSummary = $tc.extend(
       });
 
       // set up delete selected button
-      let elem = document.createElement('div');
-      elem.innerHTML = `<button class="col-md-auto btn me-2 js-hide" data-btn-type="delete" data-element="button_delete_selected" type="button">
-            <div class="row align-items-center">
-              <div class="col label pe-0">Delete Selected</div>
-              <div class="col-auto">
-                  <span class="icon icon-delete"></span>
-              </div>
-            </div>
-          </button>`.trim();
-      this.delete_selected_button = elem.firstElementChild;
+      this.delete_selected_button = this.$t.button_delete_selected;
       $(this.delete_selected_button).insertBefore(this.$w.btn_add_peer_session);
 
       // setup session summary widget
