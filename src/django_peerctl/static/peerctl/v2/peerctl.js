@@ -47,10 +47,6 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       $('a[data-select-asn]').click(function(){
         window.location.href = "?asn="+$(this).data("select-asn");
       });
-
-      $(this.$c.toolbar.$e.peer_filter_submit).click(()=>{
-        this.$t.sessions_summary.sync();
-      });
       $(this.$c.toolbar.$e.peer_filter).on("keydown", (ev)=>{
         if(ev.which == 13) {
           this.$t.sessions_summary.sync();
@@ -106,6 +102,40 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
 
     refresh_select_port : function() {
       return this.$t.peering_lists.$w.select_port.refresh();
+    },
+
+    /**
+     * Parses the autoload parameters to determien whether
+     * or not autloading is enabled for the provided page.
+     *
+     * Will also parse arguments into named attribtes and return
+     * them in an object literal.
+     *
+     * TODO: move to fullctl/fullctl
+     * @method autoload_enabled
+     * @param {String} page page/tab name
+     * @param {Function} validate_arg function to validate argument values
+     * @param {Array} names attribute names
+     */
+
+    autoload_enabled : function(page, validate_arg, names) {
+      if(!this.autoload_args || this.autoload_args[0] != page) {
+        return null;
+      }
+
+      var valid = false;
+      var arg, autoload = {}
+
+      for(var i = 1; i < this.autoload_args.length; i++) {
+        arg = this.autoload_arg(i);
+        if(validate_arg(arg,i)) {
+          valid = true;
+          autoload[names[i-1]] = arg;
+        }
+      }
+      if(!valid)
+        return null;
+      return autoload;
     }
 
   },
@@ -200,12 +230,6 @@ $peerctl.Networks = $tc.extend(
         if(ev.which == 13) {
           this.sync();
         }
-      }.bind(this));
-
-      this.btn_network_search = $ctl.peerctl.$c.toolbar.$e.network_search_submit;
-
-      $(this.btn_network_search).click(function() {
-        this.sync();
       }.bind(this));
 
       this.$w.list.element.find("[data-element=request_peering]").on("click", () => {
@@ -503,10 +527,6 @@ $peerctl.SessionsSummary = $tc.extend(
         return this.setup_select_filter('#page-summary-sessions select[data-element="select_facility"]');
       });
 
-      this.widget("btn_add_peer_session", ($e) => {
-        return $('#page-summary-sessions button[data-element="btn_add_peer_session"]');
-      });
-
 
       this.$w.select_port.format_request_url = (url) => {
         let device_filter = this.$w.select_device.element.val();
@@ -520,11 +540,7 @@ $peerctl.SessionsSummary = $tc.extend(
         return url.replace(/fac_tag/g, this.$w.select_facility.element.val());
       };
 
-      $(this.$w.select_facility).one("load:after", () => {
-        this.sync();
-      });
-
-      this.$w.btn_add_peer_session.click(() => {
+      this.$e.btn_add_peer_session.click(() => {
         new $ctl.application.Peerctl.ModalFloatingSession(
           this.$w.select_facility.element.val(),
           this.$w.select_device.element.val(),
@@ -532,116 +548,210 @@ $peerctl.SessionsSummary = $tc.extend(
         );
       });
 
-      // set up delete selected button
-      this.delete_selected_button = this.$t.button_delete_selected;
-      $(this.delete_selected_button).insertBefore(this.$w.btn_add_peer_session);
+      // setup session summary widget
 
       this.widget("list_peer_sessions", ($e) => {
-        let w = new $ctl.widget.SelectionList(
-          $('#summary-sessions-body table'),
-          $(this.delete_selected_button)
-        );
+        var w = new twentyc.rest.List($('#summary-sessions-body table'));
+
+        // handle policy editor widgets for each row
 
         w.formatters.row = (row, data) => {
-          var policy4_select = new $peerctl.PeerSessionPolicySelect(
-            row.find('.peer_session-policy-4'), 4, data.port_id, data.id
-          );
-          var policy6_select = new $peerctl.PeerSessionPolicySelect(
-            row.find('.peer_session-policy-6'), 6, data.port_id, data.id
-          );
-
-          var policy4_edit = row.find('[data-element="edit_policy4"]');
-          var policy6_edit = row.find('[data-element="edit_policy6"]');
-
-          policy4_edit.attr("id", "policy4-edit-"+data.id);
-          policy4_edit.dropdown();
-          $(policy4_select).on("api-write:success", ()=>{policy4_edit.dropdown("hide"); w.load(); });
-
-          policy4_edit.on("show.bs.dropdown", () => {
-            policy4_select.load().then(() => {
-              policy4_select.element.prop("size", policy4_select.element.find("option").length);
-              policy4_select.element.val(data.policy4_inherited ? 0 : data.policy4_id);
-            });
+          row.find("[data-action=edit_session]").click(() => {
+            new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
           });
 
-          policy6_edit.attr("id", "policy6-edit-"+data.id);
-          policy6_edit.dropdown();
-          $(policy6_select).on("api-write:success", ()=>{policy6_edit.dropdown("hide"); w.load(); });
-
-          policy6_edit.on("show.bs.dropdown", () => {
-            policy6_select.load().then(() => {
-              policy6_select.element.prop("size", policy6_select.element.find("option").length);
-              policy6_select.element.val(data.policy6_inherited ? 0 : data.policy6_id);
-            });
-          });
-
-
+          if(data.status == "partial") {
+            row.addClass("partial");
+          }
         }
+
+        w.formatters.meta4 = (value) => {
+          if(!value)
+            return "-";
+
+          var node = $('<div>');
+          node.append($('<span>').text(value.last_updown));
+          node.append($('<button data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').prop("title", fullctl.formatters.meta_data(value).html()).tooltip().append(
+            $('<span class="icon fullctl icon-list">')
+          ));
+
+          return node;
+
+        };
+
+        w.formatters.meta6 = w.formatters.meta4;
+
         return w;
       });
-      // set up delete select functionality
-      $(this.delete_selected_button).click(() => {
-        if (confirm("Remove selected Peer Sessions?")) {
-          this.$w.list_peer_sessions.delete_selected_list();
-        }
-      });
 
-      $(this.$w.select_port.element).on("change", () => {
-        this.sync();
-      });
+      // determine autoloading of filter arguments
 
-      var autoload = ($ctl.peerctl.autoload_args && $ctl.peerctl.autoload_args[0] == "page-summary-sessions");
-      $(this.$w.select_device.element).on("change", () => {
-        if(this.$w.select_device.element.val() == "all") {
-          this.$w.select_port.element.parents('.toolbar-control-group').hide();
-          this.$w.select_port.element.empty();
-          this.sync();
+      var autoload = this.autoload = $ctl.peerctl.autoload_enabled(
+        "page-summary-sessions",
+        (v) => { return (v && v != "all"); },
+        ["facility", "device", "port", "peer"]
+      );
+
+      // wire initial setting of filter values if autoload is enabled
+
+      $(this.$w.select_facility).one("load:after", () => {
+        if(autoload && autoload.facility) {
+          this.$w.select_facility.element.val(autoload.facility);
+          this.toggle_facility_filters();
         } else {
-          this.$w.select_port.element.parents('.toolbar-control-group').show();
-          this.$w.select_port.element.empty();
-          this.$w.select_port.load(autoload ? $ctl.peerctl.autoload_arg(3) : null).then(() => { this.sync(); });
-        }
-      });
-
-      $(this.$w.select_facility.element).on("change", () => {
-        if(this.$w.select_facility.element.val() == "all") {
-          this.$w.select_device.element.parents('.toolbar-control-group').hide();
-          this.$w.select_port.element.parents('.toolbar-control-group').hide();
-          this.$w.select_device.element.empty();
-          this.$w.select_port.element.empty();
           this.sync();
-        } else {
-          this.$w.select_device.element.parents('.toolbar-control-group').show();
-          this.$w.select_port.element.parents('.toolbar-control-group').hide();
-          this.$w.select_device.element.empty();
-          this.$w.select_port.element.empty();
-          this.$w.select_device.load(autoload ? $ctl.peerctl.autoload_arg(2) : null).then(() => { this.sync(); });
         }
       });
 
-      $ctl.peerctl.$c.toolbar.$e.peer_filter.val(autoload ? $ctl.peerctl.autoload_arg(4) : null);
+      $(this.$w.select_device).one("load:after", () => {
+        if(autoload && autoload.device) {
+          this.$w.select_device.element.val(autoload.device);
+          this.toggle_device_filters();
+        }
+      });
 
-      this.$w.select_facility.load(autoload ? $ctl.peerctl.autoload_arg(1) : null);
+      $(this.$w.select_port).one("load:after", () => {
+        if(autoload && autoload.port) {
+          this.$w.select_port.element.val(autoload.port);
+        }
+      });
+
+      $ctl.peerctl.$c.toolbar.$e.peer_filter.val(autoload ? autoload.peer : null);
+
+      // wire triggering of sync if any filter values are changed
+
+      $(this.$w.select_port.element).on("change", () => { this.sync();});
+      $(this.$w.select_device.element).on("change", () => { this.toggle_device_filters(true); });
+      $(this.$w.select_facility.element).on("change", () => { this.toggle_facility_filters(true); });
+
+      // if autoloading of filters is enabled, sync the session list from
+      // the filters provided in the autoload arguments
+
+      if(autoload) {
+        this.sync(
+          autoload.facility,
+          autoload.device,
+          autoload.port,
+          autoload.peer
+        );
+      }
+
+      // always load values for the facility filter dropdown
+
+      this.$w.select_facility.load();
 
     },
 
-    sync_url: function(force) {
-      if(this.$w.select_facility.element.is(":visible") || force) {
-        let port = this.$w.select_port.element.val();
-        let device = this.$w.select_device.element.val();
-        let facility = this.$w.select_facility.element.val();
-        let q = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
+    /**
+     * This will show the port filter if a device is selected
+     * otherwise it will hide the port filter.
+     *
+     * @method toggle_device_filters
+     * @param {bool} sync if true will sync the session list
+     */
 
+    toggle_device_filters : function(sync) {
+      if(this.$w.select_device.element.val() == "all") {
+        this.$w.select_port.element.parents('.toolbar-control-group').hide();
+        this.$w.select_port.element.empty();
+      } else {
+        this.$w.select_port.element.parents('.toolbar-control-group').show();
+        this.$w.select_port.element.empty();
+        this.$w.select_port.load().then();
+      }
+      if(sync)
+        this.sync();
+    },
+
+    /**
+     * This will show the device filter if a facility is selected
+     * otherwise it will hide the device and the port filter.
+     *
+     * @method toggle_facility_filters
+     * @param {bool} sync if true will sync the session list
+     */
+
+    toggle_facility_filters : function(sync) {
+      if(this.$w.select_facility.element.val() == "all") {
+        this.$w.select_device.element.parents('.toolbar-control-group').hide();
+        this.$w.select_port.element.parents('.toolbar-control-group').hide();
+        this.$w.select_device.element.empty();
+        this.$w.select_port.element.empty();
+      } else {
+        this.$w.select_device.element.parents('.toolbar-control-group').show();
+        this.$w.select_port.element.parents('.toolbar-control-group').hide();
+        this.$w.select_device.element.empty();
+        this.$w.select_port.element.empty();
+        this.$w.select_device.load();
+      }
+
+      if(sync)
+        this.sync();
+    },
+
+    /**
+     * Updates the # parameter in the url for autoloading
+     *
+     * filter arguments
+     * @method sync_url
+     * @param {Boolean} force if true will also update the url if the session summary is currently not visible
+     * @param {String} facility facility slug
+     * @param {Number} device device id
+     * @param {Number} port port id
+     * @param {String} q peer asn, name or ip
+     */
+
+    sync_url: function(force, facility, device, port, q) {
+      if(this.$w.select_facility.element.is(":visible") || force) {
         window.history.pushState({}, '', "#page-summary-sessions;"+(facility||'')+";"+(device||'')+";"+(port||"")+";"+(q||""));
       }
     },
 
-    sync: function() {
-      let port_filter = this.$w.select_port.element.val();
-      let device_filter = this.$w.select_device.element.val();
-      let facility_filter = this.$w.select_facility.element.val();
-      let peer_filter = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
+    /**
+     * Syncs the session list from the api according to the specified
+     * filter arguments
+     *
+     * If not filter arguments are provided, filters will be read from the
+     * filter input elements.
+     *
+     * @method sync
+     * @param {String} facility_filter facility slug
+     * @param {Number} device_filter device id
+     * @param {Number} port_filter port id
+     * @param {String} peer_filter peer asn, name or ip
+     */
+
+    sync: function(facility_filter, device_filter, port_filter, peer_filter) {
+
+      // if session summary is already syncing, do not start an additional
+      // sync
+
+      if(this.syncing)
+        return;
+
+      this.syncing = true;
+
+      // if no filters were provided to the function read the filter values
+      // from the various filter elements
+
+      if(!facility_filter && !device_filter && !port_filter && !peer_filter) {
+        port_filter = this.$w.select_port.element.val();
+        device_filter = this.$w.select_device.element.val();
+        facility_filter = this.$w.select_facility.element.val();
+        peer_filter = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
+      }
+
+      if(peer_filter && !facility_filter) {
+        facility_filter = "all";
+      }
+
       this.$w.list_peer_sessions.action = "";
+
+      // update the url with filter values
+
+      this.sync_url(false, facility_filter, device_filter, port_filter, peer_filter);
+
+      // build the request path from the filters
 
       var action = "";
 
@@ -660,11 +770,15 @@ $peerctl.SessionsSummary = $tc.extend(
         return {};
       }
 
+      // update list
+
       this.$w.list_peer_sessions.action = action;
-      this.$w.list_peer_sessions.load();
+      this.$w.list_peer_sessions.load().then(() => {this.syncing=false;});
+
+      // update API view link
+
       this.$e.btn_api_view.attr("href", this.$w.list_peer_sessions.base_url+"/"+this.$w.list_peer_sessions.action);
 
-      this.sync_url();
     },
 
     setup_select_filter : function(selector) {
@@ -691,14 +805,14 @@ $peerctl.SessionsSummary = $tc.extend(
 $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
   "ModalFloatingSession",
   {
-    ModalFloatingSession : function(facility, device, port) {
+    ModalFloatingSession : function(facility, device, port, session) {
       var modal = this;
       var title = "Add peer session"
       var form = this.form = new twentyc.rest.Form(
         $ctl.template("form_floating_session")
       );
 
-      this.preselect_port = port;
+      this.session = session;
 
       this.select_facility = new twentyc.rest.Select(this.form.element.find('#facility'));
       this.select_device = new twentyc.rest.Select(this.form.element.find('#device'));
@@ -706,37 +820,80 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
       this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
       this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
 
+      if(facility == "all")
+        facility = null;
+
+      if(device == "all")
+        device = null;
+
+      if(port == "all")
+        port = null;
+
+      // edit existing session
+
+      if(session) {
+        title = "Edit Session ["+session.id+"]";
+        form.format_request_url = (url) => {
+          return url.replace("/12345/", session.id);
+        };
+        form.method = "PUT";
+        form.form_action = session.id;
+        form.fill(session);
+        device = session.device_id;
+        facility = session.facility_slug;
+        port = session.port_id;
+      } else {
+        form.form_action = "create_floating"
+      }
+
+      this.preselect_port = port;
+
+      $(this.select_facility).one("load:after", () => {
+        if(facility)
+          this.select_facility.element.val(facility);
+        this.select_device.load();
+      });
+
+      $(this.select_device).one("load:after", () => {
+        if(device)
+          this.select_device.element.val(device);
+        this.select_port.load();
+      });
+
+      $(this.select_port).one("load:after", () => {
+        if(port)
+          this.select_port.element.val(port);
+      });
+
       this.select_device.format_request_url = (url) => {
-        return url.replace("fac_tag", this.select_facility.element.val());
+        return url.replace("fac_tag", this.select_facility.element.val() || facility);
       };
 
       this.select_port.format_request_url = (url) => {
-        return url + "?device="+(this.select_device.element.val() || 0);
+        return url + "?device="+(this.select_device.element.val() || device || 0);
       };
 
-      $(this.select_facility).on("load:after", () => { this.select_device.load(device && device != "all" ? device : null); });
-      this.select_facility.element.on("change", () => { this.select_device.load(); });
-
-      $(this.select_device).on("load:after", () => {
-        if(this.preselect_port && this.preselect_port != "all") {
-          this.select_port.load(this.preselect_port);
-          this.preselect_port = null;
-        } else {
+      this.select_facility.element.on("change", () => {
+        this.select_device.element.empty();
+        this.select_port.element.empty();
+        this.select_device.load().then(() => {
           this.select_port.load();
-        }
+        });
       });
-      this.select_device.element.on("change", () => { this.select_port.load(); });
+      this.select_device.element.on("change", () => {
+        this.select_port.load();
+      });
 
-      this.select_facility.load(facility && facility != "all" ? facility : null);
-      this.select_policy_4.load();
-      this.select_policy_6.load();
+      this.select_facility.load();
+      this.select_policy_4.load(session ? session.policy4_id : null);
+      this.select_policy_6.load(session ? session.policy6_id : null);
 
       $(this.form).on("api-write:success", (ev, e, payload, response) => {
         modal.hide();
         fullctl.peerctl.$t.sessions_summary.$w.list_peer_sessions.load();
       });
 
-      this.Modal("save_right", title, form.element);
+      this.Modal("save", title, form.element);
       form.wire_submit(this.$e.button_submit);
     }
   },
@@ -1139,10 +1296,9 @@ $peerctl.PeerSessionList = $tc.extend(
           data.port_id
         );
 
-        let button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
+        var button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
 
         button_show_config.click(()=>{
-          console.log(data);
           new $peerctl.modals.DeviceConfig(data);
         });
 
@@ -1409,10 +1565,10 @@ $peerctl.DeviceTemplatePreview = $tc.extend(
     DeviceTemplatePreview: function(jq, device, type, peer) {
       this.peer = peer;
       this.device = device;
-      this.ConfigPreview(jq, $peerctl.DeviceTemplateSelect, type);
+      this.TemplatePreview(jq, $peerctl.DeviceTemplateSelect, type);
     },
 
-    payload: function() {
+    preview_payload: function() {
       var payload = {
         type: this.type,
         device: this.device.id
@@ -1425,7 +1581,7 @@ $peerctl.DeviceTemplatePreview = $tc.extend(
       return payload;
     }
   },
-  $ctl.ConfigPreview
+  $peerctl.TemplatePreview
 );
 
 
