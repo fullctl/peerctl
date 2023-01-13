@@ -533,6 +533,10 @@ $peerctl.SessionsSummary = $tc.extend(
         return this.setup_select_filter('#page-summary-sessions select[data-element="select_facility"]');
       });
 
+      this.widget("btn_add_peer_session", ($e) => {
+        return $('#page-summary-sessions button[data-element="btn_add_peer_session"]');
+      });
+
 
       this.$w.select_port.format_request_url = (url) => {
         let device_filter = this.$w.select_device.element.val();
@@ -546,7 +550,11 @@ $peerctl.SessionsSummary = $tc.extend(
         return url.replace(/fac_tag/g, this.$w.select_facility.element.val());
       };
 
-      this.$e.btn_add_peer_session.click(() => {
+      $(this.$w.select_facility).one("load:after", () => {
+        this.sync();
+      });
+
+      this.$w.btn_add_peer_session.click(() => {
         new $ctl.application.Peerctl.ModalFloatingSession(
           this.$w.select_facility.element.val(),
           this.$w.select_device.element.val(),
@@ -566,7 +574,6 @@ $peerctl.SessionsSummary = $tc.extend(
         );
 
         // handle policy editor widgets for each row
-
         w.formatters.row = (row, data) => {
           row.find("[data-action=edit_session]").click(() => {
             new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
@@ -595,6 +602,7 @@ $peerctl.SessionsSummary = $tc.extend(
 
         return w;
       });
+
       // set up delete select functionality
       $(this.delete_selected_button).click(() => {
         if (confirm("Remove selected Peer Sessions?")) {
@@ -911,7 +919,7 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
         fullctl.peerctl.$t.sessions_summary.$w.list_peer_sessions.load();
       });
 
-      this.Modal("save", title, form.element);
+      this.Modal("save_right", title, form.element);
       form.wire_submit(this.$e.button_submit);
     }
   },
