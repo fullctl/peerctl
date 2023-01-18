@@ -325,10 +325,15 @@ class NetworkSearch(viewsets.GenericViewSet):
         if not network:
             return Response([])
 
+        if not poc:
+            email = None
+        else:
+            email = poc.email
+
         result = {
             "asn": network.asn,
             "name": network.name,
-            "peer_session_contact": poc.email,
+            "peer_session_contact": email,
             "mutual_locations": {},
             "their_locations": {},
             "our_locations": {},
