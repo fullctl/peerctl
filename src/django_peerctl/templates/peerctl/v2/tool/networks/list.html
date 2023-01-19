@@ -17,9 +17,13 @@
       <td colspan=3" class="right">
         <button class="primary btn | small" data-element="request_peering">
           <div class="row align-items-center">
-            <div class="col label pe-0">
+            <div class="col label pe-0 ok">
               {% trans "Request peering" %}
             </div>
+            <div class="col label pe-0 disabled" style="display:none">
+              {% trans "No point of contact" %}
+            </div>
+
             <div class="col-auto">
               <span class="icon fullctl icon-mail"></span>
             </div>

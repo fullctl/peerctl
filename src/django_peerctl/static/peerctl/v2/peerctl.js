@@ -158,7 +158,7 @@ $peerctl.Networks = $tc.extend(
       })
 
       this.$w.list.format_request_url = (url) => {
-        return url.replace(/other_asn/, this.input_network_search.val());
+        return url.replace(/other_asn/, this.select_network_search.val());
       }
 
       $(this.$w.list).on("api-read:success", (ev, endpoint, payload, response) => {
@@ -220,6 +220,52 @@ $peerctl.Networks = $tc.extend(
 
       }
 
+      $(this.$w.list).on("load:after", (ev,response) => {
+        var data = response.first();
+        var request_peering = this.$w.list.element.find('[data-element=request_peering]');
+        if(data && data.peer_session_contact) {
+          request_peering.show().prop("disabled", false).children('.label').hide().filter('.ok').show();
+        } else {
+          request_peering.show().prop("disabled", true).children('.label').hide().filter('.disabled').show();
+        }
+      });
+
+      this.select_network_search = $ctl.peerctl.$c.toolbar.$e.network_search_asn;
+
+      this.select_network_search.select2({
+        ajax: {
+          url : '/autocomplete/pdb/net',
+          dataType: 'json',
+          processResults : function(data, params) {
+
+            var term = params.term;
+            if(!isNaN(parseInt(term))) {
+              var exact_found = data.results.find((obj) => { return obj.id == parseInt(term) });
+              if(!exact_found) {
+                data.results.unshift({
+                  id: parseInt(term),
+                  text: "AS"+term,
+                  selected_text: "AS"+term
+                });
+              }
+            }
+            console.log("DATA", data.results, exact_found);
+            return {
+              results: data.results
+            }
+          }
+        }
+      });
+
+      this.select_network_search.on('select2:select', ()=> {
+        this.sync();
+      });
+
+      $(document).on('select2:open', () => {
+        document.querySelector('.select2-search__field').focus();
+      });
+
+      /*
       $(this.$w.list).on("load:after", () => {
         this.$e.request_peering.show();
       });
@@ -237,6 +283,7 @@ $peerctl.Networks = $tc.extend(
       $(this.btn_network_search).click(function() {
         this.sync();
       }.bind(this));
+      */
 
       this.$w.list.element.find("[data-element=request_peering]").on("click", () => {
         this.request_peering();
