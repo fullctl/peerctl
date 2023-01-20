@@ -254,7 +254,8 @@ $peerctl.Networks = $tc.extend(
               results: data.results
             }
           }
-        }
+        },
+        placeholder: "Search by ASN"
       });
 
       this.select_network_search.on('select2:select', ()=> {
