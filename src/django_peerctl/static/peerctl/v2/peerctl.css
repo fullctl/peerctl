@@ -31,11 +31,11 @@ div.peers-row {
 }
 
 div.peers-row.border-inactive {
-  border-color: var(--clr-accent-400);
+  border-color: var(--clr-primary-500);
 }
 
 div.peers-row.border-active {
-  border-color: var(--clr-primary-500);
+  border-color: var(--clr-accent-400);
 }
 
 .secondary .property .field [data-field="peeringdb"] .icon {
