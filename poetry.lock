@@ -396,7 +396,7 @@ pyflakes = ">=2.3.0,<2.4.0"
 
 [[package]]
 name = "fullctl"
-version = "1.0.0-rc18"
+version = "1.0.0-rc19"
 description = "Core classes and functions for service applications"
 category = "main"
 optional = false
@@ -429,7 +429,7 @@ whitenoise = "^6"
 type = "git"
 url = "https://github.com/fullctl/fullctl.git"
 reference = "prep-release"
-resolved_reference = "6cb35cd4397518499493c17d2269b5a03f8f22e1"
+resolved_reference = "57c32a4e21ba4bd887993736176c34f139557a29"
 
 [[package]]
 name = "ghp-import"
@@ -466,7 +466,7 @@ python-versions = ">=3.6,<4.0"
 
 [[package]]
 name = "identify"
-version = "2.5.13"
+version = "2.5.15"
 description = "File identification library for Python"
 category = "dev"
 optional = false
@@ -686,7 +686,7 @@ tmpl = "^1"
 type = "git"
 url = "https://github.com/20c/netom.git"
 reference = "prep-release"
-resolved_reference = "6830a01114c42f234213f99ba646bc63fb3e5c60"
+resolved_reference = "26c81473eb839d8428a7ac1c42cce7639806d439"
 
 [[package]]
 name = "nodeenv"
@@ -997,7 +997,7 @@ rsa = ["oauthlib[signedtoken] (>=3.0.0)"]
 
 [[package]]
 name = "setuptools"
-version = "66.0.0"
+version = "66.1.1"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
 optional = false
@@ -1565,8 +1565,8 @@ grainy = [
     {file = "grainy-1.8.1.tar.gz", hash = "sha256:2cfd8d50b3f5cce3c463f3c5e86324442f61a7cd46dfe7b134ee926559e56556"},
 ]
 identify = [
-    {file = "identify-2.5.13-py2.py3-none-any.whl", hash = "sha256:8aa48ce56e38c28b6faa9f261075dea0a942dfbb42b341b4e711896cbb40f3f7"},
-    {file = "identify-2.5.13.tar.gz", hash = "sha256:abb546bca6f470228785338a01b539de8a85bbf46491250ae03363956d8ebb10"},
+    {file = "identify-2.5.15-py2.py3-none-any.whl", hash = "sha256:1f4b36c5f50f3f950864b2a047308743f064eaa6f6645da5e5c780d1c7125487"},
+    {file = "identify-2.5.15.tar.gz", hash = "sha256:c22aa206f47cc40486ecf585d27ad5f40adbfc494a3fa41dc3ed0499a23b123f"},
 ]
 idna = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
@@ -1949,8 +1949,8 @@ requests-oauthlib = [
     {file = "requests_oauthlib-1.3.1-py2.py3-none-any.whl", hash = "sha256:2577c501a2fb8d05a304c09d090d6e47c306fef15809d102b327cf8364bddab5"},
 ]
 setuptools = [
-    {file = "setuptools-66.0.0-py3-none-any.whl", hash = "sha256:a78d01d1e2c175c474884671dde039962c9d74c7223db7369771fcf6e29ceeab"},
-    {file = "setuptools-66.0.0.tar.gz", hash = "sha256:bd6eb2d6722568de6d14b87c44a96fac54b2a45ff5e940e639979a3d1792adb6"},
+    {file = "setuptools-66.1.1-py3-none-any.whl", hash = "sha256:6f590d76b713d5de4e49fe4fbca24474469f53c83632d5d0fd056f7ff7e8112b"},
+    {file = "setuptools-66.1.1.tar.gz", hash = "sha256:ac4008d396bc9cd983ea483cb7139c0240a07bbc74ffb6232fceffedc6cf03a8"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
