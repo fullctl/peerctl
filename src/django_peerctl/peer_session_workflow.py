@@ -2,10 +2,9 @@
 Classes describing the workflow of setting up a peering session
 """
 
-from django.conf import settings
-
 import fullctl.service_bridge.pdbctl as pdbctl
 import reversion
+from django.conf import settings
 
 from django_peerctl.email import send_mail
 from django_peerctl.models import (
@@ -177,7 +176,6 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         if override:
             return override
         return settings.PEER_REQUEST_FROM_EMAIL
-
 
     @property
     def cc_address(self):
@@ -354,9 +352,6 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
         if override:
             return override
         return settings.PEER_REQUEST_FROM_EMAIL
-
-
-
 
     def render_email_body(self, email_template, required_type):
         if email_template.type != required_type:
