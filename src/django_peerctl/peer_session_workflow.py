@@ -2,10 +2,12 @@
 Classes describing the workflow of setting up a peering session
 """
 
+from django.conf import settings
+
 import fullctl.service_bridge.pdbctl as pdbctl
 import reversion
 
-from django_peerctl.email import send_mail_from_noreply
+from django_peerctl.email import send_mail
 from django_peerctl.models import (
     AuditLog,
     EmailLog,
@@ -154,6 +156,9 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         if self.test_mode:
             return self.reply_to_email
 
+        if getattr(self, "peer_contact_override", None):
+            return self.peer_contact_override
+
         poc = pdbctl.NetworkContact().first(
             asn=member.asn, require_email=True, role="Policy"
         )
@@ -165,6 +170,14 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
     @property
     def reply_to_email(self):
         return self.port.port_info_object.net.peer_contact_email
+
+    @property
+    def sender_email(self):
+        override = self.port.port_info_object.net.from_email_override
+        if override:
+            return override
+        return settings.PEER_REQUEST_FROM_EMAIL
+
 
     @property
     def cc_address(self):
@@ -196,9 +209,10 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
 
         contact = self.contact_email(self.member)
 
-        send_mail_from_noreply(
+        send_mail(
             subject,
             body,
+            self.sender_email,
             [contact],
             reply_to=self.reply_to_email,
             debug_address=user.email,
@@ -235,9 +249,10 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
 
         contact = self.contact_email(self.member)
 
-        send_mail_from_noreply(
+        send_mail(
             subject,
             body,
+            self.sender_email,
             [contact],
             reply_to=self.reply_to_email,
             debug_address=user.email,
@@ -270,9 +285,10 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         )
         body = self.render_email_body(email_template, "peer-session-live")
         contact = self.contact_email(self.member)
-        send_mail_from_noreply(
+        send_mail(
             subject,
             body,
+            self.sender_email,
             [contact],
             reply_to=self.reply_to_email,
             debug_address=user.email,
@@ -319,6 +335,9 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
         if self.test_mode:
             return self.reply_to_email
 
+        if getattr(self, "peer_contact_override", None):
+            return self.peer_contact_override
+
         poc = pdbctl.NetworkContact().first(asn=asn, require_email=True, role="Policy")
 
         if not poc:
@@ -328,6 +347,16 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
     @property
     def reply_to_email(self):
         return self.net.peer_contact_email
+
+    @property
+    def sender_email(self):
+        override = self.net.from_email_override
+        if override:
+            return override
+        return settings.PEER_REQUEST_FROM_EMAIL
+
+
+
 
     def render_email_body(self, email_template, required_type):
         if email_template.type != required_type:
@@ -358,9 +387,10 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
 
         contact = self.contact_email(peer_asn)
 
-        send_mail_from_noreply(
+        send_mail(
             subject,
             body,
+            self.sender_email,
             [contact],
             reply_to=self.reply_to_email,
             debug_address=user.email,
