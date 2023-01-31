@@ -29,11 +29,12 @@ def view_instance(request, instance, **kwargs):
             break
 
     if not net:
-        return HttpResponse(status=401)
+        env["selected_asn"] = None
+    else:
+        env["selected_asn"] = net.asn
 
     env["forms"] = {}
     env["net"] = net
-    env["selected_asn"] = net.asn
     env["asns"] = asns
 
     return render(request, "theme-select.html", env)
