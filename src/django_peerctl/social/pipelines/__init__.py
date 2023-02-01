@@ -2,9 +2,9 @@ import fullctl.service_bridge.devicectl as devicectl
 import fullctl.service_bridge.sot as sot
 from fullctl.django.auth import permissions
 
+from django_peerctl.exceptions import ASNClaimed
 from django_peerctl.models import PortInfo
 from django_peerctl.utils import get_network
-from django_peerctl.exceptions import ASNClaimed
 
 
 def create_devices(backend, details, response, uid, user, *args, **kwargs):

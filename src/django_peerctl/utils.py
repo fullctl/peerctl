@@ -1,6 +1,7 @@
-from django_peerctl.models import Network
 from django.db import IntegrityError
+
 from django_peerctl.exceptions import ASNClaimed
+from django_peerctl.models import Network
 
 
 def get_network(asn, org):
@@ -9,6 +10,7 @@ def get_network(asn, org):
     except IntegrityError:
         # another org already claimed this asn
         raise ASNClaimed()
+
 
 def verified_asns(perms, org, require_device=True):
     for permission in perms.pset.permissions.values():

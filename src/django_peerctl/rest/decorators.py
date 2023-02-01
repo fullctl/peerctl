@@ -27,7 +27,6 @@ def load_org_instance_from_asn(self, request, data):
             return
 
 
-
 base.load_org_instance = load_org_instance_from_asn
 
 
