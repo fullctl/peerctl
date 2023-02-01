@@ -6,6 +6,10 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
     Peerctl: function() {
       this.Application("peerctl");
 
+      if(!this.application_access_granted) {
+        return;
+      }
+
 			this.autoload_page();
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();

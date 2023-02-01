@@ -4,6 +4,7 @@ from fullctl.django.auth import permissions
 
 from django_peerctl.models import PortInfo
 from django_peerctl.utils import get_network
+from django_peerctl.exceptions import ASNClaimed
 
 
 def create_devices(backend, details, response, uid, user, *args, **kwargs):
@@ -40,7 +41,10 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
 
     for member in sot.InternetExchangeMember().objects(asns=verified_asns, join="ix"):
         if member.asn not in networks:
-            networks[member.asn] = get_network(member.asn, org)
+            try:
+                networks[member.asn] = get_network(member.asn, org)
+            except ASNClaimed:
+                continue
 
         if member.ref_id not in port_infos:
             required_ports.setdefault(member.ixlan_id, [])

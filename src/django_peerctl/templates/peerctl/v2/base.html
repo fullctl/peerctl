@@ -7,11 +7,16 @@
 <script src="{% static "peerctl/v2/peerctl.js" %}" type="text/javascript"></script>
 <script>
 $(fullctl.application).on("initialized", function(e, peerctl, id) {
+
+{% if net %}
   peerctl.network = {
     id: {{ net.id }},
     as_set: "{{ net.as_set }}",
     name : "{{ net.name }}"
   }
+{% else %}
+  peerctl.network = {};
+{% endif %}
 
 $('[data-second-tab]').on('show.bs.tab', function(e) {
   let target = $(e.target).data('second-tab');
@@ -109,6 +114,21 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 {% endwith %}
 {% endblock %}
 
+{% block "error_content" %}
+{% if not net %}
+<div class="row">
+  <div class="col-4"></div>
+  <div class="col-4">
+    <div class="alert alert-warning marg-top-lg">
+{% blocktrans trimmed with app_id=request.app_id org_name=request.org.display_name_verbose %}
+{{ org_name }} is currently not permissioned to manage any ASNs. Please contact fullCtl support for assistance.
+{% endblocktrans %}
+    </div>
+  </div>
+  <div class="col-4"></div>
+</div>
+{% endif %}
+{% endblock %}
 
 {% block "app_content_toolbar" %}
 

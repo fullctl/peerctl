@@ -37,7 +37,7 @@ proxy.setup(
         "aaactl",
         settings.AAACTL_URL,
         [
-            ("billing/org/{org_tag}/start_trial/", "billing/<str:org_tag>/start_trial", "start-trial")
+            ("billing/org/{org_tag}/start_trial/", "billing/<str:org_tag>/start_trial/", "start-trial")
         ]
     )
 )
