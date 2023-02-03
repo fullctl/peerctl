@@ -31,6 +31,7 @@ def send_mail(
     if kwargs.get("prefix"):
         subject = f"{settings.EMAIL_SUBJECT_PREFIX} {subject}"
     debug = getattr(settings, "DEBUG_EMAIL", True)
+
     if reply_to:
         headers = {"Reply-To": reply_to}
     else:

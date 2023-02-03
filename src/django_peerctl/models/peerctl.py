@@ -261,7 +261,15 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         null=True,
         blank=True,
         help_text=_(
-            "Will override the From: address for email communications from this network"
+            "Will override the reply-to: address for email communications from this network"
+        ),
+    )
+
+    from_email_override = models.EmailField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "Will override the from: address for email communications from this network"
         ),
     )
 

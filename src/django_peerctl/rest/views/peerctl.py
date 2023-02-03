@@ -672,6 +672,7 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
         port = models.Port().object(port_pk)
         member = get_member(member_pk)
         reply_to = request.data.get("reply_to")
+        from_email = request.data.get("from_email")
         email_template_id = int(request.data.get("email_template", 0))
         content = request.data.get("body")
 
@@ -681,9 +682,16 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
             net.full_clean()
             net.save()
 
+        # update from-address override if specified
+        if from_email != net.from_email_override:
+            net.from_email_override = from_email
+            net.full_clean()
+            net.save()
+
         workflow = PeerSessionEmailWorkflow(port, member)
         workflow.cc = request.data.get("cc_reply_to")
         workflow.test_mode = request.data.get("test_mode")
+        workflow.peer_contact_override = request.data.get("peer_session_contact")
 
         if email_template_id > 0:
             email_template = models.EmailTemplate.objects.get(id=email_template_id)
@@ -728,6 +736,7 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
     def create(self, request, asn, net, *args, **kwargs):
 
         reply_to = request.data.get("reply_to")
+        from_email = request.data.get("from_email")
         email_template_id = int(request.data.get("email_template", 0))
         content = request.data.get("body")
 
@@ -737,11 +746,18 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
             net.full_clean()
             net.save()
 
+        # update from-address override if specified
+        if from_email != net.from_email_override:
+            net.from_email_override = from_email
+            net.full_clean()
+            net.save()
+
         workflow = PeerRequestToAsnWorkflow(
             asn, request.data.get("asn"), request.data.get("ix_ids")
         )
         workflow.cc = request.data.get("cc_reply_to")
         workflow.test_mode = request.data.get("test_mode")
+        workflow.peer_contact_override = request.data.get("peer_session_contact")
 
         if email_template_id > 0:
             email_template = models.EmailTemplate.objects.get(id=email_template_id)

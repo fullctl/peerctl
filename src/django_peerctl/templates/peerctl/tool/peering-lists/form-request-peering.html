@@ -11,9 +11,17 @@
         </div>
         <ul class="list-group list-group-flush">
           <li class="list-group-item peer-asn" data-field="asn">ASN</li>
-          <li class="list-group-item peer-email" data-field="peer_session_contact">email address</li>
+          <li class="list-group-item peer-email" data-api-submit="yes"><input placeholder="{% trans "Peer email address" %}" type="text" name="peer_session_contact"></li>
         </ul>
       </div>
+      <div class="row mb-3 marg-top-lg">
+        <div class="col-12" data-api-submit="yes">
+          <label class="form-label" for="from_email">{% trans "From" %}</label>
+          <input type="text" class="form-control" placeholder="{{ settings.emails.peer_request_from }}" value="{{ net.from_email_override|default:"" }}" name="from_email">
+        </div>
+      </div>
+
+
       <div class="row mb-3 marg-top-lg">
         <div class="col-10" data-api-submit="yes">
           <label class="form-label" for="from_address">{% trans "Reply-To" %}</label>
