@@ -1,0 +1,82 @@
+div.peer_session-inactive .peer_session-active-toggled {
+  display: none;
+}
+
+div.peer_session-active .peer_session-inactive-toggled {
+  display: none;
+}
+
+div.hide-active-peers .peers-row.border-active {
+  display: none;
+}
+
+div.hide-available-peers .peers-row.border-inactive {
+  display: none;
+}
+
+button.peer_session-add,
+button.peer_session-live {
+	text-transform: uppercase;
+	height: 42px;
+  font-family: "Archivo Narrow";
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 0;
+  line-height: 20px;
+  margin-left: -15px;
+}
+
+div.peers-row {
+  border-left: 4px solid;
+}
+
+div.peers-row.border-inactive {
+  border-color: var(--clr-primary-500);
+}
+
+div.peers-row.border-active {
+  border-color: var(--clr-accent-400);
+}
+
+.secondary .property .field [data-field="peeringdb"] .icon {
+  padding-left: 0.5ch;
+  background-color: var(--clr-accent-400);
+}
+
+.secondary .property .field [data-field="peeringdb"] a{
+  color: var(--clr-accent-400);
+}
+
+[data-theme="light"] .secondary .property .field [data-field="peeringdb"] a{
+  color: blue;
+}
+
+[data-theme="light"] .secondary .property .field [data-field="peeringdb"] .icon {
+  background-color: blue;
+}
+
+.compact-list div.compact-row {
+  padding: 3px;
+  margin-left: 15px;
+}
+
+.compact-list div.compact-row input+span {
+ margin-left: 0.25rem;
+}
+
+.peering-templates-nav .nav-link {
+  color: var(--foreground);
+}
+
+.port-info .toolbar-field {
+  border: 1px solid var(--clr-border-200);
+}
+
+.port-info .toolbar-field span.icon:not(.inactive) {
+  background-color: var(--clr-accent-400);
+}
+
+.toggle-mutual-locations {
+  border: none;
+  background-color: transparent;
+}

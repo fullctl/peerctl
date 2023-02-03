@@ -34,3 +34,7 @@ class PolicyMissingError(PeerctlException):
 
 class UsageLimitError(PeerctlException):
     pass
+
+
+class ASNClaimed(PeerctlException):
+    pass

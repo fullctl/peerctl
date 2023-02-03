@@ -1,0 +1,33 @@
+{% load static i18n %}
+<div class="row">
+  <div class="toolbar-control-group col-auto me-auto mt-1">
+    <span class="inline-label">{% trans "Exchange / Port" %}</span>
+    <span class="toolbar-control">
+    <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+    <select
+      --data-api-load="yes"
+      data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
+      data-name-field="ix_name"
+      data-element="select_port"></select>
+    </span>
+    <button class="col-auto py-2 btn secondary" data-element="button_port_settings">
+      <span class="icon fullctl icon-settings"></span>
+    </button>
+  </div>
+
+  <div class="col-auto right mt-1">
+    <div class="port-info row" data-element="port_info">
+      <div class="toolbar-field col-auto">
+        <span class="field">Speed:</span> <span class="value speed">-</span>
+      </div>
+      <div class="toolbar-field col-auto">
+        <span class="icon-background"><span data-element="toggle_active_peers" class="action icon icon-view fullctl"></span></span>
+        <span class="field">Active Peers:</span> <span class="value active-peers">-</span>
+      </div>
+      <div class="toolbar-field col-auto">
+        <span class="icon-background"><span data-element="toggle_available_peers" class="action icon icon-view fullctl"></span></span>
+        <span class="field">Available Peers:</span> <span class="value available-peers">-</span>
+      </div>
+    </div>
+  </div>
+</div>
