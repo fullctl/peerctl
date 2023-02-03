@@ -227,11 +227,8 @@ $peerctl.Networks = $tc.extend(
       $(this.$w.list).on("load:after", (ev,response) => {
         var data = response.first();
         var request_peering = this.$w.list.element.find('[data-element=request_peering]');
-        if(data && data.peer_session_contact) {
-          request_peering.show().prop("disabled", false).children('.label').hide().filter('.ok').show();
-        } else {
-          request_peering.show().prop("disabled", true).children('.label').hide().filter('.disabled').show();
-        }
+        request_peering.show().prop("disabled", false).children('.label').hide().filter('.ok').show();
+
       });
 
       this.select_network_search = $ctl.peerctl.$c.toolbar.$e.network_search_asn;
