@@ -31,7 +31,22 @@ proxy.setup(
     ),
 )
 
-urlpatterns = proxy.urlpatterns(["devicectl"])
+proxy.setup(
+    "aaactl",
+    proxy.proxy_api(
+        "aaactl",
+        settings.AAACTL_URL,
+        [
+            (
+                "billing/org/{org_tag}/start_trial/",
+                "billing/<str:org_tag>/start_trial/",
+                "start-trial",
+            )
+        ],
+    ),
+)
+
+urlpatterns = proxy.urlpatterns(["aaactl", "devicectl"])
 
 
 urlpatterns += [
