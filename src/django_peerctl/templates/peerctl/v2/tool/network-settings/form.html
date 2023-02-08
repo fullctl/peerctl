@@ -1,0 +1,60 @@
+{% load i18n %}
+<form style="margin-left:50px; margin-top: 50px;" data-api-base="" data-template="form">
+<div class="controls">
+  <div class="row mb-3">
+
+    <!-- AS-SET -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "AS-SET" %}</label>
+      <input type="text" class="form-control" name="as_set_override" placeholder="{{ net.as_set }}" value="{{ net.as_set_override|default:"" }}">
+    </div>
+
+  </div>
+
+  <div class="row mb-3">
+
+    <!-- MAX PREFIXES V4 -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Max. prefix length v4" %}</label>
+      <input type="text" class="form-control" name="prefix4_override" placeholder="{{ net.prefix4 }}" value="{{ net.prefix4_override|default:"" }}">
+    </div>
+    <!-- MAX PREFIXEX V6 -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Max. prefix length v6" %}</label>
+      <input type="text" class="form-control" name="prefix6_override" placeholder="{{ net.prefix6 }}" value="{{ net.prefix6_override|default:"" }}">
+    </div>
+  </div>
+
+
+  <div class="row mb-3">
+    <div class="col">
+        <button class="primary btn | small" data-element="save_network">
+          <div class="row align-items-center">
+            <div class="col label pe-0 ok">
+              {% trans "Save network" %}
+            </div>
+            <div class="col-auto">
+              <span class="icon fullctl icon-settings"></span>
+            </div>
+          </div>
+        </button>
+
+        <button class="primary btn | small" data-element="export_network">
+          <div class="row align-items-center">
+            <div class="col label pe-0 ok">
+              {% trans "Update PeeringDB" %}
+            </div>
+            <div class="col-auto">
+              <span class="icon fullctl icon-logout"></span>
+            </div>
+          </div>
+        </button>
+
+
+    </div>
+  </div>
+</div>
+</form>

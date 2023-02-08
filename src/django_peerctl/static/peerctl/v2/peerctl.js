@@ -19,6 +19,10 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return new $peerctl.Networks();
       });
 
+      this.tool("network_settings", () => {
+        return new $peerctl.NetworkSettings();
+      });
+
       this.tool("sessions_summary", () => {
         return new $peerctl.SessionsSummary();
       });
@@ -145,6 +149,26 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
   },
   $ctl.application.Application
 );
+
+$peerctl.NetworkSettings = $tc.extend(
+  "NetworkSettings",
+  {
+
+    NetworkSettings : function() {
+      this.Tool("network_settings");
+    },
+
+    init : function() {
+      this.widget("form", ($e) => {
+        return new twentyc.rest.Form(
+          this.template("form", this.$e.body)
+        );
+      });
+    }
+  },
+  $ctl.application.Tool
+)
+
 
 $peerctl.Networks = $tc.extend(
   "Networks",

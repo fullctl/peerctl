@@ -34,6 +34,14 @@ class Network(DataViewSet):
             "has_as_set",
             Exclude(Q(as_set_override__isnull=True) | Q(as_set_override="")),
         ),
+        (
+            "has_overrides",
+            Exclude(
+                (Q(as_set_override__isnull=True) | Q(as_set_override=""),
+                Q(prefix4_override__isnull=True),
+                Q(prefix6_override__isnull=True))
+            ),
+        )
     ]
     autocomplete = "name"
     allow_unfiltered = True

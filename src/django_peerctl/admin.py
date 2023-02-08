@@ -48,7 +48,7 @@ class NetworkAdmin(admin.ModelAdmin):
     )
     search_fields = ("asn", "name")
     readonly_fields = ("policy4", "policy6")
-    fields = ("asn", "max_sessions", "status", "org")
+    fields = ("asn", "max_sessions", "status", "org", "as_set_override", "prefix4_override", "prefix6_override")
     form = status_form()
 
 

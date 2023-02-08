@@ -256,6 +256,8 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     asn = ASNField(unique=True, db_index=True)
 
     as_set_override = models.CharField(null=True, blank=True, max_length=255)
+    prefix4_override = models.PositiveIntegerField(null=True, blank=True)
+    prefix6_override = models.PositiveIntegerField(null=True, blank=True)
 
     email_override = models.EmailField(
         null=True,
@@ -352,6 +354,18 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         if not self.as_set_override:
             return self.ref.irr_as_set or ""
         return self.as_set_override
+
+    @property
+    def prefix4(self):
+        if not self.prefix4_override:
+            return self.ref.info_prefixes4
+        return self.prefix4_override
+
+    @property
+    def prefix6(self):
+        if not self.prefix6_override:
+            return self.ref.info_prefixes6
+        return self.prefix6_override
 
     @property
     def as_set_source(self):
@@ -833,6 +847,10 @@ class PortInfo(sot.ReferenceMixin, Base):
         port_info, _ = cls.objects.get_or_create(
             net=network, port=port, ref_id=member.ref_id
         )
+
+        port_info.ix
+
+
         return port_info
 
     @classmethod

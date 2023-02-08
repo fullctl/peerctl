@@ -83,6 +83,21 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
     aria-selected="false"
     data-second-tab="#templates-body"
     href="#page-templates">{% trans "Templates" %}</a>
+
+  {% if selected_asn %}
+
+  <a class="nav-link"
+    id="tab-network-settings"
+    data-bs-toggle="tab"
+    role="tab"
+    aria-controls="page-network-settings"
+    aria-selected="true"
+    data-second-tab="#network-settings-body"
+    href="#page-network-settings">AS{{ selected_asn }}</a>
+
+  {% endif %}
+
+
 </div>
 <div id="data-urls" style="display:hidden">
   <div class="policy" data-url="{% url "peerctl_api:policy-list" asn=selected_asn %}"></div>
@@ -151,6 +166,11 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
   <div class="tab-pane" id="page-templates" role="tabpanel" aria-labelledby="tab-templates">
     {% include "peerctl/v2/tool/peering-templates/nav.html" %}
   </div>
+
+  <div class="tab-pane" id="page-network-settings" role="tabpanel" aria-labelledby="tab-network-settings">
+  </div>
+
+
 </div>
 
 {% endblock %}
@@ -181,6 +201,12 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
   <div class="tab-pane" id="templates-body" role="tabpanel" aria-labelledby="tab-templates">
     {% include "peerctl/v2/tool/peering-templates/main.html" %}
   </div>
+
+  <div class="tab-pane" id="network-settings-body" role="tabpanel" aria-labelledby="tab-network-settings">
+    {% include "peerctl/v2/tool/network-settings/main.html" %}
+  </div>
+
+
 </div>
 {% endblock %}
 

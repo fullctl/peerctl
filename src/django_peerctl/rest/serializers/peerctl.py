@@ -10,6 +10,9 @@ from django_peerctl.helpers import get_best_policy
 
 Serializers, register = serializer_registry()
 
+def is_dummy(name):
+    return name.startswith("pdb:") or name.startswith("ixctl:")
+
 
 @register
 class Network(ModelSerializer):
@@ -135,12 +138,12 @@ class Port(serializers.Serializer):
         self.get_device(instance)
 
         parts = []
-        if instance.device and not instance.device.name.startswith("pdb:"):
+        if instance.device and not is_dummy(instance.device.name):
             parts.append(instance.device.name)
 
-        ix = models.InternetExchange.objects.get(
+        ix = models.InternetExchange.objects.filter(
             ref_id=instance.port_info_object.ref_ix_id
-        )
+        ).first()
 
         if ix:
             parts.append(ix.name)
@@ -149,17 +152,14 @@ class Port(serializers.Serializer):
 
         parts.append(instance.ip_address_4)
 
-        if instance.virtual_port_name and not instance.virtual_port_name.startswith(
-            "pdb:"
-        ):
+        if instance.virtual_port_name and not is_dummy(instance.virtual_port_name):
             parts.append(instance.virtual_port_name)
+
 
         return " ".join(parts)
 
     def get_display_name(self, instance):
-        if instance.virtual_port_name and not instance.virtual_port_name.startswith(
-            "pdb:"
-        ):
+        if instance.virtual_port_name and not is_dummy(instance.virtual_port_name):
             return f"{instance.virtual_port_name}: {instance.display_name}"
         return instance.display_name
 
