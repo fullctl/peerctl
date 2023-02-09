@@ -259,6 +259,14 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     prefix4_override = models.PositiveIntegerField(null=True, blank=True)
     prefix6_override = models.PositiveIntegerField(null=True, blank=True)
 
+    network_type_override = models.CharField(
+        choices = const.NET_TYPES,
+        max_length=255,
+        null = True,
+        blank = True,
+        help_text = _("Network type")
+    )
+
     email_override = models.EmailField(
         null=True,
         blank=True,
@@ -274,6 +282,8 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             "Will override the from: address for email communications from this network"
         ),
     )
+
+    route_server_md5 = models.CharField(max_length=255, null=True, blank=True)
 
     class HandleRef:
         tag = "net"
@@ -366,6 +376,16 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         if not self.prefix6_override:
             return self.ref.info_prefixes6
         return self.prefix6_override
+
+    @property
+    def network_type(self):
+        if not self.network_type_override:
+            return self.ref.info_type
+        return self.network_type_override
+
+    @property
+    def is_route_server(self):
+        return (self.network_type and self.network_type.lower() == "route server")
 
     @property
     def as_set_source(self):
@@ -759,15 +779,8 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         return self.port_policy.set_policy(*args, **kwargs)
 
     def set_mac_address(self, mac_address):
-
-        self.virtual_port.mac_address = mac_address
-        self.virtual_port.full_clean()
-        self.virtual_port.save()
-
-        source, id = self.port_info.ref_parts
-
-        if source == "ixctl":
-            SyncMacAddress.create_task(id, mac_address)
+        if self.asn:
+            SyncMacAddress.create_task(self.asn, self.port_info_object.ipaddr4, mac_address)
 
     def get_peer_session(self, member):
         """

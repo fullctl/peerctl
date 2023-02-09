@@ -21,6 +21,9 @@ class Network(ModelSerializer):
     peer_contact_email = serializers.CharField(read_only=True)
     contacts = serializers.SerializerMethodField()
 
+    prefix4_override = serializers.IntegerField(allow_null=True)
+    prefix6_override = serializers.IntegerField(allow_null=True)
+
     class Meta:
         model = models.Network
         fields = [
@@ -28,10 +31,19 @@ class Network(ModelSerializer):
             "asn",
             "as_set",
             "as_set_source",
+            "network_type",
+            "prefix4",
+            "prefix6",
             "name",
-            "peer_contact_email",
             "contacts",
+            "peer_contact_email",
+            "network_type_override",
+            "prefix4_override",
+            "prefix6_override",
+            "as_set_override",
+            "route_server_md5",
         ]
+        read_only_fields = ("asn",)
 
     @models.ref_fallback(lambda s, o: f"AS{o.asn}")
     def get_name(self, instance):
@@ -98,6 +110,9 @@ class Port(serializers.Serializer):
     mac_address = serializers.SerializerMethodField()
 
     ref_ix_id = serializers.SerializerMethodField()
+    ip4 = serializers.SerializerMethodField()
+    ip6 = serializers.SerializerMethodField()
+
 
     class Meta:
 
@@ -112,13 +127,23 @@ class Port(serializers.Serializer):
             "peers",
             "policy4",
             "policy6",
+            "ip4",
+            "ip6",
             "device",
             "ref_ix_id",
             "mac_address",
         ]
 
+    def get_ip4(self, instance):
+        return instance.ip_address_4
+
+
+    def get_ip6(self, instance):
+        return instance.ip_address_6
+
+
     def get_mac_address(self, instance):
-        # XXX implement devicectl
+        # XXX implement ixctl pull?
         return ""
 
     def get_peers(self, instance):

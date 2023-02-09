@@ -1,3 +1,4 @@
+from django.utils.translation import gettext as _
 from django.conf import settings
 
 from django_peerctl.confutil import discover_netom_templates
@@ -13,6 +14,19 @@ DEVICE_TYPES = (
     ("junos-set", "Juniper Junos OS set"),
     ("sros-md", "Nokia SR OS MD-CLI"),
     ("sros-classic", "Nokia SR OS Classic CLI"),
+)
+
+NET_TYPES = (
+    ("NSP", _("NSP")),
+    ("Content", _("Content")),
+    ("Cable/DSL/ISP", _("Cable/DSL/ISP")),
+    ("Enterprise", _("Enterprise")),
+    ("Educational/Research", _("Educational/Research")),
+    ("Non-Profit", _("Non-Profit")),
+    ("Route Server", _("Route Server")),
+    ("Network Services", _("Network Services")),
+    ("Route Collector", _("Route Collector")),
+    ("Government", _("Government")),
 )
 
 DEVICE_TEMPLATES, DEVICE_TEMPLATE_TYPES = discover_netom_templates(

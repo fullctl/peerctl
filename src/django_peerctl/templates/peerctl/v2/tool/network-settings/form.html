@@ -1,60 +1,89 @@
 {% load i18n %}
-<form style="margin-left:50px; margin-top: 50px;" data-api-base="" data-template="form">
-<div class="controls">
+<form data-api-base="{% url "peerctl_api:net-detail" asn=selected_asn %}" data-api-method="PUT" data-template="form">
+<div class="controls" data-api-submit="yes">
   <div class="row mb-3">
 
     <!-- AS-SET -->
 
     <div class="col-4">
       <label class="form-label">{% trans "AS-SET" %}</label>
-      <input type="text" class="form-control" name="as_set_override" placeholder="{{ net.as_set }}" value="{{ net.as_set_override|default:"" }}">
+      <input type="text" class="form-control" name="as_set_override" data-blank-as-null="yes" placeholder="{{ net.ref.irr_as_set }}">
     </div>
 
   </div>
 
   <div class="row mb-3">
+    <div class="col-4">
+      <label class="form-label">{% trans "Network Type" %}</label>
+      <select
+        data-blank-as-null="yes"
+        data-element="select_net_type"
+        class="form-control"
+        data-api-base="{% url "peerctl_api:net-list" %}"
+        data-load-type="drf-choices"
+        data-null-option=";-- Select --"
+        data-drf-name="network_type_override"
+        name="network_type_override"
+      >
+      </select>
+    </div>
+  </div>
+
+  <!-- ROUTE SERVER SPECIFIC CONFIG -->
+
+  <div class="row mb-3" style="display:none;" data-toggled="route server">
+
+    <!-- ROUTE SERVER MD5 -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Route server MD5" %}</label>
+      <input type="text" class="form-control" name="route_server_md5" data-blank-as-null="yes">
+
+    </div>
 
     <!-- MAX PREFIXES V4 -->
 
     <div class="col-4">
       <label class="form-label">{% trans "Max. prefix length v4" %}</label>
-      <input type="text" class="form-control" name="prefix4_override" placeholder="{{ net.prefix4 }}" value="{{ net.prefix4_override|default:"" }}">
+      <input type="text" class="form-control" name="prefix4_override" data-type="int" placeholder="{{ net.ref.info_prefixes4 }}">
     </div>
     <!-- MAX PREFIXEX V6 -->
 
     <div class="col-4">
       <label class="form-label">{% trans "Max. prefix length v6" %}</label>
-      <input type="text" class="form-control" name="prefix6_override" placeholder="{{ net.prefix6 }}" value="{{ net.prefix6_override|default:"" }}">
+      <input type="text" class="form-control" name="prefix6_override" data-type="int" placeholder="{{ net.ref.info_prefixes6 }}">
     </div>
   </div>
 
-
-  <div class="row mb-3">
-    <div class="col">
-        <button class="primary btn | small" data-element="save_network">
-          <div class="row align-items-center">
-            <div class="col label pe-0 ok">
-              {% trans "Save network" %}
+  <div>
+    <div class="row mb-3">
+      <div class="col-6">
+          <button class="primary btn | small" type="button" data-element="save_network">
+            <div class="row align-items-center">
+              <div class="col label pe-0 ok">
+                {% trans "Save network" %}
+              </div>
+              <div class="col-auto">
+                <span class="icon fullctl icon-edit"></span>
+              </div>
             </div>
-            <div class="col-auto">
-              <span class="icon fullctl icon-settings"></span>
-            </div>
-          </div>
-        </button>
+          </button>
+      </div>
+      <div class="col-6 right">
 
-        <button class="primary btn | small" data-element="export_network">
-          <div class="row align-items-center">
-            <div class="col label pe-0 ok">
-              {% trans "Update PeeringDB" %}
+          <button class="primary btn | small" data-element="export_network">
+            <div class="row align-items-center">
+              <div class="col label pe-0 ok">
+                {% trans "Update PeeringDB" %}
+              </div>
+              <div class="col-auto">
+                <span class="icon fullctl icon-logout"></span>
+              </div>
             </div>
-            <div class="col-auto">
-              <span class="icon fullctl icon-logout"></span>
-            </div>
-          </div>
-        </button>
-
-
+          </button>
+      </div>
     </div>
+
   </div>
 </div>
 </form>

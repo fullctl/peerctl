@@ -16,9 +16,9 @@ class SyncMacAddress(Task):
     class HandleRef:
         tag = "task_sync_mac_address"
 
-    def run(self, member_id, mac_address, *args, **kwargs):
+    def run(self, asn, ip4, mac_address, *args, **kwargs):
         ixctl.InternetExchangeMember().set_mac_address(
-            member_id, mac_address, source="peerctl"
+            asn, ip4, mac_address, source="peerctl"
         )
 
 
@@ -38,4 +38,22 @@ class SyncASSet(Task):
     def run(self, member_id, as_macro, *args, **kwargs):
         ixctl.InternetExchangeMember().set_as_macro(
             member_id, as_macro, source="peerctl"
+        )
+
+@register
+class SyncRouteServerMD5(Task):
+
+    """
+    Sync the network's route server md5 to ixctl
+    """
+
+    class Meta:
+        proxy = True
+
+    class HandleRef:
+        tag = "task_sync_md5"
+
+    def run(self, asn, md5, *args, **kwargs):
+        ixctl.InternetExchangeMember().set_route_server_md5(
+            asn, md5, source="peerctl"
         )

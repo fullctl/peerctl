@@ -2,6 +2,7 @@ import ipaddress
 
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
+
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
 from fullctl.django.rest.decorators import load_object
@@ -11,6 +12,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 import django_peerctl.models as models
+from django_peerctl.models.tasks import SyncRouteServerMD5, SyncASSet
 from django_peerctl.const import DEVICE_TEMPLATE_TYPES, DEVICE_TYPES
 from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
 from django_peerctl.peer_session_workflow import (
@@ -43,17 +45,22 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
         serializer = self.serializer_class(instances, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["put"])
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def set_as_set(self, request, asn, net, *args, **kwargs):
-        as_set = request.data.get("value")
-        try:
-            net.set_as_set(as_set)
-        except Exception as exc:
-            return BadRequest({"non_field_errors": [[str(exc)]]})
+    def update(self, request, asn, net, *args, **kwargs):
 
-        serializer = self.serializer_class(net)
+        serializer = self.serializer_class(net, data=request.data)
+
+        if not serializer.is_valid():
+            return BadRequest(serializer.errors)
+
+        serializer.save()
+
+        if net.is_route_server:
+            SyncRouteServerMD5.create_task(asn, net.route_server_md5)
+
+        SyncASSet.create_task(asn, net.as_set_override)
+
         return Response(serializer.data)
 
 
@@ -160,7 +167,7 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
         filter_device = request.GET.get("device")
         ixi = request.GET.get("ixi")
 
-        qset = models.PortInfo.objects.filter(net__org=request.org, port__gt=0)
+        qset = models.PortInfo.objects.filter(net__org=request.org, net__asn=asn, port__gt=0)
 
         if ixi:
 
@@ -283,9 +290,10 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=["put"])
-    @load_object("port", models.Port, id="pk", port_info__net__asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def set_mac_address(self, request, asn, pk, port, *args, **kwargs):
+    def set_mac_address(self, request, asn, pk, *args, **kwargs):
+        # get port
+        port = models.Port().object(pk)
         mac_address = request.data.get("value")
         try:
             port.set_mac_address(mac_address)

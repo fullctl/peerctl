@@ -159,11 +159,59 @@ $peerctl.NetworkSettings = $tc.extend(
     },
 
     init : function() {
+
+      // write form
+
       this.widget("form", ($e) => {
         return new twentyc.rest.Form(
           this.template("form", this.$e.body)
         );
       });
+
+      this.$w.form.wire_submit(this.$w.form.element.find('[data-element=save_network]'));
+
+      // wire network type select input
+
+      this.select_net_type = new twentyc.rest.Select(
+        this.$w.form.element.find('[data-element=select_net_type]')
+      )
+
+      $(this.select_net_type.element).on("change", () => {
+        this.sync_ux();
+      });
+
+      // load values into form
+
+      this.sync();
+
+      $(this.$w.form).on("api-write:success", ()=> {
+        this.sync_ux();
+      });
+    },
+
+    sync_ux : function() {
+      if(this.select_net_type.element.val() == "Route Server") {
+        this.$w.form.element.find('[data-toggled="route server"]').show();
+      } else {
+        this.$w.form.element.find('[data-toggled="route server"]').hide();
+      }
+    },
+
+
+    /**
+     * syncs the network form from the server
+     * will retrieve network data and fill in the form
+     * @method sync
+     */
+
+    sync : function() {
+
+      this.$w.form.get("").then((response) => {
+        var net = response.first();
+        this.$w.form.fill(net);
+        this.select_net_type.load(net.network_type).then(() => { this.sync_ux(); });
+      });
+
     }
   },
   $ctl.application.Tool
@@ -488,7 +536,7 @@ $peerctl.PeeringLists = $tc.extend(
           this.Tool_menu().find(".ixctl-controls").show();
         }
         this.$w.port_mac_address.element.val(port.mac_address);
-        this.$w.net_as_set.element.val(fullctl.peerctl.network.as_set);
+        //this.$w.net_as_set.element.val(fullctl.peerctl.network.as_set);
 
         this.$w.peers.load();
         this.$w.port_policy_4.load();
@@ -524,9 +572,13 @@ $peerctl.PeeringLists = $tc.extend(
         return new $peerctl.MacAddressInput(menu.find('[data-element="port_mac_address"]'));
       });
 
+      /*
+
       this.widget("net_as_set", ($e) => {
         return new $peerctl.ASSetInput(menu.find('[data-element="net_as_set"]'));
       });
+
+      */
 
       menu.find('[data-element="device_config"]').click(()=>{
         new $peerctl.modals.DeviceConfig();
@@ -572,11 +624,12 @@ $peerctl.PeeringLists = $tc.extend(
         fullctl.peerctl.ports[data.id] = data;
       });
 
-
+      /*
       $(this.$w.net_as_set).on("api-write:success", (ev, endpoint, sent_data, response)=>{
         var data = response.first();
         fullctl.peerctl.network.as_set = data.as_set;
       });
+      */
 
 
 
