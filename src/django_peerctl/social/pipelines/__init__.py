@@ -8,7 +8,6 @@ from django_peerctl.utils import get_network
 
 
 def create_devices(backend, details, response, uid, user, *args, **kwargs):
-
     """
     When a user authenticates we create some default devices as necessary for
     the network's that user is provisioned to
@@ -45,7 +44,6 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
                 continue
 
         if member.ref_id not in port_infos:
-
             # pdb sot == ixlan_id
             # ixctl sot == ix_id
 

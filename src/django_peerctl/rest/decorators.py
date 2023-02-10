@@ -5,9 +5,7 @@ import django_peerctl.models as models
 
 
 def load_org_instance_from_asn(self, request, data):
-
     if "asn" in data:
-
         org = models.Network.objects.get(asn=data["asn"]).org
 
         request.org = org
@@ -20,7 +18,6 @@ def load_org_instance_from_asn(self, request, data):
         data.update(instance=instance, org=request.org)
 
     elif request.org.id:
-
         data.update(org=request.org)
 
         if isinstance(data.get("instance"), self.instance_class):

@@ -15,6 +15,6 @@ def conf(request):
             },
             "peeringdb": {
                 "url": settings.PEERINGDB_URL,
-            }
+            },
         },
     }

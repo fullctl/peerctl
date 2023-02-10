@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('django_peerctl', '0022_auto_20230124_1528'),
+        ("django_peerctl", "0022_auto_20230124_1528"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='network',
-            name='prefix4_override',
+            model_name="network",
+            name="prefix4_override",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='network',
-            name='prefix6_override',
+            model_name="network",
+            name="prefix6_override",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

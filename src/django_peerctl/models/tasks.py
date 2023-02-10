@@ -40,6 +40,7 @@ class SyncASSet(Task):
             member_id, as_macro, source="peerctl"
         )
 
+
 @register
 class SyncRouteServerMD5(Task):
 

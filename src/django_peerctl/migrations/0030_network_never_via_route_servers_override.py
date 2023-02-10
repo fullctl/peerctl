@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('django_peerctl', '0029_auto_20230210_2052'),
+        ("django_peerctl", "0029_auto_20230210_2052"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='network',
-            name='never_via_route_servers_override',
+            model_name="network",
+            name="never_via_route_servers_override",
             field=models.BooleanField(null=True),
         ),
     ]

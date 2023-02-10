@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('django_peerctl', '0025_auto_20230210_0736'),
+        ("django_peerctl", "0025_auto_20230210_0736"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='portinfo',
-            name='is_route_server_peer',
+            model_name="portinfo",
+            name="is_route_server_peer",
             field=models.BooleanField(null=True),
         ),
     ]

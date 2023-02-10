@@ -23,7 +23,6 @@ class Heartbeat(HeartbeatViewSet):
 
 @route
 class Network(DataViewSet):
-
     path_prefix = "/data"
     allowed_http_methods = ["GET"]
     valid_filters = [
@@ -37,11 +36,13 @@ class Network(DataViewSet):
         (
             "has_overrides",
             Exclude(
-                (Q(as_set_override__isnull=True) | Q(as_set_override=""),
-                Q(prefix4_override__isnull=True),
-                Q(prefix6_override__isnull=True))
+                (
+                    Q(as_set_override__isnull=True) | Q(as_set_override=""),
+                    Q(prefix4_override__isnull=True),
+                    Q(prefix6_override__isnull=True),
+                )
             ),
-        )
+        ),
     ]
     autocomplete = "name"
     allow_unfiltered = True

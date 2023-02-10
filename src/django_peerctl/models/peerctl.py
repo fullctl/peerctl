@@ -5,8 +5,8 @@ import logging
 import os.path
 
 import fullctl.service_bridge.devicectl as devicectl
-import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.ixctl as ixctl
+import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 import reversion
 from django.conf import settings
@@ -165,7 +165,6 @@ class Policy(Base):
 
 
 class PolicyHolderMixin(models.Model):
-
     policy4 = models.ForeignKey(
         Policy, null=True, blank=True, related_name="+", on_delete=models.SET_NULL
     )
@@ -230,7 +229,6 @@ class PolicyHolderMixin(models.Model):
 
 
 class UsageLimitMixin(models.Model):
-
     max_sessions = models.PositiveIntegerField(
         help_text=_("maximum amount of peering sessions allowed "), default=0
     )
@@ -244,7 +242,6 @@ class UsageLimitMixin(models.Model):
 )
 @reversion.register
 class Network(PolicyHolderMixin, UsageLimitMixin, Base):
-
     org = models.ForeignKey(
         Organization,
         null=True,
@@ -261,16 +258,22 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     prefix6_override = models.PositiveIntegerField(null=True, blank=True)
 
     network_type_override = models.CharField(
-        choices = const.NET_TYPES,
+        choices=const.NET_TYPES,
         max_length=255,
-        null = True,
-        blank = True,
-        help_text = _("Network type")
+        null=True,
+        blank=True,
+        help_text=_("Network type"),
     )
 
-    ratio_override = models.CharField(choices = const.RATIOS, max_length=255, null=True, blank=True)
-    scope_override = models.CharField(choices = const.SCOPES, max_length=255, null=True, blank=True)
-    traffic_override = models.CharField(choices = const.TRAFFIC, max_length=255, null=True, blank=True)
+    ratio_override = models.CharField(
+        choices=const.RATIOS, max_length=255, null=True, blank=True
+    )
+    scope_override = models.CharField(
+        choices=const.SCOPES, max_length=255, null=True, blank=True
+    )
+    traffic_override = models.CharField(
+        choices=const.TRAFFIC, max_length=255, null=True, blank=True
+    )
     unicast_override = models.BooleanField(null=True)
     multicast_override = models.BooleanField(null=True)
     never_via_route_servers_override = models.BooleanField(null=True)
@@ -424,7 +427,6 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             return self.ref.info_multicast
         return self.multicast_override
 
-
     @property
     @ref_fallback(False)
     def never_via_route_servers(self):
@@ -432,10 +434,9 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             return self.ref.info_never_via_route_servers
         return self.never_via_route_servers_override
 
-
     @property
     def is_route_server(self):
-        return (self.network_type and self.network_type.lower() == "route server")
+        return self.network_type and self.network_type.lower() == "route server"
 
     @property
     def as_set_source(self):
@@ -468,7 +469,6 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         return PeerNetwork.objects.filter(net=self).select_related("net", "peer")
 
     def peer_nets_at_ix(self, ix_id=None):
-
         """
         returns all PeerNetworks owned by this network at the specified
         exchange
@@ -625,12 +625,10 @@ class PeerNetwork(PolicyHolderMixin, Base):
 
     @property
     def peer_sessions(self):
-
         peer_ports = PeerPort.objects.filter(peer_net=self)
         peer_sessions = PeerSession.objects.filter(peer_port__in=peer_ports)
 
         return peer_sessions
-
 
     @ref_fallback(0)
     def info_prefixes(self, ip_version):
@@ -652,17 +650,19 @@ class PeerNetwork(PolicyHolderMixin, Base):
     def policy_parents(self):
         return [self.net]
 
-
     def sync_route_server_md5(self):
-        for session in self.peer_sessions.select_related("peer_port", "peer_port__port_info"):
+        for session in self.peer_sessions.select_related(
+            "peer_port", "peer_port__port_info"
+        ):
             port_info = session.port.object.port_info_object
 
             if not port_info.is_rs_peer:
                 continue
 
             peer_port_info = session.peer_port.port_info
-            SyncRouteServerMD5.create_task(port_info.net.asn, self.md5, port_info.ipaddr4, peer_port_info.ipaddr4)
-
+            SyncRouteServerMD5.create_task(
+                port_info.net.asn, self.md5, port_info.ipaddr4, peer_port_info.ipaddr4
+            )
 
 
 @reversion.register
@@ -687,7 +687,6 @@ class InternetExchange(sot.ReferenceMixin, Base):
     @classmethod
     @reversion.create_revision()
     def get_or_create(cls, ix, source):
-
         if isinstance(ix, int):
             ix = cls.ref_bridge(source).object(ix)
 
@@ -714,7 +713,6 @@ class InternetExchange(sot.ReferenceMixin, Base):
 
 class MutualLocation:
     def __init__(self, ix, net, peer_net):
-
         self.ix = ix
         self.net = net
         self.peer_net = peer_net
@@ -750,7 +748,6 @@ class MutualLocation:
 
 
 class PortPolicy(PolicyHolderMixin, Base):
-
     port = models.PositiveIntegerField(unique=True)
 
     class Meta:
@@ -761,7 +758,6 @@ class PortPolicy(PolicyHolderMixin, Base):
 
 
 class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
-
     # TODO PortPolicy schema to allow setting policy per port
     # again
 
@@ -854,20 +850,19 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         return self.port_policy.set_policy(*args, **kwargs)
 
     def set_mac_address(self, mac_address):
-
         self.port_info_object.mac_address = mac_address
         self.port_info_object.save()
 
         if self.asn:
-            SyncMacAddress.create_task(self.asn, self.port_info_object.ipaddr4, mac_address)
+            SyncMacAddress.create_task(
+                self.asn, self.port_info_object.ipaddr4, mac_address
+            )
 
     def set_is_route_server_peer(self, is_route_server_peer):
-
         self.port_info_object.is_route_server_peer = is_route_server_peer
         self.port_info_object.save()
 
         # TODO: sync to ixctl?
-
 
     def get_peer_session(self, member):
         """
@@ -887,7 +882,6 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
 
 class Port(devicectl.Port):
-
     DoesNotExist = Exception
 
     class Meta(devicectl.Port.Meta):
@@ -953,7 +947,6 @@ class PortInfo(sot.ReferenceMixin, Base):
         )
 
         port_info.ix
-
 
         return port_info
 
@@ -1083,7 +1076,6 @@ class DeviceObject(devicectl.DeviceCtlEntity):
         return groups
 
     def _peer_groups_netom0_data(self, net, ip_version, peer_groups, **kwargs):
-
         """
         Fills the dict passed in `peer_groups` with groups and netom0
         peering object literals according to the specified ip_version
@@ -1131,7 +1123,6 @@ class DeviceObject(devicectl.DeviceCtlEntity):
                 peer_groups[name].append(peer)
 
     def peer_groups_netom0_data(self, net, **kwargs):
-
         """
         Returns dict with peer_groups and netom0 data for each
         peer
@@ -1147,7 +1138,6 @@ class DeviceObject(devicectl.DeviceCtlEntity):
 
 
 class Device(devicectl.Device):
-
     DoesNotExist = Exception
 
     class Meta(devicectl.Device.Meta):
@@ -1401,12 +1391,10 @@ class TemplateBase(models.Model):
         """
 
         if self.body:
-
             # if body is not empty, we use a dict loader
             # to make jinja load it as the template
             loader = DictLoader({self.template_path: self.body})
         else:
-
             # if body is empty we will load the default
             # template from file
             #
@@ -1576,7 +1564,6 @@ class EmailTemplate(Base, TemplateBase):
 )
 @reversion.register
 class AuditLog(HandleRefModel):
-
     net = models.ForeignKey(
         Network, related_name="qset_auditlog", on_delete=models.CASCADE
     )
@@ -1668,7 +1655,6 @@ class AuditLog(HandleRefModel):
 )
 @reversion.register
 class EmailLog(HandleRefModel):
-
     net = models.ForeignKey(
         Network, related_name="qset_email_log", on_delete=models.CASCADE
     )
@@ -1769,7 +1755,6 @@ class EmailLog(HandleRefModel):
     namespace_instance="{namespace}.{instance.email_log.net.asn}",
 )
 class EmailLogRecipient(models.Model):
-
     email_log = models.ForeignKey(
         EmailLog, related_name="qset_recipient", on_delete=models.CASCADE
     )
@@ -1784,7 +1769,6 @@ class EmailLogRecipient(models.Model):
 @grainy_model(namespace="user")
 @reversion.register
 class UserPreferences(HandleRefModel):
-
     user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE)
     email_opt_features = models.BooleanField(default=True)
     email_opt_offers = models.BooleanField(default=True)

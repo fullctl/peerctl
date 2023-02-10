@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("django_fullctl", "0019_default_org"),
         ("django_peerctl", "0009_auto_20211019_1133"),

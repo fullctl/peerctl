@@ -2,7 +2,6 @@ import ipaddress
 
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
-
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
 from fullctl.django.rest.decorators import load_object
@@ -12,9 +11,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 import django_peerctl.models as models
-from django_peerctl.models.tasks import SyncRouteServerMD5, SyncASSet
 from django_peerctl.const import DEVICE_TEMPLATE_TYPES, DEVICE_TYPES
 from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
+from django_peerctl.models.tasks import SyncASSet, SyncRouteServerMD5
 from django_peerctl.peer_session_workflow import (
     PeerRequestToAsnWorkflow,
     PeerSessionEmailWorkflow,
@@ -26,7 +25,6 @@ from django_peerctl.rest.serializers.peerctl import Serializers, ValidationError
 
 @route
 class Network(CachedObjectMixin, viewsets.ModelViewSet):
-
     serializer_class = Serializers.net
     queryset = models.Network.objects.all()
 
@@ -48,7 +46,6 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def update(self, request, asn, net, *args, **kwargs):
-
         serializer = self.serializer_class(net, data=request.data)
 
         if not serializer.is_valid():
@@ -69,7 +66,6 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
 
 @route
 class Policy(CachedObjectMixin, viewsets.ModelViewSet):
-
     serializer_class = Serializers.policy
     queryset = models.Policy.objects.all()
     require_asn = True
@@ -111,7 +107,6 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("policy", models.Policy, id="pk", net__asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def update(self, request, asn, net, pk, policy, *args, **kwargs):
-
         serializer = self.serializer_class(instance=policy, data=request.data)
 
         is_global4 = request.data.get("is_global4", False)
@@ -153,20 +148,19 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
 
 @route
 class Port(CachedObjectMixin, viewsets.GenericViewSet):
-
     serializer_class = Serializers.port
     require_asn = True
 
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, *args, **kwargs):
-
         filter_device = request.GET.get("device")
         ixi = request.GET.get("ixi")
 
-        qset = models.PortInfo.objects.filter(net__org=request.org, net__asn=asn, port__gt=0)
+        qset = models.PortInfo.objects.filter(
+            net__org=request.org, net__asn=asn, port__gt=0
+        )
 
         if ixi:
-
             # only grab IXI ports
 
             qset = qset.filter(ref_id__gt=0)
@@ -263,7 +257,6 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     @action(detail=False, methods=["put"], url_path="(?P<pk>[^/.]+)/set_policy")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_policy(self, request, asn, pk, *args, **kwargs):
-
         # get port
         port = models.Port().object(pk)
 
@@ -314,7 +307,6 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
         return Response(serializer.data)
 
 
-
 # peer view
 # list all peers for a port and asn
 # retrieve peer for port and asn
@@ -328,7 +320,6 @@ def get_member(pk, join=None):
 
 @route
 class NetworkSearch(viewsets.GenericViewSet):
-
     serializer_class = Serializers.network_search
     require_asn = True
     lookup_url_kwarg = "other_asn"
@@ -396,7 +387,6 @@ class NetworkSearch(viewsets.GenericViewSet):
 
 @route
 class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
-
     serializer_class = Serializers.peer_session
     require_asn = True
     optional_port = True
@@ -534,7 +524,6 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
 
 @route
 class Peer(CachedObjectMixin, viewsets.GenericViewSet):
-
     serializer_class = Serializers.peer
     require_asn = True
     require_port = True
@@ -542,7 +531,6 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, port_pk, *args, **kwargs):
-
         port = models.Port().first(id=port_pk)
 
         device = port.devices[0]
@@ -650,7 +638,6 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_max_prefix(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
-
         member = get_member(pk)
         peer = models.Network.objects.get(asn=member.asn)
         peer_net = models.PeerNetwork.get_or_create(net, peer)
@@ -676,7 +663,6 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
 @route
 class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
-
     serializer_class = Serializers.peer_session
     queryset = models.PeerSession.objects.all()
     require_asn = True
@@ -743,7 +729,6 @@ class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
 
 @route
 class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
-
     serializer_class = Serializers.peer_session
     queryset = models.PeerSession.objects.all()
     require_asn = True
@@ -755,7 +740,6 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
-
         reply_to = request.data.get("reply_to")
         from_email = request.data.get("from_email")
         email_template_id = int(request.data.get("email_template", 0))
@@ -805,14 +789,12 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
 
 @route
 class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
-
     serializer_class = Serializers.peer_session
     queryset = models.PeerSession.objects.all()
     require_asn = True
     require_port = True
 
     def get_serializer_dynamic(self, path, method, direction):
-
         """
         Retrieve correct serializer class for openapi schema
         generation
@@ -871,7 +853,6 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_policy(self, request, asn, net, port_pk, pk, *args, **kwargs):
-
         # make sure port exists
         models.Port().object(port_pk)
 
@@ -910,7 +891,6 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create_floating(self, request, asn, net, port_pk, *args, **kwargs):
-
         """
         Creates a new peering session.
 
@@ -949,7 +929,6 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def update(self, request, asn, net, port_pk, pk, *args, **kwargs):
-
         data = request.data.copy()
         session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
 
@@ -977,7 +956,6 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def update_meta(self, request, asn, net, port_pk, pk, *args, **kwargs):
-
         data = request.data.copy()
         session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
 
@@ -998,7 +976,6 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
 @route
 class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
-
     serializer_class = Serializers.peer_session
     queryset = models.PeerSession.objects.all()
     require_asn = True
@@ -1006,7 +983,6 @@ class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     ref_tag = "partial_peer_session"
 
     def get_serializer_dynamic(self, path, method, direction):
-
         """
         Retrieve correct serializer class for openapi schema
         generation
@@ -1022,7 +998,6 @@ class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
-
         data = request.data.copy()
 
         if not data.get("peer_maxprefix4"):
@@ -1050,7 +1025,6 @@ class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def update(self, request, asn, net, pk, *args, **kwargs):
-
         data = request.data.copy()
         session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
 
@@ -1079,7 +1053,6 @@ class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
 @route
 class UserPreferences(CachedObjectMixin, viewsets.ModelViewSet):
-
     serializer_class = Serializers.user
     queryset = models.UserPreferences.objects.all()
 
@@ -1104,7 +1077,6 @@ class UserPreferences(CachedObjectMixin, viewsets.ModelViewSet):
 
 @route
 class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
-
     serializer_class = Serializers.email_template
     queryset = models.EmailTemplate.objects.all()
     require_asn = True
@@ -1162,7 +1134,6 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             email_template = models.EmailTemplate.objects.get(id=pk)
 
         if "peer" in request.data:
-
             email_template.context["peer"] = get_member(request.data["peer"])
         elif "asn" in request.data:
             email_template.context["peer"] = sot.InternetExchangeMember().first(
@@ -1194,7 +1165,6 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
 
 @route
 class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
-
     serializer_class = Serializers.device_template
     queryset = models.DeviceTemplate.objects.all()
     require_asn = True
