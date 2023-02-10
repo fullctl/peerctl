@@ -549,6 +549,7 @@ $peerctl.PeeringLists = $tc.extend(
           this.Tool_menu().find(".ixctl-controls").show();
         }
         this.$w.port_mac_address.element.val(port.mac_address);
+        this.$w.port_is_route_server_peer.element.prop("checked", port.is_route_server_peer);
         //this.$w.net_as_set.element.val(fullctl.peerctl.network.as_set);
 
         this.$w.peers.load();
@@ -583,6 +584,10 @@ $peerctl.PeeringLists = $tc.extend(
 
       this.widget("port_mac_address", ($e) => {
         return new $peerctl.MacAddressInput(menu.find('[data-element="port_mac_address"]'));
+      });
+
+      this.widget("port_is_route_server_peer", ($e) => {
+        return new $peerctl.IsRouteServerPeerInput(menu.find('[data-element="port_is_route_server_peer"]'));
       });
 
       /*
@@ -633,8 +638,8 @@ $peerctl.PeeringLists = $tc.extend(
 
 
       $(this.$w.port_mac_address).on("api-write:success", (ev, endpoint, sent_data, response)=>{
-        var data = response.first();
-        fullctl.peerctl.ports[data.id] = data;
+        //var data = response.first();
+        //fullctl.peerctl.ports[data.id] = data;
       });
 
       /*
@@ -1418,12 +1423,23 @@ $peerctl.MacAddressInput = $tc.extend(
     },
     payload : function() {
       return {
-        value: this.element.val()
+        mac_address: this.element.val()
       }
     }
   },
   twentyc.rest.Input
 );
+
+$peerctl.IsRouteServerPeerInput = $tc.extend(
+  "IsRouteServerPeerInput",
+  {
+    format_request_url : function(url, method) {
+      return url.replace("port_id", fullctl.peerctl.port());
+    }
+  },
+  twentyc.rest.Checkbox
+);
+
 
 $peerctl.ASSetInput = $tc.extend(
   "ASSetInput",

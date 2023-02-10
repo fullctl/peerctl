@@ -256,6 +256,7 @@
                 class="form-control"
                 data-api-base="{% url "peerctl_api:port-set-mac-address" asn=selected_asn pk="port_id" %}"
                 data-api-method="put"
+                name="mac_address"
                 data-element="port_mac_address">
             </div>
           </div>
@@ -264,8 +265,9 @@
             <div class="col-12">
               <input type="checkbox"
                 class="form-check-input"
-                data-api-base="{% url "peerctl_api:port-set-mac-address" asn=selected_asn pk="port_id" %}"
+                data-api-base="{% url "peerctl_api:port-set-is-route-server-peer" asn=selected_asn pk="port_id" %}"
                 data-api-method="put"
+                name="is_route_server_peer"
                 data-element="port_is_route_server_peer">
               <label class="form-check-label">{% trans "Route Server Peer" %}</label>
             </div>
