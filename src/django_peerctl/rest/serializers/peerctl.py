@@ -107,6 +107,7 @@ class Port(serializers.Serializer):
     policy6 = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
     mac_address = serializers.SerializerMethodField()
+    is_route_server_peer = serializers.SerializerMethodField()
 
     ref_ix_id = serializers.SerializerMethodField()
     ip4 = serializers.SerializerMethodField()
@@ -131,6 +132,7 @@ class Port(serializers.Serializer):
             "device",
             "ref_ix_id",
             "mac_address",
+            "is_route_server_peer",
         ]
 
     def get_ip4(self, instance):
@@ -140,10 +142,11 @@ class Port(serializers.Serializer):
     def get_ip6(self, instance):
         return instance.ip_address_6
 
-
     def get_mac_address(self, instance):
-        # XXX implement ixctl pull?
-        return ""
+        return f"{instance.mac_address}"
+
+    def get_is_route_server_peer(self, instance):
+        return instance.is_route_server_peer
 
     def get_peers(self, instance):
         return models.PeerSession.objects.filter(port=instance).count()

@@ -6,6 +6,7 @@ import os.path
 
 import fullctl.service_bridge.devicectl as devicectl
 import fullctl.service_bridge.pdbctl as pdbctl
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.sot as sot
 import reversion
 from django.conf import settings
@@ -25,7 +26,7 @@ from fullctl.django.models.concrete import Instance, Organization  # noqa
 from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
-from netfields import InetAddressField
+from netfields import InetAddressField, MACAddressField
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
@@ -769,8 +770,12 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     @property
     def mac_address(self):
-        # TODO devicectl / ixctl ?
-        return ""
+        # TODO: fallback to read from ixctl?
+        return self.port_info_object.mac_address
+
+    @property
+    def is_route_server_peer(self):
+        return self.port_info_object.is_rs_peer
 
     @property
     def asn(self):
@@ -798,8 +803,20 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         return self.port_policy.set_policy(*args, **kwargs)
 
     def set_mac_address(self, mac_address):
+
+        self.port_info_object.mac_address = mac_address
+        self.port_info_object.save()
+
         if self.asn:
             SyncMacAddress.create_task(self.asn, self.port_info_object.ipaddr4, mac_address)
+
+    def set_is_route_server_peer(self, is_route_server_peer):
+
+        self.port_info_object.is_route_server_peer = is_route_server_peer
+        self.port_info_object.save()
+
+        # TODO: sync to ixctl?
+
 
     def get_peer_session(self, member):
         """
@@ -861,6 +878,8 @@ class PortInfo(sot.ReferenceMixin, Base):
     )
 
     is_route_server_peer = models.BooleanField(null=True)
+
+    mac_address = MACAddressField(null=True, blank=True)
 
     class HandleRef:
         tag = "port_info"

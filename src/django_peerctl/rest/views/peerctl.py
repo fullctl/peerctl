@@ -290,7 +290,7 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     def set_mac_address(self, request, asn, pk, *args, **kwargs):
         # get port
         port = models.Port().object(pk)
-        mac_address = request.data.get("value")
+        mac_address = request.data.get("mac_address")
         try:
             port.set_mac_address(mac_address)
         except Exception as exc:
@@ -298,6 +298,21 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
         serializer = self.serializer_class(port)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["put"])
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def set_is_route_server_peer(self, request, asn, pk, *args, **kwargs):
+        # get port
+        port = models.Port().object(pk)
+        is_route_server_peer = request.data.get("is_route_server_peer")
+        try:
+            port.set_is_route_server_peer(is_route_server_peer)
+        except Exception as exc:
+            return BadRequest({"non_field_errors": [[str(exc)]]})
+
+        serializer = self.serializer_class(port)
+        return Response(serializer.data)
+
 
 
 # peer view
