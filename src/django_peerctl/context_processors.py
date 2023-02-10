@@ -13,5 +13,8 @@ def conf(request):
                 "support": settings.DEFAULT_FROM_EMAIL,
                 "peer_request_from": settings.PEER_REQUEST_FROM_EMAIL,
             },
+            "peeringdb": {
+                "url": settings.PEERINGDB_URL,
+            }
         },
     }

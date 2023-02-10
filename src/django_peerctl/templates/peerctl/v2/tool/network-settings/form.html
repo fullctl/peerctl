@@ -110,8 +110,7 @@
           </button>
       </div>
       <div class="col-6 right">
-
-          <button class="primary btn | small" data-element="export_network">
+	  <button class="primary btn | small" data-element="export_network" data-target="{{ settings.peeringdb.url }}verify-update/net/{{ net.ref.id }}">
             <div class="row align-items-center">
               <div class="col label pe-0 ok">
                 {% trans "Update PeeringDB" %}
@@ -123,7 +122,6 @@
           </button>
       </div>
     </div>
-
   </div>
 </div>
 </form>

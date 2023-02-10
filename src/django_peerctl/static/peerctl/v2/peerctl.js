@@ -170,6 +170,19 @@ $peerctl.NetworkSettings = $tc.extend(
 
       this.$w.form.wire_submit(this.$w.form.element.find('[data-element=save_network]'));
 
+      this.button_update_peeringdb = this.$w.form.element.find('[data-element=export_network]');
+      this.button_update_peeringdb.on("click", () => {
+        var data = this.$w.form.payload();
+        var dataDict = {
+          "irr_as_set": data["as_set_override"] || data["as_set_peeringdb"],
+          "info_prefixes4": data["prefix4_override"] || data["prefix4_peeringdb"],
+          "info_prefixes6": data["prefix6_override"] || data["prefix6_peeringdb"],
+          "info_type": data["network_type_override"] || data["network_type_peeringdb"]
+        };
+        // Redirect user to PeeringDB update verification page
+        window.location.href = this.button_update_peeringdb.data('target')+"?source=peerCtl&"+$.param(dataDict);
+      });
+
       // wire network type select input
 
       this.select_net_type = new twentyc.rest.Select(
