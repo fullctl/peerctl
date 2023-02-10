@@ -3,18 +3,42 @@
 <div class="controls" data-api-submit="yes">
   <div class="row mb-3">
 
-    <!-- AS-SET -->
-
-    <div class="col-4">
-      <label class="form-label">{% trans "AS-SET" %}</label>
-      <input type="text" class="form-control" name="as_set_override" data-blank-as-null="yes" placeholder="{{ net.ref.irr_as_set }}">
+    <div class="col-4 offset-4 text-center">
+      Values
+    </div>
+    <div class="col-4 text-center">
+      PeeringDB
     </div>
 
   </div>
 
   <div class="row mb-3">
+
+    <!-- AS-SET -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "AS-SET" %}</label>
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="as_set_override" data-blank-as-null="yes" placeholder="{{ net.ref.irr_as_set_override }}">
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="as_set_peeringdb" data-blank-as-null="yes" value="{{ net.ref.irr_as_set }}" disabled>
+    </div>
+
+  </div>
+
+  <div class="row mb-3">
+
+    <!-- NETWORK TYPE -->
+
     <div class="col-4">
       <label class="form-label">{% trans "Network Type" %}</label>
+    </div>
+
+    <div class="col-4">
       <select
         data-blank-as-null="yes"
         data-element="select_net_type"
@@ -27,32 +51,48 @@
       >
       </select>
     </div>
-  </div>
-
-  <!-- ROUTE SERVER SPECIFIC CONFIG -->
-
-  <div class="row mb-3" style="display:none;" data-toggled="route server">
-
-    <!-- ROUTE SERVER MD5 -->
 
     <div class="col-4">
-      <label class="form-label">{% trans "Route server MD5" %}</label>
-      <input type="text" class="form-control" name="route_server_md5" data-blank-as-null="yes">
-
+      <input type="text" class="form-control" name="network_type_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_type }}" disabled>
+      </select>
     </div>
+
+  </div>
+
+  <div class="row mb-3">
 
     <!-- MAX PREFIXES V4 -->
 
     <div class="col-4">
       <label class="form-label">{% trans "Max. prefix length v4" %}</label>
-      <input type="text" class="form-control" name="prefix4_override" data-type="int" placeholder="{{ net.ref.info_prefixes4 }}">
     </div>
-    <!-- MAX PREFIXEX V6 -->
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="prefix4_override" data-type="int" placeholder="{{ net.ref.prefix4_override }}">
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="prefix4_peeringdb" data-type="int" value="{{ net.ref.info_prefixes4 }}" disabled>
+    </div>
+
+  </div>
+
+  <div class="row mb-3">
+
+    <!-- MAX PREFIXES V6 -->
 
     <div class="col-4">
       <label class="form-label">{% trans "Max. prefix length v6" %}</label>
-      <input type="text" class="form-control" name="prefix6_override" data-type="int" placeholder="{{ net.ref.info_prefixes6 }}">
     </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="prefix6_override" data-type="int" placeholder="{{ net.ref.prefix6_override }}">
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="prefix6_peeringdb" data-type="int" value="{{ net.ref.info_prefixes6 }}" disabled>
+    </div>
+
   </div>
 
   <div>
