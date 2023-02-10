@@ -268,6 +268,13 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         help_text = _("Network type")
     )
 
+    ratio_override = models.CharField(choices = const.RATIOS, max_length=255, null=True, blank=True)
+    scope_override = models.CharField(choices = const.SCOPES, max_length=255, null=True, blank=True)
+    traffic_override = models.CharField(choices = const.TRAFFIC, max_length=255, null=True, blank=True)
+    unicast_override = models.BooleanField(null=True)
+    multicast_override = models.BooleanField(null=True)
+    never_via_route_servers_override = models.BooleanField(null=True)
+
     email_override = models.EmailField(
         null=True,
         blank=True,
@@ -359,18 +366,21 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         return contacts
 
     @property
+    @ref_fallback("")
     def as_set(self):
         if not self.as_set_override:
             return self.ref.irr_as_set or ""
         return self.as_set_override
 
     @property
+    @ref_fallback(0)
     def prefix4(self):
         if not self.prefix4_override:
             return self.ref.info_prefixes4
         return self.prefix4_override
 
     @property
+    @ref_fallback(0)
     def prefix6(self):
         if not self.prefix6_override:
             return self.ref.info_prefixes6
@@ -381,6 +391,47 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         if not self.network_type_override:
             return self.ref.info_type
         return self.network_type_override
+
+    @property
+    def ratio(self):
+        if not self.ratio_override:
+            return self.ref.info_ratio
+        return self.ratio_override
+
+    @property
+    def scope(self):
+        if not self.scope_override:
+            return self.ref.info_scope
+        return self.scope_override
+
+    @property
+    def traffic(self):
+        if not self.traffic_override:
+            return self.ref.info_traffic
+        return self.traffic_override
+
+    @property
+    @ref_fallback(False)
+    def unicast(self):
+        if not self.unicast_override:
+            return self.ref.info_unicast
+        return self.unicast_override
+
+    @property
+    @ref_fallback(False)
+    def multicast(self):
+        if not self.multicast_override:
+            return self.ref.info_multicast
+        return self.multicast_override
+
+
+    @property
+    @ref_fallback(False)
+    def never_via_route_servers(self):
+        if not self.never_via_route_servers_override:
+            return self.ref.info_never_via_route_servers
+        return self.never_via_route_servers_override
+
 
     @property
     def is_route_server(self):

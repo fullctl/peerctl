@@ -34,6 +34,12 @@ class Network(ModelSerializer):
             "network_type",
             "prefix4",
             "prefix6",
+            "traffic",
+            "ratio",
+            "scope",
+            "multicast",
+            "never_via_route_servers",
+            "unicast",
             "name",
             "contacts",
             "peer_contact_email",
@@ -41,6 +47,12 @@ class Network(ModelSerializer):
             "prefix4_override",
             "prefix6_override",
             "as_set_override",
+            "multicast_override",
+            "never_via_route_servers_override",
+            "ratio_override",
+            "traffic_override",
+            "unicast_override",
+            "scope_override",
         ]
         read_only_fields = ("asn",)
 

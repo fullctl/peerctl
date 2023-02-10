@@ -4,10 +4,10 @@
   <div class="row mb-3">
 
     <div class="col-4 offset-4 text-center">
-      Values
+      peerCtl
     </div>
     <div class="col-4 text-center">
-      PeeringDB
+      <a href="{{ settings.peeringdb.url }}net/{{ net.ref.id }}">PeeringDB</a>
     </div>
 
   </div>
@@ -26,35 +26,6 @@
 
     <div class="col-4">
       <input type="text" class="form-control" name="as_set_peeringdb" data-blank-as-null="yes" value="{{ net.ref.irr_as_set }}" disabled>
-    </div>
-
-  </div>
-
-  <div class="row mb-3">
-
-    <!-- NETWORK TYPE -->
-
-    <div class="col-4">
-      <label class="form-label">{% trans "Network Type" %}</label>
-    </div>
-
-    <div class="col-4">
-      <select
-        data-blank-as-null="yes"
-        data-element="select_net_type"
-        class="form-control"
-        data-api-base="{% url "peerctl_api:net-list" %}"
-        data-load-type="drf-choices"
-        data-null-option=";-- Select --"
-        data-drf-name="network_type_override"
-        name="network_type_override"
-      >
-      </select>
-    </div>
-
-    <div class="col-4">
-      <input type="text" class="form-control" name="network_type_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_type }}" disabled>
-      </select>
     </div>
 
   </div>
@@ -94,6 +65,230 @@
     </div>
 
   </div>
+
+  <div class="row mb-3">
+
+    <!-- NETWORK TYPE -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Network Type" %}</label>
+    </div>
+
+    <div class="col-4">
+      <select
+        data-blank-as-null="yes"
+        data-element="select_net_type"
+        class="form-control"
+        data-api-base="{% url "peerctl_api:net-list" %}"
+        data-load-type="drf-choices"
+        data-null-option=";-- Select --"
+        data-drf-name="network_type_override"
+        name="network_type_override"
+      >
+      </select>
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="network_type_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_type }}" disabled>
+      </select>
+    </div>
+
+  </div>
+
+  <div class="row mb-3">
+
+    <!-- NETWORK RATIO -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Ratio" %}</label>
+    </div>
+
+    <div class="col-4">
+      <select
+        data-blank-as-null="yes"
+        data-element="select_ratio"
+        class="form-control"
+        data-api-base="{% url "peerctl_api:net-list" %}"
+        data-load-type="drf-choices"
+        data-null-option=";-- Select --"
+        data-drf-name="ratio_override"
+        name="ratio_override"
+      >
+      </select>
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="ratio_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_ratio }}" disabled>
+      </select>
+    </div>
+
+  </div>
+
+
+  <div class="row mb-3">
+
+    <!-- NETWORK TRAFFIC -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Traffic levels" %}</label>
+    </div>
+
+    <div class="col-4">
+      <select
+        data-blank-as-null="yes"
+        data-element="select_traffic"
+        class="form-control"
+        data-api-base="{% url "peerctl_api:net-list" %}"
+        data-load-type="drf-choices"
+        data-null-option=";-- Select --"
+        data-drf-name="traffic_override"
+        name="traffic_override"
+      >
+      </select>
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="traffic_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_traffic }}" disabled>
+      </select>
+    </div>
+
+  </div>
+
+  <div class="row mb-3">
+
+    <!-- NETWORK SCOPE -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Scope" %}</label>
+    </div>
+
+    <div class="col-4">
+      <select
+        data-blank-as-null="yes"
+        data-element="select_scope"
+        class="form-control"
+        data-api-base="{% url "peerctl_api:net-list" %}"
+        data-load-type="drf-choices"
+        data-null-option=";-- Select --"
+        data-drf-name="scope_override"
+        name="scope_override"
+      >
+      </select>
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="scope_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_scope }}" disabled>
+      </select>
+    </div>
+
+  </div>
+
+
+  <div class="row mb-3">
+
+    <!-- Multicast -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Multicast" %}</label>
+    </div>
+
+    <div class="col-4">
+      <select
+        data-element="select_multicast"
+        data-type="bool"
+        data-blank-as-null="yes"
+        class="form-control"
+        name="multicast_override"
+      >
+        <option value="">-- Select --</option>
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+      </select>
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="multicast_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_multicast }}" disabled>
+      </select>
+    </div>
+
+  </div>
+
+  <div class="row mb-3">
+
+    <!-- Unicast -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Unicast" %}</label>
+    </div>
+
+    <div class="col-4">
+      <select
+        data-element="select_unicast"
+        data-type="bool"
+        data-blank-as-null="yes"
+        class="form-control"
+        name="unicast_override"
+      >
+        <option value="">-- Select --</option>
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+      </select>
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="unicast_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_unicast }}" disabled>
+      </select>
+    </div>
+
+  </div>
+
+
+
+  <div class="row mb-3">
+
+    <!-- NEVER VIA ROUTE SERVERS -->
+
+    <div class="col-4">
+      <label class="form-label">{% trans "Never via route servers" %}</label>
+    </div>
+
+    <div class="col-4">
+      <select
+        data-element="select_never_via_route_servers"
+        data-type="bool"
+        data-blank-as-null="yes"
+        class="form-control"
+        name="never_via_route_servers_override"
+      >
+        <option value="">-- Select --</option>
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+      </select>
+    </div>
+
+    <div class="col-4">
+      <input type="text" class="form-control" name="never_via_route_servers_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_never_via_route_servers }}" disabled>
+      </select>
+    </div>
+
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   <div>
     <div class="row mb-3">

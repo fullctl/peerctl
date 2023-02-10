@@ -177,7 +177,13 @@ $peerctl.NetworkSettings = $tc.extend(
           "irr_as_set": data["as_set_override"] || data["as_set_peeringdb"],
           "info_prefixes4": data["prefix4_override"] || data["prefix4_peeringdb"],
           "info_prefixes6": data["prefix6_override"] || data["prefix6_peeringdb"],
-          "info_type": data["network_type_override"] || data["network_type_peeringdb"]
+          "info_type": data["network_type_override"] || data["network_type_peeringdb"],
+          "info_ratio": data["ratio_override"] || data["ratio_peeringdb"],
+          "info_traffic": data["traffic_override"] || data["traffic_peeringdb"],
+          "info_scope": data["scope_override"] || data["scope_peeringdb"],
+          "info_unicast": data["unicast_override"] || data["unicast_peeringdb"],
+          "info_multicast": data["multicast_override"] || data["multicast_peeringdb"],
+          "info_never_via_route_servers": data["never_via_route_servers_override"] || data["never_via_route_servers_peeringdb"],
         };
         // Redirect user to PeeringDB update verification page
         window.location.href = this.button_update_peeringdb.data('target')+"?source=peerCtl&"+$.param(dataDict);
@@ -189,9 +195,29 @@ $peerctl.NetworkSettings = $tc.extend(
         this.$w.form.element.find('[data-element=select_net_type]')
       )
 
-      $(this.select_net_type.element).on("change", () => {
-        this.sync_ux();
-      });
+      // wire network ratio select input
+
+      this.select_ratio = new twentyc.rest.Select(
+        this.$w.form.element.find('[data-element=select_ratio]')
+      )
+
+      // wire network traffic select input
+
+      this.select_traffic = new twentyc.rest.Select(
+        this.$w.form.element.find('[data-element=select_traffic]')
+      )
+
+      // wire network scpope select input
+
+      this.select_scope = new twentyc.rest.Select(
+        this.$w.form.element.find('[data-element=select_scope]')
+      )
+
+      // normal selects
+
+      this.select_multicast = this.$w.form.element.find('[data-element=select_multicast]');
+      this.select_unicast = this.$w.form.element.find('[data-element=select_unicast]');
+      this.select_never_via_route_servers = this.$w.form.element.find('[data-element=select_never_via_route_servers]');
 
       // load values into form
 
@@ -222,7 +248,13 @@ $peerctl.NetworkSettings = $tc.extend(
       this.$w.form.get("").then((response) => {
         var net = response.first();
         this.$w.form.fill(net);
-        this.select_net_type.load(net.network_type).then(() => { this.sync_ux(); });
+        this.select_net_type.load(net.network_type_override);
+        this.select_ratio.load(net.ratio_override);
+        this.select_traffic.load(net.traffic_override);
+        this.select_scope.load(net.scope_override);
+        this.select_multicast.val(net.multicast_override === null ? "" : (net.multicast_override ? "true" : "false"));
+        this.select_unicast.val(net.unicast_override === null ? "" : (net.unicast_override ? "true" : "false"));
+        this.select_never_via_route_servers.val(net.never_via_route_servers_override === null ? "" : (net.never_via_route_servers_override ? "true" : "false"));
       });
 
     }
