@@ -13,6 +13,7 @@ from rest_framework.response import Response
 import django_peerctl.models as models
 from django_peerctl.const import DEVICE_TEMPLATE_TYPES, DEVICE_TYPES
 from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
+from django_peerctl.models.tasks import SyncASSet
 from django_peerctl.peer_session_workflow import (
     PeerRequestToAsnWorkflow,
     PeerSessionEmailWorkflow,
