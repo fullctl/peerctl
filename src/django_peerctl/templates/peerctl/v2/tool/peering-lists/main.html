@@ -261,6 +261,17 @@
           </div>
 
           <div class="row mb-3">
+            <div class="col-12">
+              <input type="checkbox"
+                class="form-check-input"
+                data-api-base="{% url "peerctl_api:port-set-mac-address" asn=selected_asn pk="port_id" %}"
+                data-api-method="put"
+                data-element="port_is_route_server_peer">
+              <label class="form-check-label">{% trans "Route Server Peer" %}</label>
+            </div>
+          </div>
+
+          <div class="row mb-3">
             <div class="col">
               <label class="form-label">{% trans "Device" %}</label>
               <select --data-api-load="yes"

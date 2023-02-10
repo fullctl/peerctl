@@ -55,10 +55,6 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
             return BadRequest(serializer.errors)
 
         serializer.save()
-
-        if net.is_route_server:
-            SyncRouteServerMD5.create_task(asn, net.route_server_md5)
-
         SyncASSet.create_task(asn, net.as_set_override)
 
         return Response(serializer.data)
@@ -626,6 +622,8 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
         peer_net.md5 = request.data.get("md5")
         peer_net.save()
+
+        peer_net.sync_route_server_md5()
 
         serializer = self.serializer_class(
             instance=member, context={"port": port, "net": net}

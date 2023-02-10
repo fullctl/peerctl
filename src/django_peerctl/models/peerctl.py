@@ -32,7 +32,7 @@ from django_peerctl.email import send_mail_from_default
 from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.meta import PeerSessionSchema
-from django_peerctl.models.tasks import SyncMacAddress
+from django_peerctl.models.tasks import SyncMacAddress, SyncRouteServerMD5
 from django_peerctl.templating import make_variable_name
 
 # naming::
@@ -282,8 +282,6 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             "Will override the from: address for email communications from this network"
         ),
     )
-
-    route_server_md5 = models.CharField(max_length=255, null=True, blank=True)
 
     class HandleRef:
         tag = "net"
@@ -573,6 +571,15 @@ class PeerNetwork(PolicyHolderMixin, Base):
 
         return obj
 
+    @property
+    def peer_sessions(self):
+
+        peer_ports = PeerPort.objects.filter(peer_net=self)
+        peer_sessions = PeerSession.objects.filter(peer_port__in=peer_ports)
+
+        return peer_sessions
+
+
     @ref_fallback(0)
     def info_prefixes(self, ip_version):
         field_name = f"info_prefixes{ip_version}"
@@ -592,6 +599,18 @@ class PeerNetwork(PolicyHolderMixin, Base):
 
     def policy_parents(self):
         return [self.net]
+
+
+    def sync_route_server_md5(self):
+        for session in self.peer_sessions.select_related("peer_port", "peer_port__port_info"):
+            port_info = session.port.object.port_info_object
+
+            if not port_info.is_rs_peer:
+                continue
+
+            peer_port_info = session.peer_port.port_info
+            SyncRouteServerMD5.create_task(port_info.net.asn, self.md5, port_info.ipaddr4, peer_port_info.ipaddr4)
+
 
 
 @reversion.register
@@ -841,6 +860,8 @@ class PortInfo(sot.ReferenceMixin, Base):
         ),
     )
 
+    is_route_server_peer = models.BooleanField(null=True)
+
     class HandleRef:
         tag = "port_info"
 
@@ -920,6 +941,8 @@ class PortInfo(sot.ReferenceMixin, Base):
     @property
     @ref_fallback(False)
     def is_rs_peer(self):
+        if self.is_route_server_peer is not None:
+            return self.is_route_server_peer
         return self.ref.is_rs_peer
 
     @property

@@ -41,7 +41,6 @@ class Network(ModelSerializer):
             "prefix4_override",
             "prefix6_override",
             "as_set_override",
-            "route_server_md5",
         ]
         read_only_fields = ("asn",)
 
@@ -584,10 +583,16 @@ class CreateFloatingPeerSession(serializers.Serializer):
         peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
 
         peer_net = models.PeerNetwork.get_or_create(net, peer)
+
+        old_md5 = peer_net.md5
+
         peer_net.md5 = data["md5"]
         peer_net.info_prefixes4 = data["peer_maxprefix4"]
         peer_net.info_prefixes6 = data["peer_maxprefix6"]
         peer_net.save()
+
+        if old_md5 != peer_net.md5:
+            peer_net.sync_route_server_md5()
 
         peer_port = models.PeerPort.get_or_create(port_info, peer_net)
         peer_port.interface_name = data["peer_interface"]
@@ -630,15 +635,22 @@ class UpdatePeerSession(CreateFloatingPeerSession):
         peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
 
         peer_net = models.PeerNetwork.get_or_create(net, peer)
+
+        old_md5 = peer_net.md5
+
         peer_net.md5 = data["md5"]
         peer_net.info_prefixes4 = data["peer_maxprefix4"]
         peer_net.info_prefixes6 = data["peer_maxprefix6"]
         peer_net.save()
 
+        if old_md5 != peer_net.md5:
+            peer_net.sync_route_server_md5()
+
         session.peer_port.port_info.net = net
         session.peer_port.port_info.ip_address_4 = data["peer_ip4"]
         session.peer_port.port_info.ip_address_6 = data["peer_ip6"]
         session.peer_port.port_info.save()
+
 
         session.peer_port.peer_net = peer_net
         session.peer_port.interface_name = data["peer_interface"]
