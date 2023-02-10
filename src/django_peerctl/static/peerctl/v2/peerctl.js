@@ -19,6 +19,10 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return new $peerctl.Networks();
       });
 
+      this.tool("network_settings", () => {
+        return new $peerctl.NetworkSettings();
+      });
+
       this.tool("sessions_summary", () => {
         return new $peerctl.SessionsSummary();
       });
@@ -145,6 +149,119 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
   },
   $ctl.application.Application
 );
+
+$peerctl.NetworkSettings = $tc.extend(
+  "NetworkSettings",
+  {
+
+    NetworkSettings : function() {
+      this.Tool("network_settings");
+    },
+
+    init : function() {
+
+      // write form
+
+      this.widget("form", ($e) => {
+        return new twentyc.rest.Form(
+          this.template("form", this.$e.body)
+        );
+      });
+
+      this.$w.form.wire_submit(this.$w.form.element.find('[data-element=save_network]'));
+
+      this.button_update_peeringdb = this.$w.form.element.find('[data-element=export_network]');
+      this.button_update_peeringdb.on("click", () => {
+        var data = this.$w.form.payload();
+        var dataDict = {
+          "irr_as_set": data["as_set_override"] || data["as_set_peeringdb"],
+          "info_prefixes4": data["prefix4_override"] || data["prefix4_peeringdb"],
+          "info_prefixes6": data["prefix6_override"] || data["prefix6_peeringdb"],
+          "info_type": data["network_type_override"] || data["network_type_peeringdb"],
+          "info_ratio": data["ratio_override"] || data["ratio_peeringdb"],
+          "info_traffic": data["traffic_override"] || data["traffic_peeringdb"],
+          "info_scope": data["scope_override"] || data["scope_peeringdb"],
+          "info_unicast": data["unicast_override"] || data["unicast_peeringdb"],
+          "info_multicast": data["multicast_override"] || data["multicast_peeringdb"],
+          "info_never_via_route_servers": data["never_via_route_servers_override"] || data["never_via_route_servers_peeringdb"],
+        };
+        // Redirect user to PeeringDB update verification page
+        window.location.href = this.button_update_peeringdb.data('target')+"?source=peerCtl&"+$.param(dataDict);
+      });
+
+      // wire network type select input
+
+      this.select_net_type = new twentyc.rest.Select(
+        this.$w.form.element.find('[data-element=select_net_type]')
+      )
+
+      // wire network ratio select input
+
+      this.select_ratio = new twentyc.rest.Select(
+        this.$w.form.element.find('[data-element=select_ratio]')
+      )
+
+      // wire network traffic select input
+
+      this.select_traffic = new twentyc.rest.Select(
+        this.$w.form.element.find('[data-element=select_traffic]')
+      )
+
+      // wire network scpope select input
+
+      this.select_scope = new twentyc.rest.Select(
+        this.$w.form.element.find('[data-element=select_scope]')
+      )
+
+      // normal selects
+
+      this.select_multicast = this.$w.form.element.find('[data-element=select_multicast]');
+      this.select_unicast = this.$w.form.element.find('[data-element=select_unicast]');
+      this.select_never_via_route_servers = this.$w.form.element.find('[data-element=select_never_via_route_servers]');
+
+      // load values into form
+
+      this.sync();
+
+      $(this.$w.form).on("api-write:success", ()=> {
+        this.sync_ux();
+      });
+    },
+
+    sync_ux : function() {
+      if(this.select_net_type.element.val() == "Route Server") {
+        this.$w.form.element.find('[data-toggled="route server"]').show();
+      } else {
+        this.$w.form.element.find('[data-toggled="route server"]').hide();
+      }
+    },
+
+
+    /**
+     * syncs the network form from the server
+     * will retrieve network data and fill in the form
+     * @method sync
+     */
+
+    sync : function() {
+
+      this.$w.form.get("").then((response) => {
+        var net = response.first();
+        this.$w.form.fill(net);
+        this.select_net_type.load(net.network_type_override);
+        this.select_ratio.load(net.ratio_override);
+        this.select_traffic.load(net.traffic_override);
+        this.select_scope.load(net.scope_override);
+        this.select_multicast.val(net.multicast_override === null ? "" : (net.multicast_override ? "true" : "false"));
+        this.select_unicast.val(net.unicast_override === null ? "" : (net.unicast_override ? "true" : "false"));
+        this.select_never_via_route_servers.val(net.never_via_route_servers_override === null ? "" : (net.never_via_route_servers_override ? "true" : "false"));
+      });
+
+    }
+  },
+  $ctl.application.Tool
+)
+
 
 $peerctl.Networks = $tc.extend(
   "Networks",
@@ -464,7 +581,8 @@ $peerctl.PeeringLists = $tc.extend(
           this.Tool_menu().find(".ixctl-controls").show();
         }
         this.$w.port_mac_address.element.val(port.mac_address);
-        this.$w.net_as_set.element.val(fullctl.peerctl.network.as_set);
+        this.$w.port_is_route_server_peer.element.prop("checked", port.is_route_server_peer);
+        //this.$w.net_as_set.element.val(fullctl.peerctl.network.as_set);
 
         this.$w.peers.load();
         this.$w.port_policy_4.load();
@@ -500,9 +618,17 @@ $peerctl.PeeringLists = $tc.extend(
         return new $peerctl.MacAddressInput(menu.find('[data-element="port_mac_address"]'));
       });
 
+      this.widget("port_is_route_server_peer", ($e) => {
+        return new $peerctl.IsRouteServerPeerInput(menu.find('[data-element="port_is_route_server_peer"]'));
+      });
+
+      /*
+
       this.widget("net_as_set", ($e) => {
         return new $peerctl.ASSetInput(menu.find('[data-element="net_as_set"]'));
       });
+
+      */
 
       menu.find('[data-element="device_config"]').click(()=>{
         new $peerctl.modals.DeviceConfig();
@@ -544,15 +670,16 @@ $peerctl.PeeringLists = $tc.extend(
 
 
       $(this.$w.port_mac_address).on("api-write:success", (ev, endpoint, sent_data, response)=>{
-        var data = response.first();
-        fullctl.peerctl.ports[data.id] = data;
+        //var data = response.first();
+        //fullctl.peerctl.ports[data.id] = data;
       });
 
-
+      /*
       $(this.$w.net_as_set).on("api-write:success", (ev, endpoint, sent_data, response)=>{
         var data = response.first();
         fullctl.peerctl.network.as_set = data.as_set;
       });
+      */
 
 
 
@@ -1328,12 +1455,23 @@ $peerctl.MacAddressInput = $tc.extend(
     },
     payload : function() {
       return {
-        value: this.element.val()
+        mac_address: this.element.val()
       }
     }
   },
   twentyc.rest.Input
 );
+
+$peerctl.IsRouteServerPeerInput = $tc.extend(
+  "IsRouteServerPeerInput",
+  {
+    format_request_url : function(url, method) {
+      return url.replace("port_id", fullctl.peerctl.port());
+    }
+  },
+  twentyc.rest.Checkbox
+);
+
 
 $peerctl.ASSetInput = $tc.extend(
   "ASSetInput",

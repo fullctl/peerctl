@@ -8,12 +8,9 @@ from django_peerctl.utils import get_network
 
 
 def create_devices(backend, details, response, uid, user, *args, **kwargs):
-
     """
     When a user authenticates we create some default devices as necessary for
     the network's that user is provisioned to
-
-    TODO: integrate devicectl
     """
 
     perms = permissions(user)
@@ -47,9 +44,17 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
                 continue
 
         if member.ref_id not in port_infos:
-            required_ports.setdefault(member.ixlan_id, [])
-            required_port_infos.setdefault(member.ixlan_id, [])
-            required_ports[member.ixlan_id].append(
+            # pdb sot == ixlan_id
+            # ixctl sot == ix_id
+
+            if hasattr(member, "ixlan_id"):
+                ix_id = member.ixlan_id
+            else:
+                ix_id = member.ix_id
+
+            required_ports.setdefault(ix_id, [])
+            required_port_infos.setdefault(ix_id, [])
+            required_ports[ix_id].append(
                 {
                     "asn": member.asn,
                     "id": member.ref_id,
@@ -58,7 +63,7 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
                     "speed": member.speed,
                 }
             )
-            required_port_infos[member.ixlan_id].append(member)
+            required_port_infos[ix_id].append(member)
 
     ports = devicectl.Port().request_dummy_ports(
         org.slug, required_ports, "pdb", device_type="bird"
@@ -66,7 +71,7 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
 
     ports = {port["name"]: port for port in ports}
 
-    for ixlan_id, members in required_port_infos.items():
+    for _, members in required_port_infos.items():
         for member in members:
             network = networks[member.asn]
             PortInfo.require_for_pdb_netixlan(

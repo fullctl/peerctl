@@ -5,7 +5,6 @@ from django_peerctl.models import InternetExchange, PeerNetwork, PeerSession
 
 
 def count_peer_session():
-
     """
     count peer_sessionsions and return a map with the following statistics:
 

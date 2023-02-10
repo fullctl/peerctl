@@ -8,7 +8,6 @@ import django_peerctl.models.peerctl
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("django_peerctl", "0015_portinfo_port"),
     ]

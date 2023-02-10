@@ -4,13 +4,11 @@ from django.db import migrations
 
 
 def delete_networks(apps, schema_editor):
-
     Network = apps.get_model("django_peerctl", "Network")
     Network.handleref.all().delete()
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("django_peerctl", "0011_auto_20220916_1123"),
     ]
