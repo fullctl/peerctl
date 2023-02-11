@@ -181,9 +181,9 @@ $peerctl.NetworkSettings = $tc.extend(
           "info_ratio": data["ratio_override"] || data["ratio_peeringdb"],
           "info_traffic": data["traffic_override"] || data["traffic_peeringdb"],
           "info_scope": data["scope_override"] || data["scope_peeringdb"],
-          "info_unicast": data["unicast_override"] || data["unicast_peeringdb"],
-          "info_multicast": data["multicast_override"] || data["multicast_peeringdb"],
-          "info_never_via_route_servers": data["never_via_route_servers_override"] || data["never_via_route_servers_peeringdb"],
+          "info_unicast": data["unicast_override"] || data["unicast_peeringdb"] === "Yes",
+          "info_multicast": data["multicast_override"] || data["multicast_peeringdb"] === "Yes",
+          "info_never_via_route_servers": data["never_via_route_servers_override"] || data["never_via_route_servers_peeringdb"] === "Yes",
         };
         // Redirect user to PeeringDB update verification page
         window.location.href = this.button_update_peeringdb.data('target')+"?source=peerCtl&"+$.param(dataDict);
@@ -207,7 +207,7 @@ $peerctl.NetworkSettings = $tc.extend(
         this.$w.form.element.find('[data-element=select_traffic]')
       )
 
-      // wire network scpope select input
+      // wire network scope select input
 
       this.select_scope = new twentyc.rest.Select(
         this.$w.form.element.find('[data-element=select_scope]')
