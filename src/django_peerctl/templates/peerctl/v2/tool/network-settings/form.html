@@ -207,8 +207,7 @@
     </div>
 
     <div class="col-4">
-      <input type="text" class="form-control" name="multicast_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_multicast }}" disabled>
-      </select>
+      <input type="text" class="form-control" name="multicast_peeringdb" data-blank-as-null="yes" value="{% if net.ref.info_multicast %}Yes{% else %}No{% endif %}" disabled>
     </div>
 
   </div>
@@ -236,8 +235,7 @@
     </div>
 
     <div class="col-4">
-      <input type="text" class="form-control" name="unicast_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_unicast }}" disabled>
-      </select>
+      <input type="text" class="form-control" name="unicast_peeringdb" data-blank-as-null="yes" value="{% if net.ref.info_unicast %}Yes{% else %}No{% endif %}" disabled>
     </div>
 
   </div>
@@ -267,33 +265,15 @@
     </div>
 
     <div class="col-4">
-      <input type="text" class="form-control" name="never_via_route_servers_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_never_via_route_servers }}" disabled>
-      </select>
+      <input type="text" class="form-control" name="never_via_route_servers_peeringdb" data-blank-as-null="yes" value="{% if net.ref.info_never_via_route_servers %}Yes{% else %}No{% endif %}" disabled>
     </div>
 
   </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  <div>
+  <div class="pt-3">
     <div class="row mb-3">
       <div class="col-6">
-          <button class="primary btn | small" type="button" data-element="save_network">
+          <button class="primary btn" type="button" data-element="save_network">
             <div class="row align-items-center">
               <div class="col label pe-0 ok">
                 {% trans "Save network" %}
@@ -305,7 +285,7 @@
           </button>
       </div>
       <div class="col-6 right">
-	  <button class="primary btn | small" data-element="export_network" data-target="{{ settings.peeringdb.url }}verify-update/net/{{ net.ref.id }}">
+	  <button class="primary btn" data-element="export_network" data-target="{{ settings.peeringdb.url }}verify-update/net/{{ net.ref.id }}">
             <div class="row align-items-center">
               <div class="col label pe-0 ok">
                 {% trans "Update PeeringDB" %}
