@@ -181,9 +181,9 @@ $peerctl.NetworkSettings = $tc.extend(
           "info_ratio": data["ratio_override"] || data["ratio_peeringdb"],
           "info_traffic": data["traffic_override"] || data["traffic_peeringdb"],
           "info_scope": data["scope_override"] || data["scope_peeringdb"],
-          "info_unicast": data["unicast_override"] || data["unicast_peeringdb"],
-          "info_multicast": data["multicast_override"] || data["multicast_peeringdb"],
-          "info_never_via_route_servers": data["never_via_route_servers_override"] || data["never_via_route_servers_peeringdb"],
+          "info_unicast": data["unicast_override"] || data["unicast_peeringdb"] === "Yes",
+          "info_multicast": data["multicast_override"] || data["multicast_peeringdb"] === "Yes",
+          "info_never_via_route_servers": data["never_via_route_servers_override"] || data["never_via_route_servers_peeringdb"] === "Yes",
         };
         // Redirect user to PeeringDB update verification page
         window.location.href = this.button_update_peeringdb.data('target')+"?source=peerCtl&"+$.param(dataDict);
@@ -207,7 +207,7 @@ $peerctl.NetworkSettings = $tc.extend(
         this.$w.form.element.find('[data-element=select_traffic]')
       )
 
-      // wire network scpope select input
+      // wire network scope select input
 
       this.select_scope = new twentyc.rest.Select(
         this.$w.form.element.find('[data-element=select_scope]')
@@ -223,17 +223,60 @@ $peerctl.NetworkSettings = $tc.extend(
 
       this.sync();
 
-      $(this.$w.form).on("api-write:success", ()=> {
+      $(this.$w.form).on("api-write:success", (e, x, data)=> {
+        this.sync_ux(data)
+      });
+
+      this.$w.form.element.find('.input-group .form-control').on("change", ()=>{
         this.sync_ux();
       });
+
+      this.$w.form.element.find('.input-group .peeringdb-pull').on("click", function() {
+        var input = $(this).siblings('.form-control');
+        input.val("");
+        input.trigger("change");
+      });
+
+      this.$w.form.element.find('.peeringdb-reset').on("click", ()=> {
+        this.$w.form.element.find('.input-group .peeringdb-pull').trigger("click");
+      });
+
+
     },
 
     sync_ux : function() {
-      if(this.select_net_type.element.val() == "Route Server") {
-        this.$w.form.element.find('[data-toggled="route server"]').show();
+      var comp = this;
+      var fields_diff = [];
+      this.$w.form.element.find('.input-group .form-control').each(function() {
+        var name = $(this).attr("name");
+        var value = $(this).val();
+        if(value == "true")
+          value = "Yes";
+        if(value == "false")
+          value = "No";
+        var pdb_name = name.replace("_override", "_peeringdb");
+        var pdb_value = $('[name='+pdb_name+']').val();
+        //console.log($(this).val(), name, pdb_name, value, pdb_value);
+        if(value === "" || value === null) {
+          // peerctl override not set
+          $(this).siblings('.peeringdb-pull').hide();
+        } else {
+          // peerctl override set
+          if(value != pdb_value){
+            $(this).siblings('.peeringdb-pull').show();
+            fields_diff.push(name);
+          } else {
+            $(this).siblings('.peeringdb-pull').hide();
+          }
+        }
+      });
+
+      if(fields_diff.length) {
+        $('.peeringdb-reset').show();
       } else {
-        this.$w.form.element.find('[data-toggled="route server"]').hide();
+        $('.peeringdb-reset').hide();
       }
+
     },
 
 
@@ -248,13 +291,14 @@ $peerctl.NetworkSettings = $tc.extend(
       this.$w.form.get("").then((response) => {
         var net = response.first();
         this.$w.form.fill(net);
-        this.select_net_type.load(net.network_type_override);
-        this.select_ratio.load(net.ratio_override);
-        this.select_traffic.load(net.traffic_override);
-        this.select_scope.load(net.scope_override);
+        this.select_net_type.load(net.network_type_override).then(()=>{this.sync_ux()});
+        this.select_ratio.load(net.ratio_override).then(()=>{this.sync_ux()});
+        this.select_traffic.load(net.traffic_override).then(()=>{this.sync_ux()});
+        this.select_scope.load(net.scope_override).then(()=>{this.sync_ux()});
         this.select_multicast.val(net.multicast_override === null ? "" : (net.multicast_override ? "true" : "false"));
         this.select_unicast.val(net.unicast_override === null ? "" : (net.unicast_override ? "true" : "false"));
         this.select_never_via_route_servers.val(net.never_via_route_servers_override === null ? "" : (net.never_via_route_servers_override ? "true" : "false"));
+        this.sync_ux();
       });
 
     }

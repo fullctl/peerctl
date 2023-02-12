@@ -1,13 +1,15 @@
-{% load i18n %}
+{% load i18n static %}
 <form data-api-base="{% url "peerctl_api:net-detail" asn=selected_asn %}" data-api-method="PUT" data-template="form">
 <div class="controls" data-api-submit="yes">
   <div class="row mb-3">
 
     <div class="col-4 offset-4 text-center">
-      peerCtl
+      <img class="header-img" src="{% static "peerctl/logo-darkbg.svg" %}" style="height:25px">
     </div>
     <div class="col-4 text-center">
-      <a href="{{ settings.peeringdb.url }}net/{{ net.ref.id }}">PeeringDB</a>
+      <a href="{{ settings.peeringdb.url }}net/{{ net.ref.id }}">
+        <img class="header-img" src="{% static "peerctl/pdb-logo-white.png" %}">
+      </a>
     </div>
 
   </div>
@@ -21,7 +23,10 @@
     </div>
 
     <div class="col-4">
-      <input type="text" class="form-control" name="as_set_override" data-blank-as-null="yes" placeholder="{{ net.ref.irr_as_set_override }}">
+      <div class="input-group">
+        <input type="text" class="form-control" name="as_set_override" data-blank-as-null="yes" placeholder="{{ net.ref.irr_as_set }}">
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
@@ -39,7 +44,10 @@
     </div>
 
     <div class="col-4">
-      <input type="text" class="form-control" name="prefix4_override" data-type="int" placeholder="{{ net.ref.prefix4_override }}">
+      <div class="input-group">
+        <input type="text" class="form-control" name="prefix4_override" data-type="int" placeholder="{{ net.ref.info_prefixes4 }}">
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
@@ -57,7 +65,10 @@
     </div>
 
     <div class="col-4">
-      <input type="text" class="form-control" name="prefix6_override" data-type="int" placeholder="{{ net.ref.prefix6_override }}">
+      <div class="input-group">
+        <input type="text" class="form-control" name="prefix6_override" data-type="int" placeholder="{{ net.ref.info_prefixes6 }}">
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
@@ -75,17 +86,20 @@
     </div>
 
     <div class="col-4">
-      <select
+      <div class="input-group">
+        <select
         data-blank-as-null="yes"
         data-element="select_net_type"
         class="form-control"
         data-api-base="{% url "peerctl_api:net-list" %}"
         data-load-type="drf-choices"
-        data-null-option=";-- Select --"
+        data-null-option=";{{ net.ref.info_type }}"
         data-drf-name="network_type_override"
         name="network_type_override"
-      >
-      </select>
+        >
+        </select>
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
@@ -104,17 +118,20 @@
     </div>
 
     <div class="col-4">
-      <select
+      <div class="input-group">
+        <select
         data-blank-as-null="yes"
         data-element="select_ratio"
         class="form-control"
         data-api-base="{% url "peerctl_api:net-list" %}"
         data-load-type="drf-choices"
-        data-null-option=";-- Select --"
+        data-null-option=";{{ net.ref.info_ratio }}"
         data-drf-name="ratio_override"
         name="ratio_override"
-      >
-      </select>
+        >
+        </select>
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
@@ -134,17 +151,20 @@
     </div>
 
     <div class="col-4">
-      <select
+      <div class="input-group">
+        <select
         data-blank-as-null="yes"
         data-element="select_traffic"
         class="form-control"
         data-api-base="{% url "peerctl_api:net-list" %}"
         data-load-type="drf-choices"
-        data-null-option=";-- Select --"
+        data-null-option=";{{ net.ref.info_traffic }}"
         data-drf-name="traffic_override"
         name="traffic_override"
-      >
-      </select>
+        >
+        </select>
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
@@ -163,17 +183,20 @@
     </div>
 
     <div class="col-4">
-      <select
+      <div class="input-group">
+        <select
         data-blank-as-null="yes"
         data-element="select_scope"
         class="form-control"
         data-api-base="{% url "peerctl_api:net-list" %}"
         data-load-type="drf-choices"
-        data-null-option=";-- Select --"
+        data-null-option=";{{ net.ref.info_scope }}"
         data-drf-name="scope_override"
         name="scope_override"
-      >
-      </select>
+        >
+        </select>
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
@@ -193,22 +216,24 @@
     </div>
 
     <div class="col-4">
-      <select
+      <div class="input-group">
+        <select
         data-element="select_multicast"
         data-type="bool"
         data-blank-as-null="yes"
         class="form-control"
         name="multicast_override"
-      >
-        <option value="">-- Select --</option>
-        <option value="true">Yes</option>
-        <option value="false">No</option>
-      </select>
+        >
+          <option value="">{% if net.ref.info_multicast %}Yes{% else %}No{% endif %}</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
-      <input type="text" class="form-control" name="multicast_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_multicast }}" disabled>
-      </select>
+      <input type="text" class="form-control" name="multicast_peeringdb" data-blank-as-null="yes" value="{% if net.ref.info_multicast %}Yes{% else %}No{% endif %}" disabled>
     </div>
 
   </div>
@@ -222,22 +247,24 @@
     </div>
 
     <div class="col-4">
-      <select
+      <div class="input-group">
+        <select
         data-element="select_unicast"
         data-type="bool"
         data-blank-as-null="yes"
         class="form-control"
         name="unicast_override"
-      >
-        <option value="">-- Select --</option>
-        <option value="true">Yes</option>
-        <option value="false">No</option>
-      </select>
+        >
+          <option value="">{% if net.ref.info_unicast %}Yes{% else %}No{% endif %}</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
-      <input type="text" class="form-control" name="unicast_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_unicast }}" disabled>
-      </select>
+      <input type="text" class="form-control" name="unicast_peeringdb" data-blank-as-null="yes" value="{% if net.ref.info_unicast %}Yes{% else %}No{% endif %}" disabled>
     </div>
 
   </div>
@@ -253,47 +280,32 @@
     </div>
 
     <div class="col-4">
-      <select
+      <div class="input-group">
+        <select
         data-element="select_never_via_route_servers"
         data-type="bool"
         data-blank-as-null="yes"
         class="form-control"
         name="never_via_route_servers_override"
-      >
-        <option value="">-- Select --</option>
-        <option value="true">Yes</option>
-        <option value="false">No</option>
-      </select>
+        >
+          <option value="">{% if net.ref.info_never_via_route_servers %}Yes{% else %}No{% endif %}</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+        <button class="btn primary peeringdb-pull" style="display:none;"><span class="icon fullctl icon-logout"></span></button>
+      </div>
     </div>
 
     <div class="col-4">
-      <input type="text" class="form-control" name="never_via_route_servers_peeringdb" data-blank-as-null="yes" value="{{ net.ref.info_never_via_route_servers }}" disabled>
-      </select>
+      <input type="text" class="form-control" name="never_via_route_servers_peeringdb" data-blank-as-null="yes" value="{% if net.ref.info_never_via_route_servers %}Yes{% else %}No{% endif %}" disabled>
     </div>
 
   </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  <div>
+  <div class="pt-3">
     <div class="row mb-3">
-      <div class="col-6">
-          <button class="primary btn | small" type="button" data-element="save_network">
+      <div class="col-4">
+          <button class="primary btn" type="button" data-element="save_network">
             <div class="row align-items-center">
               <div class="col label pe-0 ok">
                 {% trans "Save network" %}
@@ -304,8 +316,23 @@
             </div>
           </button>
       </div>
-      <div class="col-6 right">
-	  <button class="primary btn | small" data-element="export_network" data-target="{{ settings.peeringdb.url }}verify-update/net/{{ net.ref.id }}">
+      <div class="col-4 right">
+
+          <button class="primary btn peeringdb-pull peeringdb-reset" style="display:none;" type="button" data-element="reset_from_peeringdb">
+            <div class="row align-items-center">
+              <div class="col label pe-0 ok">
+                Reset
+              &nbsp;
+              </div>
+              <div class="col-auto">
+                <span class="icon fullctl icon-logout"></span>
+              </div>
+            </div>
+          </button>
+
+      </div>
+      <div class="col-4 right">
+	        <button class="primary btn" data-element="export_network" data-target="{{ settings.peeringdb.url }}verify-update/net/{{ net.ref.id }}">
             <div class="row align-items-center">
               <div class="col label pe-0 ok">
                 {% trans "Update PeeringDB" %}
