@@ -5,7 +5,6 @@ import logging
 import os.path
 
 import fullctl.service_bridge.devicectl as devicectl
-import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 import reversion
