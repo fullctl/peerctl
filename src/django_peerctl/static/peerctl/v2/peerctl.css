@@ -80,3 +80,25 @@ div.peers-row.border-active {
   border: none;
   background-color: transparent;
 }
+
+[data-component=network_settings] input:disabled {
+  opacity: 0.66;
+}
+
+[data-component=network_settings] .header-img {
+  display: inline;
+  height: 25px;
+}
+
+.input-group .peeringdb-pull {
+	height: 48px;
+}
+
+.peeringdb-pull span {
+  transform: scaleX(-1);
+}
+
+.input-group .peeringdb-pull span {
+	position: relative;
+  top: -4px;
+}
