@@ -2,7 +2,7 @@
 [tool.poetry]
 name = "peerctl"
 repository = "https://github.com/fullctl/peerctl"
-version = "1.0.0-rc32"
+version = "1.0.0-rc33"
 description = "ix control"
 authors = ["20C <code@20c.com>"]
 license = "Apache-2.0"
