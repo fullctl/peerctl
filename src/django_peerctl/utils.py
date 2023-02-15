@@ -39,6 +39,8 @@ def pdb_netixlan_ip_interfaces(netixlan, prefixes):
     prefix4 = None
     prefix6 = None
 
+    # convert to ip address objects
+
     if ip4:
         ip4 = ipaddress.ip_address(ip4)
 
@@ -49,7 +51,6 @@ def pdb_netixlan_ip_interfaces(netixlan, prefixes):
 
     for ixpfx in prefixes:
         prefix = ipaddress.ip_network(ixpfx.prefix)
-        print("checking", ip4, ip6, prefix)
 
         if ip4 and prefix.version == 4 and ip4 in prefix:
             prefix4 = prefix
