@@ -321,6 +321,7 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
         self.other_net = pdbctl.Network().first(asn=their_asn)
         self.ix_ids = ix_ids or []
         self.member = pdbctl.NetworkIXLan().first(asn=their_asn)
+        self.other_asn = their_asn
 
     def contact_email(self, asn):
         """
@@ -359,7 +360,13 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
                 f"Email template wrong type, '{required_type}' type required"
             )
 
-        email_template.context["peer"] = self.member.__dict__
+        if self.member:
+            email_template.context["peer"] = self.member.__dict__
+        elif self.other_net:
+            email_template.context["peer"] = {"asn":self.other_net.asn, "company_name": self.other_net.name}
+        else:
+            email_template.context["peer"] = {"asn":self.other_asn, "company_name": f"AS{asn}"}
+
         if self.ix_ids:
             email_template.context["selected_exchanges"] = list(
                 MutualLocation(ix, self.net, self.other_net)

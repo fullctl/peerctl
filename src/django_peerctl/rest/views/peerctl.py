@@ -1133,6 +1133,8 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
         else:
             email_template = models.EmailTemplate.objects.get(id=pk)
 
+        email_template.context["asn"] = request.data.get("asn")
+
         if "peer" in request.data:
             email_template.context["peer"] = get_member(request.data["peer"])
         elif "asn" in request.data:
@@ -1142,7 +1144,7 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
         else:
             email_template.context["peer"] = sot.InternetExchangeMember().first(asn=asn)
 
-        if "ix_ids" in request.data:
+        if request.data.get("ix_ids"):
             email_template.context["selected_exchanges"] = list(
                 models.MutualLocation(ix, net, None)
                 for ix in pdbctl.InternetExchange().objects(ids=request.data["ix_ids"])
