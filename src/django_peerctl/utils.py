@@ -28,7 +28,6 @@ def verified_asns(perms, org, require_device=True):
 
 
 def pdb_netixlan_ip_interfaces(netixlan, prefixes):
-
     """
     Return the ip4 and ip6 addresses with apropriate
     prefix lengths according to the address space
@@ -49,7 +48,6 @@ def pdb_netixlan_ip_interfaces(netixlan, prefixes):
     # find the matching ixlan prefix
 
     for ixpfx in prefixes:
-
         prefix = ipaddress.ip_network(ixpfx.prefix)
         print("checking", ip4, ip6, prefix)
 
@@ -59,13 +57,11 @@ def pdb_netixlan_ip_interfaces(netixlan, prefixes):
         if ip6 and prefix.version == 6 and ip6 in prefix:
             prefix6 = prefix
 
-
     if ip4:
         if prefix4:
             ip4 = ipaddress.ip_interface(f"{ip4}/{prefix4.prefixlen}")
         else:
             ip4 = ipaddress.ip_interface(ip4)
-
 
     if ip6:
         if prefix6:
@@ -74,5 +70,3 @@ def pdb_netixlan_ip_interfaces(netixlan, prefixes):
             ip6 = ipaddress.ip_interface(ip6)
 
     return (ip4, ip6)
-
-

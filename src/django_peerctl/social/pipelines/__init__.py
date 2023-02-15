@@ -50,7 +50,9 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
 
             if hasattr(member, "ixlan_id"):
                 ix_id = member.ixlan_id
-                ip4, ip6 = pdb_netixlan_ip_interfaces(member, pdbctl.IXLanPrefix().objects(ix=ix_id))
+                ip4, ip6 = pdb_netixlan_ip_interfaces(
+                    member, pdbctl.IXLanPrefix().objects(ix=ix_id)
+                )
             else:
                 ix_id = member.ix_id
                 ip4 = member.ipaddr4
@@ -68,7 +70,6 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
                 }
             )
             required_port_infos[ix_id].append(member)
-
 
     ports = devicectl.Port().request_dummy_ports(
         org.slug, required_ports, "pdb", device_type="bird"

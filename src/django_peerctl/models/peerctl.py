@@ -1534,7 +1534,6 @@ class EmailTemplate(Base, TemplateBase):
                 }
             )
         else:
-
             # no peer information was passed along to the template
 
             # if the asn is set try to retrieve network infromation from it
@@ -1547,10 +1546,7 @@ class EmailTemplate(Base, TemplateBase):
             else:
                 company_name = ""
 
-            data["peer"] = {
-                "asn": asn,
-                "company_name": company_name
-            }
+            data["peer"] = {"asn": asn, "company_name": company_name}
 
         if "sessions" in ctx:
             data.update(

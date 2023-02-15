@@ -363,9 +363,15 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
         if self.member:
             email_template.context["peer"] = self.member.__dict__
         elif self.other_net:
-            email_template.context["peer"] = {"asn":self.other_net.asn, "company_name": self.other_net.name}
+            email_template.context["peer"] = {
+                "asn": self.other_net.asn,
+                "company_name": self.other_net.name,
+            }
         else:
-            email_template.context["peer"] = {"asn":self.other_asn, "company_name": f"AS{asn}"}
+            email_template.context["peer"] = {
+                "asn": self.other_asn,
+                "company_name": f"AS{self.other_asn}",
+            }
 
         if self.ix_ids:
             email_template.context["selected_exchanges"] = list(
