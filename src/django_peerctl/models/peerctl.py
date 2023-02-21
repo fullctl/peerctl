@@ -273,9 +273,9 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     traffic_override = models.CharField(
         choices=const.TRAFFIC, max_length=255, null=True, blank=True
     )
-    unicast_override = models.BooleanField(null=True)
-    multicast_override = models.BooleanField(null=True)
-    never_via_route_servers_override = models.BooleanField(null=True)
+    unicast_override = models.BooleanField(null=True, blank=True)
+    multicast_override = models.BooleanField(null=True, blank=True)
+    never_via_route_servers_override = models.BooleanField(null=True, blank=True)
 
     email_override = models.EmailField(
         null=True,
@@ -1489,6 +1489,8 @@ class EmailTemplate(Base, TemplateBase):
 
         ctx = self.context
 
+        asn = ctx.get("asn")
+
         ix_ids = []
 
         for member in sot.InternetExchangeMember().objects(asn=self.net.asn):
@@ -1509,7 +1511,7 @@ class EmailTemplate(Base, TemplateBase):
             }
         )
 
-        if "peer" in ctx:
+        if ctx.get("peer"):
             peer = ctx.get("peer")
             mutual_locations = []
             for ix_id in self.net.get_mutual_locations(peer.asn):
@@ -1531,6 +1533,20 @@ class EmailTemplate(Base, TemplateBase):
                     "mutual_locations": mutual_locations,
                 }
             )
+        else:
+            # no peer information was passed along to the template
+
+            # if the asn is set try to retrieve network infromation from it
+
+            other_net = pdbctl.Network().first(asn=asn)
+            if other_net:
+                company_name = other_net.name
+            elif asn:
+                company_name = f"ASN{asn}"
+            else:
+                company_name = ""
+
+            data["peer"] = {"asn": asn, "company_name": company_name}
 
         if "sessions" in ctx:
             data.update(

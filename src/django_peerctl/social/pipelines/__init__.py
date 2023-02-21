@@ -1,10 +1,11 @@
 import fullctl.service_bridge.devicectl as devicectl
+import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from fullctl.django.auth import permissions
 
 from django_peerctl.exceptions import ASNClaimed
 from django_peerctl.models import PortInfo
-from django_peerctl.utils import get_network
+from django_peerctl.utils import get_network, pdb_netixlan_ip_interfaces
 
 
 def create_devices(backend, details, response, uid, user, *args, **kwargs):
@@ -49,8 +50,13 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
 
             if hasattr(member, "ixlan_id"):
                 ix_id = member.ixlan_id
+                ip4, ip6 = pdb_netixlan_ip_interfaces(
+                    member, pdbctl.IXLanPrefix().objects(ix=ix_id)
+                )
             else:
                 ix_id = member.ix_id
+                ip4 = member.ipaddr4
+                ip6 = member.ipaddr6
 
             required_ports.setdefault(ix_id, [])
             required_port_infos.setdefault(ix_id, [])
@@ -58,8 +64,8 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
                 {
                     "asn": member.asn,
                     "id": member.ref_id,
-                    "ip_address_4": member.ipaddr4,
-                    "ip_address_6": member.ipaddr6,
+                    "ip_address_4": (f"{ip4}" if ip4 else None),
+                    "ip_address_6": (f"{ip6}" if ip6 else None),
                     "speed": member.speed,
                 }
             )
