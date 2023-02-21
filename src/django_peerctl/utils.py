@@ -29,7 +29,7 @@ def verified_asns(perms, org, require_device=True):
 
 def pdb_netixlan_ip_interfaces(netixlan, prefixes):
     """
-    Return the ip4 and ip6 addresses with apropriate
+    Return the ip4 and ip6 addresses with appropriate
     prefix lengths according to the address space
     defined in the ixlanprefix
     """
