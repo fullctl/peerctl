@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from fullctl.django.decorators import load_instance, require_auth
 
@@ -20,7 +19,7 @@ def view_instance(request, instance, **kwargs):
     env = make_env(request, instance=instance, org=instance.org)
 
     selected_asn = int(request.GET.get("asn", 0))
-    asns = {net.asn: net for net in verified_asns(request.perms)}
+    asns = {net.asn: net for net in verified_asns(request.perms, org=instance.org)}
 
     net = asns.get(selected_asn)
 
@@ -29,14 +28,15 @@ def view_instance(request, instance, **kwargs):
             break
 
     if not net:
-        return HttpResponse(status=401)
+        env["selected_asn"] = None
+    else:
+        env["selected_asn"] = net.asn
 
     env["forms"] = {}
     env["net"] = net
-    env["selected_asn"] = net.asn
     env["asns"] = asns
 
-    return render(request, "peerctl/index.html", env)
+    return render(request, "theme-select.html", env)
 
 
 @require_auth()

@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 def reset(apps, schema_editor):
-
     Network = apps.get_model("django_peerctl", "Network")
     InternetExchange = apps.get_model("django_peerctl", "InternetExchange")
     Network.handleref.all().delete()
@@ -14,7 +13,6 @@ def reset(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("django_peerctl", "0001_initial"),
     ]
@@ -52,5 +50,5 @@ class Migration(migrations.Migration):
                 ],
             ),
         ),
-        migrations.RunPython(reset),
+        migrations.RunPython(reset, reset),
     ]

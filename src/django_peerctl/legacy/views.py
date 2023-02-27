@@ -1,35 +1,19 @@
 import os
 
 from django.conf import settings as dj_settings
-from django.contrib.auth import authenticate, login, logout
-from django.http import (
-    HttpResponse,
-    HttpResponseBadRequest,
-    HttpResponseForbidden,
-    HttpResponseNotFound,
-    HttpResponseRedirect,
-    JsonResponse,
-)
-from django.shortcuts import redirect, render
-from django.template import RequestContext, loader
-from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
-from django_grainy.util import Permissions
+from django.http import HttpResponse
 
-# from django_peerctl import settings
+from django_peerctl import const, models
 
 base_env = {}
 
-# -- util ----
 
-
-from django_peerctl import const, models
-from django_peerctl.stats import site_stats
-
-
-def emltmpl_base(request, template_id):
+def email_template_base(request, template_id):
     try:
-        emltmpl = models.EmailTemplate(type=template_id)
-        path = os.path.join(emltmpl.template_loader_paths[0], emltmpl.template_path)
+        email_template = models.EmailTemplate(type=template_id)
+        path = os.path.join(
+            email_template.template_loader_paths[0], email_template.template_path
+        )
         with open(path) as fh:
             template_text = fh.read()
     except KeyError:
@@ -37,7 +21,7 @@ def emltmpl_base(request, template_id):
     return HttpResponse(template_text)
 
 
-def devicetmpl_base(request, template_id):
+def device_template_base(request, template_id):
     try:
         path = os.path.join(
             dj_settings.NETOM_TEMPLATE_DIR, const.DEVICE_TEMPLATES[template_id]

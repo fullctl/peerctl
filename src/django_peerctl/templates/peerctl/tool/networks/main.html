@@ -1,0 +1,12 @@
+{% load static i18n %}
+<div class="tool shift-down" data-component="networks">
+
+  {% include "common/tool_base.html" %}
+
+  <div class="templates">
+    {% include "peerctl/tool/networks/form-request-peering.html" %}
+    {% include "peerctl/tool/networks/menu.html" %}
+    {% include "peerctl/tool/networks/list.html" %}
+
+  </div>
+</div>

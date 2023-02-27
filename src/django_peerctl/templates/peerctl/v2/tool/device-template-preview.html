@@ -1,0 +1,22 @@
+{% load i18n %}
+<div class="row mb-3">
+  <div class="col-12" data-api-submit="yes">
+    <label class="form-label" for="template">{% trans "Template" %}</label>
+    <select
+      id="template"
+      data-api-base="{% url "peerctl_api:device_template-list" asn=selected_asn %}"
+      name="device_template"
+      data-null-option="0;Default"
+      class="form-control"></select>
+  </div>
+</div>
+<div class="row mb-3">
+  <div class="col-12" data-api-submit="yes">
+    <pre class="codeblock"
+      name="body"
+      data-api-preview="{% url "peerctl_api:device_template-preview" asn=selected_asn pk="tmpl_id" %}"
+      data-api-preview-default="{% url "peerctl_api:device_template-preview-default" asn=selected_asn %}"
+      class="form-control template-editor">
+    </pre>
+  </div>
+</div>

@@ -1,6 +1,6 @@
 {% load i18n static %}
-    <table class="table"
-      data-api-base="{% url "peerctl_api:emltmpl-list" asn=selected_asn %}"
+    <table class="table table-borderless"
+      data-api-base="{% url "peerctl_api:email_template-list" asn=selected_asn %}"
       data-template="template_list">
 
       <tbody class="list-body"></tbody>
@@ -35,20 +35,20 @@
     </table>
 
 <form
-  data-api-base="{% url "peerctl_api:emltmpl-list" asn=selected_asn %}"
+  data-api-base="{% url "peerctl_api:email_template-list" asn=selected_asn %}"
   data-api-method="post"
   data-api-action=""
   data-template="form_template">
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-6" data-api-submit="yes">
-      <label for="name">{% trans "Name" %}</label>
+      <label for="name" class="form-label">{% trans "Name" %}</label>
       <input class="form-control" type="text" id="name" name="name">
     </div>
     <div class="col-6" data-api-submit="yes">
-      <label for="type">{% trans "Type" %}</label>
+      <label for="type" class="form-label">{% trans "Type" %}</label>
       <select class="form-control"
-        data-api-base="{% url "peerctl_api:emltmpl-list" asn=selected_asn  %}"
+        data-api-base="{% url "peerctl_api:email_template-list" asn=selected_asn  %}"
         data-drf-name="type"
         data-api-load="yes"
         data-null-option=";-- Select Type --"
@@ -61,18 +61,18 @@
 
 
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12" data-api-submit="yes">
-      <label for="body">{% trans "Body" %}</label>
+      <label for="body" class="form-label">{% trans "Body" %}</label>
       <textarea class="form-control template-editor" name="body" id="body"></textarea>
     </div>
   </div>
 
-  <div class="row form-group">
+  <div class="row mb-3">
     <div class="col-12">
-      <label for="preview">{% trans "Preview" %}</label>
+      <label for="preview" class="form-label">{% trans "Preview" %}</label>
       <textarea class="form-control template-editor"
-        data-api-preview-default="{% url "peerctl_api:emltmpl-preview-default" asn=selected_asn %}"
+        data-api-preview-default="{% url "peerctl_api:email_template-preview-default" asn=selected_asn %}"
       name="preview" id="preview"></textarea>
     </div>
   </div>

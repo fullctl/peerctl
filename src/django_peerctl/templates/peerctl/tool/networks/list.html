@@ -1,0 +1,29 @@
+{% load static i18n %}
+<table
+  class="table table-borderless"
+  data-api-base="{% url "peerctl_api:network_search-detail" asn=selected_asn other_asn="other_asn" %}"
+  data-template="list">
+  <thead>
+    <tr>
+      <th>{{ selected_asn }}</th>
+      <th id="searched-asn"></th>
+      <th>{% trans "Mutual" %}</th>
+    </tr>
+  </thead>
+  <tbody class="list-body">
+  </tbody>
+  <tbody>
+    <tr>
+      <td colspan=3" class="right">
+        <button data-element="request_peering" style="display:none;"><span class="icon fullctl icon-mail"></span><span style="display:none;" class="label ok">{% trans "Request peering" %}</span><span style="display:none; opacity:0.5; cursor:default;" class="label disabled">{% trans "No contact point found" %}</span></button>
+      </td>
+    </tr>
+  </tbody>
+  <tbody class="templates">
+    <tr data-template="row">
+      <td class="compact-list our-locations"></td>
+      <td class="compact-list their-locations"></td>
+      <td class="compact-list mutual-locations"></td>
+    </tr>
+  </tbody>
+</table>

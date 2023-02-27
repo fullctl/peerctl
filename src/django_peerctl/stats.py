@@ -4,10 +4,9 @@ from django_peerctl.exceptions import ReferenceNotFoundError
 from django_peerctl.models import InternetExchange, PeerNetwork, PeerSession
 
 
-def count_peerses():
-
+def count_peer_session():
     """
-    count peersessions and return a map with the following statistics:
+    count peer_sessionsions and return a map with the following statistics:
 
         - all: all peer sessions
         - ip4: peer sessions where both sides have ip4 set
@@ -16,15 +15,21 @@ def count_peerses():
     """
 
     qset = PeerSession.objects.filter(status="ok").select_related(
-        "peerport__portinfo", "port__portinfo"
+        "peer_port__port_info", "port__port_info"
     )
     count = 0
     count_ip4 = 0
     count_ip6 = 0
-    for peerses in qset:
-        if peerses.peerport.portinfo.ipaddr6 and peerses.port.portinfo.ipaddr6:
+    for peer_session in qset:
+        if (
+            peer_session.peer_port.port_info.ipaddr6
+            and peer_session.port.port_info.ipaddr6
+        ):
             count_ip6 += 1
-        if peerses.peerport.portinfo.ipaddr4 and peerses.port.portinfo.ipaddr4:
+        if (
+            peer_session.peer_port.port_info.ipaddr4
+            and peer_session.port.port_info.ipaddr4
+        ):
             count_ip4 += 1
         count += 1
     return {"all": count, "ip4": count_ip4, "ip6": count_ip6}
@@ -43,20 +48,21 @@ def count_peers():
     peers_by_type = {}
     qset = PeerNetwork.objects.filter(status="ok")
 
-    for peernet in qset:
+    for peer_net in qset:
         try:
-            scope = peernet.net.pdb.info_scope
-            typ = peernet.net.pdb.info_type
+            scope = peer_net.net.pdb.info_scope
+            typ = peer_net.net.pdb.info_type
             if scope not in peers_by_scope:
                 peers_by_scope[scope] = []
             if typ not in peers_by_type:
                 peers_by_type[typ] = []
-            peers_by_scope[scope].append(peernet.net.asn)
-            peers_by_type[typ].append(peernet.net.asn)
+            peers_by_scope[scope].append(peer_net.net.asn)
+            peers_by_type[typ].append(peer_net.net.asn)
         except ReferenceNotFoundError:
             pass
 
-    sort = lambda x: x[0]
+    def sort(x):
+        return x[0]
 
     return {
         "all": qset.count(),
@@ -75,5 +81,5 @@ def site_stats():
         "user": get_user_model().objects.filter(is_active=True).count(),
         "ix": InternetExchange.objects.filter(status="ok").count(),
         "peers": count_peers(),
-        "peerses": count_peerses(),
+        "peer_session": count_peer_session(),
     }

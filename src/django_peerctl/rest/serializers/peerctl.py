@@ -1,30 +1,28 @@
-import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
-import fullctl.service_bridge.sot as sot
 from django.utils.translation import ugettext_lazy as _
 from fullctl.django.rest.decorators import serializer_registry
-from fullctl.django.rest.serializers import (
-    ModelSerializer,
-    RequireContext,
-    SoftRequiredValidator,
-)
+from fullctl.django.rest.serializers import ModelSerializer
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
-from rest_framework.validators import UniqueTogetherValidator
+from rest_framework.exceptions import ValidationError  # noqa
 
 import django_peerctl.models as models
 from django_peerctl.helpers import get_best_policy
-from django_peerctl.peerses_workflow import PeerSessionEmailWorkflow
 
 Serializers, register = serializer_registry()
 
 
+def is_dummy(name):
+    return name.startswith("pdb:") or name.startswith("ixctl:")
+
+
 @register
 class Network(ModelSerializer):
-
     name = serializers.SerializerMethodField()
     peer_contact_email = serializers.CharField(read_only=True)
     contacts = serializers.SerializerMethodField()
+
+    prefix4_override = serializers.IntegerField(allow_null=True)
+    prefix6_override = serializers.IntegerField(allow_null=True)
 
     class Meta:
         model = models.Network
@@ -33,10 +31,30 @@ class Network(ModelSerializer):
             "asn",
             "as_set",
             "as_set_source",
+            "network_type",
+            "prefix4",
+            "prefix6",
+            "traffic",
+            "ratio",
+            "scope",
+            "multicast",
+            "never_via_route_servers",
+            "unicast",
             "name",
-            "peer_contact_email",
             "contacts",
+            "peer_contact_email",
+            "network_type_override",
+            "prefix4_override",
+            "prefix6_override",
+            "as_set_override",
+            "multicast_override",
+            "never_via_route_servers_override",
+            "ratio_override",
+            "traffic_override",
+            "unicast_override",
+            "scope_override",
         ]
+        read_only_fields = ("asn",)
 
     @models.ref_fallback(lambda s, o: f"AS{o.asn}")
     def get_name(self, instance):
@@ -44,25 +62,6 @@ class Network(ModelSerializer):
 
     def get_contacts(self, instance):
         return instance.contacts
-
-
-@register
-class Device(ModelSerializer):
-
-    display_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = models.Device
-        fields = [
-            "id",
-            "name",
-            "display_name",
-            "description",
-            "type",
-        ]
-
-    def get_display_name(self, obj):
-        return obj.display_name
 
 
 @register
@@ -79,16 +78,37 @@ class Policy(ModelSerializer):
             "is_global4",
             "is_global6",
             "peer_group",
-            "count_peers",
+            # XXX
+            # "count_peers",
         ]
 
 
 @register
-class Port(ModelSerializer):
+class AvailablePort(serializers.Serializer):
+    ref_tag = "available_port"
+    id = serializers.IntegerField(source="pk", read_only=True)
+    display_name = serializers.CharField(read_only=True)
+    device = serializers.SerializerMethodField()
 
-    net = serializers.IntegerField(source="portinfo.net.id", read_only=True)
-    asn = serializers.IntegerField(source="portinfo.net.asn", read_only=True)
+    device_id = serializers.IntegerField(help_text="list ports for this device")
+
+    class Meta:
+        fields = ["id", "display_name", "device"]
+
+    def get_device(self, instance):
+        return instance.devices[0].__dict__
+
+
+@register
+class Port(serializers.Serializer):
+    ref_tag = "port"
+
+    id = serializers.IntegerField(source="pk")
+
+    net = serializers.IntegerField(read_only=True)
+    asn = serializers.IntegerField(read_only=True)
     peers = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
 
     ix = serializers.SerializerMethodField()
     ix_name = serializers.SerializerMethodField()
@@ -97,28 +117,43 @@ class Port(ModelSerializer):
     policy6 = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
     mac_address = serializers.SerializerMethodField()
+    is_route_server_peer = serializers.SerializerMethodField()
 
     ref_ix_id = serializers.SerializerMethodField()
+    ip4 = serializers.SerializerMethodField()
+    ip6 = serializers.SerializerMethodField()
 
     class Meta:
-        model = models.Port
         fields = [
             "id",
             "ix",
             "ix_name",
+            "display_name",
             "net",
             "asn",
             "speed",
             "peers",
             "policy4",
             "policy6",
+            "ip4",
+            "ip6",
             "device",
             "ref_ix_id",
             "mac_address",
+            "is_route_server_peer",
         ]
+
+    def get_ip4(self, instance):
+        return instance.ip_address_4
+
+    def get_ip6(self, instance):
+        return instance.ip_address_6
 
     def get_mac_address(self, instance):
         return f"{instance.mac_address}"
+
+    def get_is_route_server_peer(self, instance):
+        return instance.is_route_server_peer
 
     def get_peers(self, instance):
         return models.PeerSession.objects.filter(port=instance).count()
@@ -126,24 +161,49 @@ class Port(ModelSerializer):
     @models.ref_fallback(0)
     def get_ix(self, instance):
         return models.InternetExchange.objects.get(
-            ref_id=instance.portinfo.ref_ix_id
+            ref_id=instance.port_info_object.ref_ix_id
         ).id
 
     def get_ref_ix_id(self, instance):
-        return instance.portinfo.ref_ix_id
+        return instance.port_info_object.ref_ix_id
 
     @models.ref_fallback("")
     def get_ix_name(self, instance):
-        ix = models.InternetExchange.objects.get(ref_id=instance.portinfo.ref_ix_id)
-        name = f"{ix.name}: {instance.portinfo.ipaddr4}"
-        return name
+        self.get_device(instance)
+
+        parts = []
+        if instance.device and not is_dummy(instance.device.name):
+            parts.append(instance.device.name)
+
+        ix = models.InternetExchange.objects.filter(
+            ref_id=instance.port_info_object.ref_ix_id
+        ).first()
+
+        if ix:
+            parts.append(ix.name)
+        else:
+            parts.append(instance.display_name)
+
+        parts.append(instance.ip_address_4)
+
+        if instance.virtual_port_name and not is_dummy(instance.virtual_port_name):
+            parts.append(instance.virtual_port_name)
+
+        return " ".join(parts)
+
+    def get_display_name(self, instance):
+        if instance.virtual_port_name and not is_dummy(instance.virtual_port_name):
+            return f"{instance.virtual_port_name}: {instance.display_name}"
+        return instance.display_name
 
     @models.ref_fallback(0)
     def get_speed(self, instance):
-        return instance.portinfo.ref.speed
+        return instance.port_info_object.ref.speed
 
     def get_device(self, instance):
-        return Device(instance=instance.devices[0]).data
+        if getattr(instance, "device", None):
+            return instance.device.__dict__
+        return instance.devices[0].__dict__
 
     def get_policy(self, instance, version):
         policy = get_best_policy(instance, version, raise_error=False)
@@ -163,8 +223,7 @@ class Port(ModelSerializer):
 
 
 @register
-class Peer(ModelSerializer):
-
+class Peer(serializers.Serializer):
     scope = serializers.CharField(source="net.info_scope")
     type = serializers.CharField(source="net.info_type")
     policy_ratio = serializers.CharField(source="net.policy_ratio")
@@ -174,9 +233,9 @@ class Peer(ModelSerializer):
     name = serializers.SerializerMethodField()
     asn = serializers.IntegerField()
     peeringdb = serializers.SerializerMethodField()
-    peerses = serializers.SerializerMethodField()
-    peerses_status = serializers.SerializerMethodField()
-    peerses_contact = serializers.SerializerMethodField()
+    peer_session = serializers.SerializerMethodField()
+    peer_session_status = serializers.SerializerMethodField()
+    peer_session_contact = serializers.SerializerMethodField()
     user = serializers.SerializerMethodField()
     md5 = serializers.SerializerMethodField()
     ix_name = serializers.SerializerMethodField()
@@ -191,7 +250,6 @@ class Peer(ModelSerializer):
     id = serializers.CharField(source="ref_id")
 
     class Meta:
-        model = models.Port
         fields = [
             "id",
             "name",
@@ -202,9 +260,9 @@ class Peer(ModelSerializer):
             "info_prefixes4",
             "info_prefixes6",
             "peeringdb",
-            "peerses",
-            "peerses_status",
-            "peerses_contact",
+            "peer_session",
+            "peer_session_status",
+            "peer_session_contact",
             "user",
             "policy_general",
             "policy_ratio",
@@ -225,7 +283,6 @@ class Peer(ModelSerializer):
 
     @property
     def pocs(self):
-
         """
         Build and cache a queryset of network contacts
         to use to retrieve contact points for peer session
@@ -248,7 +305,7 @@ class Peer(ModelSerializer):
         return self._pocs
 
     @property
-    def peernets(self):
+    def peer_nets(self):
         """
         Returns all peer networks at the port specified in
         the serializer context
@@ -256,14 +313,14 @@ class Peer(ModelSerializer):
         Will be cached in order to speed up serialization
         times
         """
-        if not hasattr(self, "_peernets"):
-            self._peernets = {}
-            ix = self.context["port"].portinfo.ix
+        if not hasattr(self, "_peer_nets"):
+            self._peer_nets = {}
+            ix = self.context["port"].port_info_object.ix
             if ix:
-                _peernets = self.context["net"].peernets_at_ix(ix.id)
-                for peernet in _peernets:
-                    self._peernets[peernet.peer.asn] = peernet
-        return self._peernets
+                _peer_nets = self.context["net"].peer_nets_at_ix(ix.id)
+                for peer_net in _peer_nets:
+                    self._peer_nets[peer_net.peer.asn] = peer_net
+        return self._peer_nets
 
     def get_name(self, obj):
         return obj.name
@@ -288,15 +345,15 @@ class Peer(ModelSerializer):
                 if member.id != obj.id:
                     continue
 
-            peerses = self.get_peerses(member)
+            peer_session = self.get_peer_session(member)
             result.append(
                 {
                     "ipaddr4": str(member.ipaddr4),
                     "ipaddr6": str(member.ipaddr6),
                     "policy4": self.get_policy(member, 4),
                     "policy6": self.get_policy(member, 6),
-                    "peerses": peerses,
-                    "peerses_status": self.get_peerses_status(member),
+                    "peer_session": peer_session,
+                    "peer_session_status": self.get_peer_session_status(member),
                     "origin_id": obj.ref_id,
                     "id": member.ref_id,
                 }
@@ -305,14 +362,16 @@ class Peer(ModelSerializer):
         return result
 
     def get_policy(self, obj, version):
-        peerses = getattr(obj, "peerses", None)
-        if peerses and peerses.status == "ok":
-            policy = get_best_policy(obj.peerses, version, raise_error=False)
+        peer_session = getattr(obj, "peer_session", None)
+        if peer_session and peer_session.status == "ok":
+            policy = get_best_policy(obj.peer_session, version, raise_error=False)
             if policy:
                 return {
                     "id": policy.id,
                     "name": policy.name,
-                    "inherited": getattr(obj.peerses, f"policy{version}_inherited"),
+                    "inherited": getattr(
+                        obj.peer_session, f"policy{version}_inherited"
+                    ),
                 }
         return {}
 
@@ -322,74 +381,75 @@ class Peer(ModelSerializer):
     def get_policy6(self, obj):
         return self.get_policy(obj, 6)
 
-    def get_peerses(self, obj):
-        if getattr(obj, "peerses", None):
-            return obj.peerses.id
-        peerses = self.port.get_peerses(obj)
+    def get_peer_session(self, obj):
+        if getattr(obj, "peer_session", None):
+            return obj.peer_session.id
+        peer_session = self.port.get_peer_session(obj)
 
-        # cache peerses on obj, so we can re-use during `get_user`
-        # `get_peerses_status`
-        obj.peerses = peerses
-        if peerses:
-            return peerses.id
+        # cache peer_session on obj, so we can re-use during `get_user`
+        # `get_peer_session_status`
+        obj.peer_session = peer_session
+        if peer_session:
+            return peer_session.id
         return 0
 
-    def get_peerses_contact(self, obj):
+    def get_peer_session_contact(self, obj):
         for poc in self.pocs:
             if poc.asn == obj.asn:
                 return poc.email
         return None
 
-    def get_peerses_status(self, obj):
-        peerses = getattr(obj, "peerses", None)
-        if peerses:
-            return peerses.status
+    def get_peer_session_status(self, obj):
+        peer_session = getattr(obj, "peer_session", None)
+        if peer_session:
+            return peer_session.status
         return None
 
     def get_md5(self, obj):
-        peernet = self.peernets.get(obj.asn)
-        if peernet:
-            return peernet.md5
+        peer_net = self.peer_nets.get(obj.asn)
+        if peer_net:
+            return peer_net.md5
         return ""
 
     def get_user(self, obj):
-        peerses = getattr(obj, "peerses", None)
-        if peerses:
-            user = peerses.user
+        peer_session = getattr(obj, "peer_session", None)
+        if peer_session:
+            user = peer_session.user
             if user:
                 return user.username
         return None
 
     def get_ix_name(self, obj):
-        return self.context["port"].portinfo.ix_name
+        return self.context["port"].port_info_object.ix_name
 
     def get_port_id(self, obj):
-        return self.context["port"].id
+        return self.context["port"].pk
 
     def get_device_id(self, obj):
+        if "device" not in self.context:
+            self.context["device"] = self.context["port"].devices[0]
         return self.context["device"].id
 
     def get_info_prefixes4(self, obj):
-        peernet = self.peernets.get(obj.asn)
-        if peernet and peernet.info_prefixes4 is not None:
-            return peernet.info_prefixes4
+        peer_net = self.peer_nets.get(obj.asn)
+        if peer_net and peer_net.info_prefixes4 is not None:
+            return peer_net.info_prefixes4
         return obj.net.info_prefixes4
 
     def get_info_prefixes6(self, obj):
-        peernet = self.peernets.get(obj.asn)
-        if peernet and peernet.info_prefixes6 is not None:
-            return peernet.info_prefixes6
+        peer_net = self.peer_nets.get(obj.asn)
+        if peer_net and peer_net.info_prefixes6 is not None:
+            return peer_net.info_prefixes6
         return obj.net.info_prefixes6
 
 
 @register
-class PeerDetails(ModelSerializer):
+class PeerDetails(serializers.Serializer):
     mutual_locations = serializers.SerializerMethodField()
 
     ref_tag = "peerdetail"
 
     class Meta:
-        model = models.Port
         fields = [
             "id",
             "mutual_locations",
@@ -399,13 +459,19 @@ class PeerDetails(ModelSerializer):
         net = self.context.get("net")
         my_port = self.context.get("port")
         mutual_locs = []
-        exclude = [my_port.portinfo.ref_ix_id]
+        exclude = [my_port.port_info_object.ref_ix_id]
 
         for ix_id, result in net.get_mutual_locations(obj.asn, exclude=exclude).items():
-            port = models.Port.get_or_create(result[net.asn][0])
+            port = models.PortInfo.objects.get(
+                ref_id=result[net.asn][0].ref_id
+            ).port.object
+
+            # port = models.Port.get_or_create(result[net.asn][0])
             if port.id == my_port.id:
                 continue
+
             port_data = Port(instance=port).data
+
             for asn, members in result.items():
                 if asn == net.asn:
                     continue
@@ -421,10 +487,486 @@ class PeerDetails(ModelSerializer):
 
 
 @register
-class PeerSession(ModelSerializer):
+class CreateFloatingPeerSession(serializers.Serializer):
+    peer_ip4 = serializers.CharField(
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+        help_text=_("Peer IPv4 address"),
+    )
+    peer_ip6 = serializers.CharField(
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+        help_text=_("Peer IPv6 address"),
+    )
+    policy_4 = serializers.IntegerField(
+        required=False,
+        help_text=_(
+            "IPv4 Policy - session will use this peering policy, should be policy id"
+        ),
+    )
+    policy_6 = serializers.IntegerField(
+        required=False,
+        help_text=_(
+            "IPv6 Policy - session will use this peering policy, should be policy id"
+        ),
+    )
+    peer_maxprefix4 = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text=_(
+            "Number of IPv4 prefixes - if not specified, value will be pulled from PeeringDB if network exists"
+        ),
+    )
+    peer_maxprefix6 = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text=_(
+            "Number of IPv6 prefixes - if not specified, value will be pulled from PeeringDB if network exists"
+        ),
+    )
+    md5 = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text=_("Session MD5 password"),
+    )
+    peer_asn = serializers.IntegerField(
+        required=False, allow_null=True, help_text=_("ASN of the peer")
+    )
+    peer_interface = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text=_("Interface name of the peer port"),
+    )
+    peer_session_type = serializers.CharField(default="peer", required=False)
+    port = serializers.IntegerField(help_text=_("deviceCtl Port reference"))
+
+    ref_tag = "create_floating_peer_session"
+
+    class Meta:
+        fields = [
+            "peer_ip4",
+            "peer_ip6",
+            "policy_4",
+            "policy_6",
+            "md5",
+            "peer_asn",
+            "peer_interface",
+            "peer_maxprefix4",
+            "peer_maxprefix6",
+            "peer_session_type",
+            "port",
+        ]
+
+    def validate_peer_maxprefix4(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative")
+        return value
+
+    def validate_peer_maxprefix6(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Cannot be negative")
+        return value
+
+    def save(self):
+        data = self.validated_data
+        asn = self.context.get("asn")
+
+        net = models.Network.objects.get(asn=asn)
+
+        port_info = models.PortInfo.objects.create(
+            port=0,
+            net=net,
+            ip_address_4=data["peer_ip4"],
+            ip_address_6=data["peer_ip6"],
+        )
+
+        peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
+
+        peer_net = models.PeerNetwork.get_or_create(net, peer)
+
+        old_md5 = peer_net.md5
+
+        peer_net.md5 = data["md5"]
+        peer_net.info_prefixes4 = data["peer_maxprefix4"]
+        peer_net.info_prefixes6 = data["peer_maxprefix6"]
+        peer_net.save()
+
+        if old_md5 != peer_net.md5:
+            peer_net.sync_route_server_md5()
+
+        peer_port = models.PeerPort.get_or_create(port_info, peer_net)
+        peer_port.interface_name = data["peer_interface"]
+        peer_port.save()
+
+        return models.PeerSession.objects.create(
+            port=data["port"],
+            peer_port=peer_port,
+            policy4_id=data["policy_4"] or None,
+            policy6_id=data["policy_6"] or None,
+            status="ok",
+            peer_session_type=data["peer_session_type"] or "peer",
+        )
+
+
+@register
+class CreatePartialPeerSession(CreateFloatingPeerSession):
+    port = serializers.IntegerField(
+        required=False, help_text=_("deviceCtl Port reference")
+    )
+    ref_tag = "create_partial_peer_session"
+
+
+@register
+class UpdatePeerSession(CreateFloatingPeerSession):
+
+    """
+    Used for updating PeerSession objects
+    """
+
+    ref_tag = "update_peer_session"
+
+    def save(self):
+        session = self.instance
+        data = self.validated_data
+        asn = self.context.get("asn")
+
+        net = models.Network.objects.get(asn=asn)
+        peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
+
+        peer_net = models.PeerNetwork.get_or_create(net, peer)
+
+        old_md5 = peer_net.md5
+
+        peer_net.md5 = data["md5"]
+        peer_net.info_prefixes4 = data["peer_maxprefix4"]
+        peer_net.info_prefixes6 = data["peer_maxprefix6"]
+        peer_net.save()
+
+        if old_md5 != peer_net.md5:
+            peer_net.sync_route_server_md5()
+
+        session.peer_port.port_info.net = net
+        session.peer_port.port_info.ip_address_4 = data["peer_ip4"]
+        session.peer_port.port_info.ip_address_6 = data["peer_ip6"]
+        session.peer_port.port_info.save()
+
+        session.peer_port.peer_net = peer_net
+        session.peer_port.interface_name = data["peer_interface"]
+        session.peer_port.save()
+
+        session.port = data["port"]
+        session.policy4_id = data["policy_4"] or None
+        session.policy6_id = data["policy_6"] or None
+        session.peer_session_type = data["peer_session_type"] or "peer"
+        session.save()
+
+        return session
+
+
+@register
+class UpdatePartialPeerSession(UpdatePeerSession):
+    port = serializers.IntegerField(
+        required=False, help_text=_("deviceCtl Port reference")
+    )
+    ref_tag = "update_partial_peer_session"
+
+
+class PeerSessionMeta(serializers.Serializer):
+    # TODO: gen rest seralizer from confu schema
+
+    last_updown = serializers.CharField()
+    session_state = serializers.CharField()
+
+    active = serializers.IntegerField()
+    received = serializers.IntegerField()
+    accepted = serializers.IntegerField()
+    damped = serializers.IntegerField()
+
+    class Meta:
+        fields = [
+            "last_updown",
+            "session_state",
+            "active",
+            "received" "accepted",
+            "damped",
+        ]
+
+
+@register
+class UpdatePeerSessionMeta(ModelSerializer):
+
+    """
+    This serializer is used to update session meta data
+    """
+
+    meta4 = PeerSessionMeta(required=False, allow_null=True)
+    meta6 = PeerSessionMeta(required=False, allow_null=True)
+
+    ref_tag = "update_peer_session_meta"
+
     class Meta:
         model = models.PeerSession
-        fields = ["id", "port", "peerport"]
+        fields = ["meta4", "meta6"]
+
+
+@register
+class PeerSession(ModelSerializer):
+    policy4_id = serializers.SerializerMethodField()
+    policy4_name = serializers.SerializerMethodField()
+    policy4_inherited = serializers.SerializerMethodField()
+    policy4_peer_group = serializers.SerializerMethodField()
+    policy4_import = serializers.SerializerMethodField()
+    policy4_export = serializers.SerializerMethodField()
+
+    policy6_id = serializers.SerializerMethodField()
+    policy6_name = serializers.SerializerMethodField()
+    policy6_inherited = serializers.SerializerMethodField()
+    policy6_peer_group = serializers.SerializerMethodField()
+    policy6_import = serializers.SerializerMethodField()
+    policy6_export = serializers.SerializerMethodField()
+
+    peer_id = serializers.PrimaryKeyRelatedField(
+        source="peer_port", queryset=models.PeerPort.objects.all()
+    )
+    peer_asn = serializers.SerializerMethodField()
+    peer_name = serializers.SerializerMethodField()
+    peer_type = serializers.SerializerMethodField()
+    peer_interface = serializers.SerializerMethodField()
+    peer_maxprefix4 = serializers.SerializerMethodField()
+    peer_maxprefix6 = serializers.SerializerMethodField()
+
+    device_name = serializers.SerializerMethodField()
+    device_id = serializers.SerializerMethodField()
+    facility_slug = serializers.SerializerMethodField()
+
+    port_id = serializers.IntegerField(source="port")
+    port_display_name = serializers.SerializerMethodField()
+    port_interface = serializers.SerializerMethodField()
+    port_is_ix = serializers.SerializerMethodField()
+
+    meta4 = serializers.SerializerMethodField()
+    meta6 = serializers.SerializerMethodField()
+
+    md5 = serializers.SerializerMethodField()
+
+    status = serializers.SerializerMethodField()
+
+    ref_tag = "peer_session"
+
+    class Meta:
+        model = models.PeerSession
+        fields = [
+            "id",
+            "port_id",
+            "port_interface",
+            "port_display_name",
+            "port_is_ix",
+            "ip4",
+            "ip6",
+            "md5",
+            "peer_id",
+            "peer_asn",
+            "peer_interface",
+            "peer_ip4",
+            "peer_ip6",
+            "peer_is_managed",
+            "peer_maxprefix4",
+            "peer_maxprefix6",
+            "peer_name",
+            "peer_type",
+            "peer_session_type",
+            "policy4_id",
+            "policy4_name",
+            "policy4_inherited",
+            "policy4_import",
+            "policy4_export",
+            "policy4_peer_group",
+            "policy6_id",
+            "policy6_name",
+            "policy6_inherited",
+            "policy6_import",
+            "policy6_export",
+            "policy6_peer_group",
+            "device_name",
+            "device_id",
+            "facility_slug",
+            "meta4",
+            "meta6",
+            "status",
+        ]
+
+    def get_meta4(self, obj):
+        # TODO: fill in defaults?
+        return obj.meta4
+
+    def get_meta6(self, obj):
+        # TODO: full in defaults?
+        return obj.meta6
+
+    def get_status(self, obj):
+        """
+        returns peer-session, but will return `partial` if minimum amount
+        of information is missing
+        """
+
+        # if the session status is anything but `ok` we can just return
+        # as is
+
+        if obj.status != "ok":
+            return obj.status
+
+        # neither ipv4 nor ipv6 policy is set, partial config
+
+        if not self.get_policy4_id(obj) and not self.get_policy6_id(obj):
+            return "partial"
+
+        # no peer type is specified, partial config
+
+        if not self.get_peer_type(obj):
+            return "partial"
+
+        # neither peer ipv4 nor peer ipv6 address is set, partial config
+
+        if not obj.peer_ip4 and not obj.peer_ip6:
+            return "partial"
+
+        # peer asn not specified, partial config
+
+        if not self.get_peer_asn(obj):
+            return "partial"
+
+        # device and port not specified, partial config
+
+        if not self.get_device_id(obj):
+            return "partial"
+
+        return "ok"
+
+    def get_policy(self, obj, version):
+        if obj and obj.status == "ok":
+            if hasattr(obj, f"_policy{version}"):
+                policy = getattr(obj, f"_policy{version}")
+            else:
+                policy = get_best_policy(obj, version, raise_error=False)
+                setattr(obj, f"_policy{version}", policy)
+            if policy:
+                return {
+                    "id": policy.id,
+                    "name": policy.name,
+                    "import_policy": policy.import_policy,
+                    "export_policy": policy.export_policy,
+                    "peer_group": policy.peer_group,
+                    "inherited": getattr(obj, f"policy{version}_inherited"),
+                }
+        return {}
+
+    def get_policy4_id(self, obj):
+        return self.get_policy(obj, 4).get("id", None)
+
+    def get_policy4_name(self, obj):
+        return self.get_policy(obj, 4).get("name", None)
+
+    def get_policy4_inherited(self, obj):
+        return self.get_policy(obj, 4).get("inherited", None)
+
+    def get_policy4_import(self, obj):
+        return self.get_policy(obj, 4).get("import_policy", None)
+
+    def get_policy4_export(self, obj):
+        return self.get_policy(obj, 4).get("export_policy", None)
+
+    def get_policy4_peer_group(self, obj):
+        return self.get_policy(obj, 4).get("peer_group", None)
+
+    def get_policy6_id(self, obj):
+        return self.get_policy(obj, 6).get("id", None)
+
+    def get_policy6_name(self, obj):
+        return self.get_policy(obj, 6).get("name", None)
+
+    def get_policy6_inherited(self, obj):
+        return self.get_policy(obj, 6).get("inherited", None)
+
+    def get_policy6_import(self, obj):
+        return self.get_policy(obj, 6).get("import_policy", None)
+
+    def get_policy6_export(self, obj):
+        return self.get_policy(obj, 6).get("export_policy", None)
+
+    def get_policy6_peer_group(self, obj):
+        return self.get_policy(obj, 6).get("peer_group", None)
+
+    def get_md5(self, obj):
+        return obj.peer_port.peer_net.md5
+
+    def get_peer_type(self, obj):
+        return "external"
+
+    def get_peer_name(self, obj):
+        return obj.peer_port.peer_net.peer.name
+
+    def get_peer_asn(self, obj):
+        return obj.peer_port.peer_net.peer.asn
+
+    def get_peer_interface(self, obj):
+        if obj.peer_is_managed:
+            # TODO this currently returns the port name, but needs
+            # to actually return the physical port name
+            return obj.peer_port.port_info.port.object.name
+
+        return obj.peer_port.interface_name
+
+    def get_peer_maxprefix4(self, obj):
+        return obj.peer_port.peer_net.info_prefixes(4)
+
+    def get_peer_maxprefix6(self, obj):
+        return obj.peer_port.peer_net.info_prefixes(6)
+
+    def get_device_name(self, obj):
+        if not obj.port.object:
+            return None
+
+        return obj.devices[0].display_name
+
+    def get_device_id(self, obj):
+        if not obj.port.object:
+            return None
+
+        return obj.devices[0].id
+
+    def get_facility_slug(self, obj):
+        if not obj.port.object:
+            return None
+
+        return obj.devices[0].facility_slug
+
+    def get_port_is_ix(self, obj):
+        if not obj.port.object:
+            return False
+
+        ix_id = obj.port.object.port_info_object.ref_ix_id
+        return ix_id is not None and ix_id != 0
+
+    def get_port_interface(self, obj):
+        if obj.port and obj.port.object:
+            return obj.port.object.virtual_port_name
+        return None
+
+    def get_port_display_name(self, obj):
+        if not obj.port.object:
+            return ""
+
+        return (
+            obj.port.object.port_info_object.ix_name
+            + " "
+            + obj.port.object.virtual_port_name
+            + " "
+            + obj.port.object.port_info_object.ipaddr4
+        ).strip()
 
 
 @register
@@ -500,3 +1042,37 @@ class UserPreferences(ModelSerializer):
     class Meta:
         model = models.UserPreferences
         fields = ["id", "email_opt_features", "email_opt_offers"]
+
+
+@register
+class NetworkLocation(serializers.Serializer):
+    ix_id = serializers.IntegerField()
+    ix_name = serializers.CharField()
+
+    ref_tag = "network_location"
+
+    class Meta:
+        fields = ["ix_id", "ix_name"]
+
+
+@register
+class NetworkSearch(serializers.Serializer):
+    asn = serializers.IntegerField()
+    name = serializers.CharField()
+    peer_session_contact = serializers.CharField()
+
+    mutual_locations = NetworkLocation(many=True)
+    their_locations = NetworkLocation(many=True)
+    our_locations = NetworkLocation(many=True)
+
+    ref_tag = "network_search"
+
+    class Meta:
+        fields = [
+            "asn",
+            "name",
+            "peer_session_contact",
+            "mutual_locations",
+            "their_locations",
+            "our_locations",
+        ]

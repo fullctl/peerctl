@@ -2,7 +2,7 @@ version: "3"
 services:
   postgres:
     image: "postgres:12"
-    env_file: 
+    env_file:
       - .env
     logging:
       options:
@@ -18,7 +18,7 @@ services:
       context: ../..
       dockerfile: Dockerfile
     command: runserver 0.0.0.0:8000
-    env_file: 
+    env_file:
       - .env
     logging:
       options:
@@ -28,7 +28,7 @@ services:
       # this needs to be set in the shell, compose env vars aren't read yet
       - "${DJANGO_PORT:-8000}:8000"
     volumes:
-      - ../../src:/src/peerctl/main
+      - ../../src:/srv/service/main:Z
 
 volumes:
   postgres_data:

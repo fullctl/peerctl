@@ -7,7 +7,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("django_fullctl", "0017_alter_organizationuser_options"),
         ("django_peerctl", "0008_rename_as_set"),

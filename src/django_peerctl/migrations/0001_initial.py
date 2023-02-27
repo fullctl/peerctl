@@ -13,7 +13,6 @@ import django_peerctl.models.peerctl
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [

@@ -6,22 +6,17 @@ from django.contrib.auth.admin import UserAdmin
 
 from django_peerctl.models import (
     AuditLog,
-    Device,
     DeviceTemplate,
     EmailLog,
     EmailLogRecipient,
     InternetExchange,
-    LogicalPort,
     Network,
     Organization,
     PeerNetwork,
     PeerSession,
-    PhysicalPort,
     Policy,
-    Port,
     PortInfo,
     UserSession,
-    VirtualPort,
     Wish,
 )
 
@@ -49,10 +44,21 @@ class NetworkAdmin(admin.ModelAdmin):
         "policy6",
         "created",
         "updated",
+        "email_override",
     )
     search_fields = ("asn", "name")
     readonly_fields = ("policy4", "policy6")
-    fields = ("asn", "max_sessions", "status")
+    fields = (
+        "asn",
+        "max_sessions",
+        "status",
+        "org",
+        "as_set_override",
+        "prefix4_override",
+        "prefix6_override",
+        "network_type_override",
+        "route_server_md5",
+    )
     form = status_form()
 
 
@@ -76,31 +82,9 @@ class PeerNetworkAdmin(admin.ModelAdmin):
         return "no"
 
 
-class PhysicalPortInlineAdmin(admin.TabularInline):
-    model = PhysicalPort
-    readonly_fields = ("created", "updated")
-    fields = ("name", "description", "device", "created", "updated", "status")
-    form = status_form()
-
-
-class VirtualPortInlineAdmin(admin.TabularInline):
-    model = VirtualPort
-    readonly_fields = ("created", "updated")
-    fields = ("vlan_id", "created", "updated", "status")
-    form = status_form()
-
-
-@admin.register(LogicalPort)
-class LogicalPortAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "channel", "trunk")
-    readonly_fields = ("created", "updated")
-    inlines = (PhysicalPortInlineAdmin, VirtualPortInlineAdmin)
-    form = status_form()
-
-
 @admin.register(PortInfo)
 class PortInfoAdmin(admin.ModelAdmin):
-    list_display = ("asn", "ref_id", "ix", "ipaddr4", "ipaddr6")
+    list_display = ("net", "asn", "ref_id", "ix", "ipaddr4", "ipaddr6", "port")
     readonly_fields = ("asn", "ix", "ipaddr4", "ipaddr6")
     search_fields = ("net__asn",)
     form = status_form()
@@ -114,37 +98,13 @@ class PortInfoAdmin(admin.ModelAdmin):
     def pdb(self, obj):
         try:
             return obj.pdb.id
-        except:
+        except Exception:
             return f"PDB Missing (id={obj.ref_id})"
 
 
 @admin.register(DeviceTemplate)
 class DeviceTemplateAdmin(admin.ModelAdmin):
     pass
-
-
-@admin.register(Device)
-class DeviceAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(Port)
-class PortAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "portinfo",
-        "asn",
-        "virtport_id",
-        "policy4",
-        "policy6",
-        "created",
-        "updated",
-    )
-    readonly_fields = ("asn", "policy4", "policy6")
-    form = status_form()
-
-    def asn(self, obj):
-        return obj.portinfo.net.asn
 
 
 @admin.register(Wish)
@@ -155,7 +115,7 @@ class WishAdmin(admin.ModelAdmin):
 
 @admin.register(PeerSession)
 class PeerSessionAdmin(admin.ModelAdmin):
-    search_fields = ("peerport__peernet__net__asn", "peerport__peernet__peer__asn")
+    search_fields = ("peer_port__peer_net__net__asn", "peer_port__peer_net__peer__asn")
     list_display = (
         "id",
         "net",
@@ -166,7 +126,6 @@ class PeerSessionAdmin(admin.ModelAdmin):
         "ipaddr6",
         "peer_ipaddr4",
         "peer_ipaddr6",
-        "port_id",
         "policy4",
         "policy6",
         "status",
@@ -181,28 +140,34 @@ class PeerSessionAdmin(admin.ModelAdmin):
     readonly_fields = ("net", "peer", "policy4", "policy6")
 
     def net(self, obj):
-        return obj.peerport.peernet.net
+        return obj.peer_port.peer_net.net
 
     def peer(self, obj):
-        return obj.peerport.peernet.peer
+        return obj.peer_port.peer_net.peer
 
     def ix_id(self, obj):
-        return obj.port.portinfo.ix.id
+        try:
+            return obj.port.object.port_info_object.ix.id
+        except AttributeError:
+            return 0
 
     def ix_name(self, obj):
-        return obj.port.portinfo.ix.name
+        try:
+            return obj.port.object.port_info_object.ix.name
+        except AttributeError:
+            return ""
 
     def ipaddr4(self, obj):
-        return obj.port.portinfo.ipaddr4
+        return obj.port.object.port_info_object.ipaddr4
 
     def ipaddr6(self, obj):
-        return obj.port.portinfo.ipaddr6
+        return obj.port.object.port_info_object.ipaddr6
 
     def peer_ipaddr4(self, obj):
-        return obj.peerport.portinfo.ipaddr4
+        return obj.peer_port.port_info.ipaddr4
 
     def peer_ipaddr6(self, obj):
-        return obj.peerport.portinfo.ipaddr6
+        return obj.peer_port.port_info.ipaddr6
 
 
 class OrganizationForm(forms.ModelForm):
@@ -236,10 +201,10 @@ class OrganizationForm(forms.ModelForm):
         return instance
 
 
-@admin.register(Organization)
+# XXX OLD organization admin - still need?
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "net_count", "created", "updated")
-    fields = ("name", "networks", "max_sessions")
+    fields = ("name", "networks")
     readonly_fields = ("net_count",)
     search_fields = ("name", "net_set__asn")
     form = OrganizationForm

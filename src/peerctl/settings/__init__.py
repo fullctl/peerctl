@@ -1,6 +1,6 @@
 import os
-import sys
 
+import netom
 from fullctl.django import settings
 
 SERVICE_TAG = "peerctl"
@@ -50,11 +50,13 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
     "fullctl.django.context_processors.account_service",
     "fullctl.django.context_processors.permissions",
     "fullctl.django.context_processors.conf",
+    "django_peerctl.context_processors.conf",
 ]
 
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/login"
 LOGIN_URL = "/login"
+
 
 settings_manager.set_twentyc_service()
 
@@ -81,6 +83,7 @@ ABSTRACT_ONLY = False
 
 settings_manager.set_option("PDB_API_USERNAME", "")
 settings_manager.set_option("PDB_API_PASSWORD", "")
+settings_manager.set_option("PEERINGDB_URL", "https://www.peeringdb.com/")
 
 # add user defined iso code for Kosovo
 COUNTRIES_OVERRIDE = {
@@ -121,12 +124,14 @@ settings_manager.set_option("GOOGLE_ANALYTICS_ID", "")
 
 # netom integration (templating)
 
-import netom
-
 settings_manager.set_option("NETOM_DIR", os.path.dirname(netom.__file__))
 settings_manager.set_option(
     "NETOM_TEMPLATE_DIR", os.path.join(NETOM_DIR, "templates", "netom0")
 )
+
+# EMAIL SETTINGS
+
+settings_manager.set_option("PEER_REQUEST_FROM_EMAIL", NO_REPLY_EMAIL)
 
 # FINALIZE
 settings_manager.set_default_append()
@@ -134,6 +139,7 @@ settings_manager.set_default_append()
 # look for mainsite/settings/${RELEASE_ENV}_append.py and load if it exists
 env_file = os.path.join(os.path.dirname(__file__), f"{RELEASE_ENV}_append.py")
 settings_manager.try_include(env_file)
+
 
 # TODO combine to log summarry to INFO
 settings.print_debug(f"loaded settings for version {PACKAGE_VERSION} (DEBUG: {DEBUG})")
