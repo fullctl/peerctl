@@ -1,3 +1,7 @@
+ARG base_repo=python
+ARG base_tag=3.11-alpine
+ARG builder_repo=ghcr.io/fullctl/fullctl-builder-alpine
+ARG builder_tag=prep-release
 
 ARG virtual_env=/venv
 ARG install_to=/srv/service
@@ -9,7 +13,7 @@ ARG run_deps=" \
 ARG uid=6300
 ARG user=fullctl
 
-FROM python:3.9-alpine as base
+FROM ${base_repo}:${base_tag} as base
 
 ARG virtual_env
 ARG install_to
@@ -22,7 +26,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 
 # build container
-FROM ghcr.io/fullctl/fullctl-builder-alpine:prep-release as builder
+FROM $builder_repo:$builder_tag as builder
 
 WORKDIR /build
 
