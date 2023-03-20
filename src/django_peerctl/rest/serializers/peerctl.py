@@ -323,32 +323,32 @@ class Peer(serializers.Serializer):
         return self._peer_nets
 
     def get_scope(self, obj):
-        if hasattr(obj, 'net') and obj.net is not None:
+        if hasattr(obj, "net") and obj.net is not None:
             return obj.net.info_scope
         return None
 
     def get_type(self, obj):
-        if hasattr(obj, 'net') and obj.net is not None:
+        if hasattr(obj, "net") and obj.net is not None:
             return obj.net.info_type
         return None
 
     def get_policy_ratio(self, obj):
-        if hasattr(obj, 'net') and obj.net is not None:
+        if hasattr(obj, "net") and obj.net is not None:
             return obj.net.policy_ratio
         return None
 
     def get_policy_general(self, obj):
-        if hasattr(obj, 'net') and obj.net is not None:
+        if hasattr(obj, "net") and obj.net is not None:
             return obj.net.policy_general
         return None
 
     def get_policy_contracts(self, obj):
-        if hasattr(obj, 'net') and obj.net is not None:
+        if hasattr(obj, "net") and obj.net is not None:
             return obj.net.policy_contracts
         return None
 
     def get_policy_locations(self, obj):
-        if hasattr(obj, 'net') and obj.net is not None:
+        if hasattr(obj, "net") and obj.net is not None:
             return obj.net.policy_locations
         return None
 
