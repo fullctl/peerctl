@@ -621,9 +621,6 @@ $peerctl.PeeringLists = $tc.extend(
         this.$w.devicectl_device.element.val(port.device.id);
         this.$w.devicectl_port.element.val(port.id);
 
-        if(port.ref_ix_id && port.ref_ix_id.indexOf("ixctl:") == 0) {
-          this.Tool_menu().find(".ixctl-controls").show();
-        }
         this.$w.port_mac_address.element.val(port.mac_address);
         this.$w.port_is_route_server_peer.element.prop("checked", port.is_route_server_peer);
         //this.$w.net_as_set.element.val(fullctl.peerctl.network.as_set);
