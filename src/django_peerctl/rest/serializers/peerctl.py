@@ -224,12 +224,12 @@ class Port(serializers.Serializer):
 
 @register
 class Peer(serializers.Serializer):
-    scope = serializers.CharField(source="net.info_scope")
-    type = serializers.CharField(source="net.info_type")
-    policy_ratio = serializers.CharField(source="net.policy_ratio")
-    policy_general = serializers.CharField(source="net.policy_general")
-    policy_contracts = serializers.CharField(source="net.policy_contracts")
-    policy_locations = serializers.CharField(source="net.policy_locations")
+    scope = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    policy_ratio = serializers.SerializerMethodField()
+    policy_general = serializers.SerializerMethodField()
+    policy_contracts = serializers.SerializerMethodField()
+    policy_locations = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
     asn = serializers.IntegerField()
     peeringdb = serializers.SerializerMethodField()
@@ -321,6 +321,36 @@ class Peer(serializers.Serializer):
                 for peer_net in _peer_nets:
                     self._peer_nets[peer_net.peer.asn] = peer_net
         return self._peer_nets
+
+    def get_scope(self, obj):
+        if hasattr(obj, "net") and obj.net is not None:
+            return obj.net.info_scope
+        return None
+
+    def get_type(self, obj):
+        if hasattr(obj, "net") and obj.net is not None:
+            return obj.net.info_type
+        return None
+
+    def get_policy_ratio(self, obj):
+        if hasattr(obj, "net") and obj.net is not None:
+            return obj.net.policy_ratio
+        return None
+
+    def get_policy_general(self, obj):
+        if hasattr(obj, "net") and obj.net is not None:
+            return obj.net.policy_general
+        return None
+
+    def get_policy_contracts(self, obj):
+        if hasattr(obj, "net") and obj.net is not None:
+            return obj.net.policy_contracts
+        return None
+
+    def get_policy_locations(self, obj):
+        if hasattr(obj, "net") and obj.net is not None:
+            return obj.net.policy_locations
+        return None
 
     def get_name(self, obj):
         return obj.name

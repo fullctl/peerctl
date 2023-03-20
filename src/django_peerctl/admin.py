@@ -57,7 +57,6 @@ class NetworkAdmin(admin.ModelAdmin):
         "prefix4_override",
         "prefix6_override",
         "network_type_override",
-        "route_server_md5",
     )
     form = status_form()
 
