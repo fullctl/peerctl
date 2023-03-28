@@ -460,12 +460,14 @@ class Peer(serializers.Serializer):
             self.context["device"] = self.context["port"].devices[0]
         return self.context["device"].id
 
+    @models.ref_fallback(0)
     def get_info_prefixes4(self, obj):
         peer_net = self.peer_nets.get(obj.asn)
         if peer_net and peer_net.info_prefixes4 is not None:
             return peer_net.info_prefixes4
         return obj.net.info_prefixes4
 
+    @models.ref_fallback(0)
     def get_info_prefixes6(self, obj):
         peer_net = self.peer_nets.get(obj.asn)
         if peer_net and peer_net.info_prefixes6 is not None:
