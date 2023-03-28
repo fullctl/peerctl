@@ -12,7 +12,11 @@ Serializers, register = serializer_registry()
 
 
 def is_dummy(name):
-    return name.startswith("pdb:") or name.startswith("ixctl:") or name.startswith("peerctl:")
+    return (
+        name.startswith("pdb:")
+        or name.startswith("ixctl:")
+        or name.startswith("peerctl:")
+    )
 
 
 @register

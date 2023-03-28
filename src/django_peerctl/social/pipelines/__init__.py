@@ -1,11 +1,6 @@
-import fullctl.service_bridge.devicectl as devicectl
-import fullctl.service_bridge.pdbctl as pdbctl
-import fullctl.service_bridge.sot as sot
 from fullctl.django.auth import permissions
 
-from django_peerctl.exceptions import ASNClaimed
-from django_peerctl.models import PortInfo
-from django_peerctl.utils import get_network, pdb_netixlan_ip_interfaces, devicectl_create_devices
+from django_peerctl.utils import devicectl_create_devices
 
 
 def create_devices(backend, details, response, uid, user, *args, **kwargs):
@@ -25,7 +20,7 @@ def create_devices(backend, details, response, uid, user, *args, **kwargs):
 
     if not verified_asns:
         return
-    
+
     # TODO better way to figure out which org to assign the network to.
     org = user.org_set.filter(is_default=True).first()
     if org:

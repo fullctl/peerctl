@@ -1,16 +1,13 @@
 import ipaddress
 
-from django.db import IntegrityError
-
-from django_peerctl.exceptions import ASNClaimed
-from django_peerctl.models import Network
 import fullctl.service_bridge.devicectl as devicectl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
-from fullctl.django.auth import permissions
+from django.db import IntegrityError
 
 from django_peerctl.exceptions import ASNClaimed
-from django_peerctl.models import PortInfo
+from django_peerctl.models import Network, PortInfo
+
 
 def get_network(asn, org):
     try:
@@ -53,30 +50,6 @@ def pdb_netixlan_ip_interfaces(netixlan):
 
     return pdb_set_prefixlen(ip4, ip6, netixlan.ixlan_id)
 
-    # find the matching ixlan prefix
-
-    for ixpfx in prefixes:
-        prefix = ipaddress.ip_network(ixpfx.prefix)
-
-        if ip4 and prefix.version == 4 and ip4 in prefix:
-            prefix4 = prefix
-
-        if ip6 and prefix.version == 6 and ip6 in prefix:
-            prefix6 = prefix
-
-    if ip4:
-        if prefix4:
-            ip4 = ipaddress.ip_interface(f"{ip4}/{prefix4.prefixlen}")
-        else:
-            ip4 = ipaddress.ip_interface(ip4)
-
-    if ip6:
-        if prefix6:
-            ip6 = ipaddress.ip_interface(f"{ip6}/{prefix6.prefixlen}")
-        else:
-            ip6 = ipaddress.ip_interface(ip6)
-
-    return (ip4, ip6)
 
 def pdb_set_prefixlen(ip4, ip6, pdb_ix_id):
     """
@@ -115,8 +88,6 @@ def devicectl_create_devices(org, verified_asns):
     required_port_infos = {}
     networks = {}
 
-    port_infos = {p.ref_id: p for p in PortInfo.objects.filter(net__org=org)}
-
     for member in sot.InternetExchangeMember().objects(asns=verified_asns, join="ix"):
         if member.asn not in networks:
             try:
@@ -139,7 +110,7 @@ def devicectl_create_devices(org, verified_asns):
             }
         )
         required_port_infos[ix_id].append(member)
-        
+
     ports = devicectl.Port().request_dummy_ports(
         org.slug, required_ports, "peerctl", device_type="junos"
     )
@@ -155,7 +126,6 @@ def devicectl_create_devices(org, verified_asns):
 
 
 def port_components(member):
-
     """
     Returns the source, ip4, ip6, ix_id for a member in a tuple
     """
@@ -164,7 +134,6 @@ def port_components(member):
     # ixctl sot == ix_id
 
     if hasattr(member, "ixlan_id"):
-        
         # pdbctl is sot, set ip addresses from netixlan
         # and also set prefix length from ixlanprefix
 
@@ -173,19 +142,16 @@ def port_components(member):
         ip4, ip6 = pdb_netixlan_ip_interfaces(member)
 
     else:
-
         # ixctl is sot, set ip addresses from ix member
-        # and also set prefix length from ixlanprefix if 
+        # and also set prefix length from ixlanprefix if
         # ix has pdb_id specified.
 
         source = "ixctl"
-        ix_id = member.ix_id                
+        ix_id = member.ix_id
         ip4 = member.ipaddr4
         ip6 = member.ipaddr6
 
         if member.ix.pdb_id:
             ip4, ip6 = pdb_set_prefixlen(ip4, ip6, member.ix.pdb_id)
 
-
     return (source, ip4, ip6, ix_id)
-
