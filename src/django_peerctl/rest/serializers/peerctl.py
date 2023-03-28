@@ -12,7 +12,7 @@ Serializers, register = serializer_registry()
 
 
 def is_dummy(name):
-    return name.startswith("pdb:") or name.startswith("ixctl:")
+    return name.startswith("pdb:") or name.startswith("ixctl:") or name.startswith("peerctl:")
 
 
 @register
@@ -189,7 +189,7 @@ class Port(serializers.Serializer):
         if instance.virtual_port_name and not is_dummy(instance.virtual_port_name):
             parts.append(instance.virtual_port_name)
 
-        return " ".join(parts)
+        return " ".join([str(p) for p in parts])
 
     def get_display_name(self, instance):
         if instance.virtual_port_name and not is_dummy(instance.virtual_port_name):

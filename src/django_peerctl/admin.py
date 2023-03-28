@@ -157,10 +157,14 @@ class PeerSessionAdmin(admin.ModelAdmin):
             return ""
 
     def ipaddr4(self, obj):
-        return obj.port.object.port_info_object.ipaddr4
+        if obj.port.object.port_info_object:
+            return obj.port.object.port_info_object.ipaddr4
+        return None
 
     def ipaddr6(self, obj):
-        return obj.port.object.port_info_object.ipaddr6
+        if obj.port.object.port_info_object:
+            return obj.port.object.port_info_object.ipaddr6
+        return None
 
     def peer_ipaddr4(self, obj):
         return obj.peer_port.port_info.ipaddr4
