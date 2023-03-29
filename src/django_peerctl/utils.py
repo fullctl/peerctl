@@ -124,7 +124,6 @@ def devicectl_create_devices(org, verified_asns):
                 network, ports[f"peerctl:{member.ref_id}"]["id"], member
             )
 
-
     # TODO: handle SoT change from ixctl <-> pdbctl and transfer sessions
     # to the new SoT device / ports
 

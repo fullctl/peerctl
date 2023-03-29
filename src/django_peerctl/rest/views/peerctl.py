@@ -64,7 +64,6 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def facilities(self, request, asn, net, *args, **kwargs):
-
         """
         Returns a list of peeringdb facilities for a network
         """
@@ -81,7 +80,6 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def internet_exchanges(self, request, asn, net, *args, **kwargs):
-
         """
         Returns a list of peeringdb exchanges for a network
         """
@@ -89,13 +87,14 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
         entities = list(pdbctl.InternetExchange().objects(asn=asn))
         serializer = self.get_serializer(entities, many=True)
         return Response(serializer.data)
-    
+
 
 # policy view
 # list all Polciy for a network
 # create
 # update
 # destroy
+
 
 @route
 class Policy(CachedObjectMixin, viewsets.ModelViewSet):
@@ -202,7 +201,9 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
         port_ids = [int(obj.port) for obj in qset]
 
-        instances = models.Port.preload(request.org, asn, port_ids, filter_device=filter_device)
+        instances = models.Port.preload(
+            request.org, asn, port_ids, filter_device=filter_device
+        )
 
         if ixi:
             models.Port.augment_ix(instances, asn)

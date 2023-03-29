@@ -187,7 +187,7 @@ class Port(serializers.Serializer):
     @models.ref_fallback(0)
     def get_mtu(self, instance):
         return instance.mtu
-    
+
     @models.ref_fallback("")
     def get_md5(self, instance):
         return instance.port_info_object._ref.md5
@@ -240,13 +240,12 @@ class Port(serializers.Serializer):
 
         return " ".join([str(p) for p in parts])
 
-    def get_ix_simple_name(self,instance):
+    def get_ix_simple_name(self, instance):
         ix = self.get_ix_object(instance)
 
         if ix:
             return ix.name
         return ""
-
 
     def get_display_name(self, instance):
         if instance.virtual_port_name and not is_dummy(instance.virtual_port_name):
@@ -277,6 +276,7 @@ class Port(serializers.Serializer):
 
     def get_policy6(self, instance):
         return self.get_policy(instance, 6)
+
 
 @register
 class Peer(serializers.Serializer):

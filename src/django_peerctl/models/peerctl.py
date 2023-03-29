@@ -5,9 +5,9 @@ import logging
 import os.path
 
 import fullctl.service_bridge.devicectl as devicectl
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
-import fullctl.service_bridge.ixctl as ixctl
 import reversion
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -889,7 +889,6 @@ class Port(devicectl.Port):
 
     @classmethod
     def preload(cls, org, asn, port_ids, filter_device=None):
-
         """
         Preloads ixctl and pdbctl member reference (port_info ref)
 
@@ -899,7 +898,7 @@ class Port(devicectl.Port):
             asn: asn
             port_ids: list of port ids
             filter_device: device id to filter on
-        
+
         Returns:
 
             list of PortObject instances
@@ -909,9 +908,7 @@ class Port(devicectl.Port):
 
         instances = [
             port
-            for port in Port().objects(
-                org=org.remote_id, join="device", status="ok"
-            )
+            for port in Port().objects(org=org.remote_id, join="device", status="ok")
             if port.id in port_ids
             and (not filter_device or port.device_id == int(filter_device))
             and (port.ip_address_4 or port.ip_address_6)
@@ -954,7 +951,7 @@ class Port(devicectl.Port):
 
             ixi_port.source = source
             ixi_port.remote_ix_id = ix_id
-            
+
             if source == "pdbctl":
                 pdbctl_ix[ix_id] = None
             elif source == "ixctl":
@@ -963,9 +960,7 @@ class Port(devicectl.Port):
         # now get ixctl internet exchange objects
 
         if ixctl_ix:
-            ix_ix = ixctl.InternetExchange().objects(
-                ids=list(ixctl_ix.keys())
-            )
+            ix_ix = ixctl.InternetExchange().objects(ids=list(ixctl_ix.keys()))
             for ix in ix_ix:
                 ixctl_ix[ix.id] = ix
 
@@ -978,19 +973,16 @@ class Port(devicectl.Port):
         # now get pdbctl internet exchange objects
 
         if pdbctl_ix:
-            pdb_ix = pdbctl.InternetExchange().objects(
-                ids=list(pdbctl_ix.keys())
-            )
+            pdb_ix = pdbctl.InternetExchange().objects(ids=list(pdbctl_ix.keys()))
             for ix in pdb_ix:
                 pdbctl_ix[ix.id] = ix
- 
+
         # now augment data from both sources
 
         for ixi_port in ixi_ports:
             mtu = None
 
             if ixi_port.source == "ixctl":
-
                 # port has SoT in ixctl
 
                 ix = ixctl_ix[ixi_port.remote_ix_id]
@@ -1004,7 +996,6 @@ class Port(devicectl.Port):
                 if pdb_ix_id:
                     mtu = pdbctl_ix[pdb_ix_id].mtu
             else:
-
                 # port has SoT in pdbctl
 
                 ix = pdbctl_ix[ixi_port.remote_ix_id]
@@ -1014,7 +1005,6 @@ class Port(devicectl.Port):
             ixi_port.prefix4 = net.prefix4
             ixi_port.prefix6 = net.prefix6
             ixi_port.mtu = mtu
-
 
 
 @reversion.register
