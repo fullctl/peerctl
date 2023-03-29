@@ -26,15 +26,15 @@ button.peer_session-live {
   margin-left: -15px;
 }
 
-div.peers-row {
+div.peers-row .border-show{
   border-left: 4px solid;
 }
 
-div.peers-row.border-inactive {
+div.peers-row.border-inactive .border-show {
   border-color: var(--clr-primary-500);
 }
 
-div.peers-row.border-active {
+div.peers-row.border-active .border-show {
   border-color: var(--clr-accent-400);
 }
 
