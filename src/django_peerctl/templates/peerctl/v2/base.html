@@ -96,6 +96,15 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
     data-second-tab="#network-settings-body"
     href="#page-network-settings">AS{{ selected_asn }}</a>
 
+  <a class="nav-link"
+    id="tab-ix"
+    data-bs-toggle="tab"
+    role="tab"
+    aria-controls="page-ix"
+    aria-selected="true"
+    data-second-tab="#ix-body"
+    href="#page-ix">{% trans "IX" %}</a>
+
   {% endif %}
 
 
@@ -171,7 +180,8 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
   <div class="tab-pane" id="page-network-settings" role="tabpanel" aria-labelledby="tab-network-settings">
   </div>
 
-
+  <div class="tab-pane" id="page-ix" role="tabpanel" aria-labelledby="tab-ix">
+  </div>
 </div>
 
 {% endblock %}
@@ -207,7 +217,9 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
     {% include "peerctl/v2/tool/network-settings/main.html" %}
   </div>
 
-
+  <div class="tab-pane" id="ix-body" role="tabpanel" aria-labelledby="tab-ix">
+    {% include "peerctl/v2/tool/ix/main.html" %}
+  </div>
 </div>
 {% endblock %}
 

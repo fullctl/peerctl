@@ -7,6 +7,7 @@ import os.path
 import fullctl.service_bridge.devicectl as devicectl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
+import fullctl.service_bridge.ixctl as ixctl
 import reversion
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -885,6 +886,135 @@ class Port(devicectl.Port):
 
     class Meta(devicectl.Port.Meta):
         data_object_cls = PortObject
+
+    @classmethod
+    def preload(cls, org, asn, port_ids, filter_device=None):
+
+        """
+        Preloads ixctl and pdbctl member reference (port_info ref)
+
+        Arguments:
+
+            org: org object
+            asn: asn
+            port_ids: list of port ids
+            filter_device: device id to filter on
+        
+        Returns:
+
+            list of PortObject instances
+        """
+
+        # load ports
+
+        instances = [
+            port
+            for port in Port().objects(
+                org=org.remote_id, join="device", status="ok"
+            )
+            if port.id in port_ids
+            and (not filter_device or port.device_id == int(filter_device))
+            and (port.ip_address_4 or port.ip_address_6)
+            and (not port.name.startswith("pdb:"))
+        ]
+
+        # prefetch netixlans/ixctl members
+
+        for member in sot.InternetExchangeMember().objects(asn=asn):
+            for port in instances:
+                if port.port_info_object.ref_id == member.ref_id:
+                    port.port_info_object._ref = member
+
+        return instances
+
+    @classmethod
+    def augment_ix(cls, ixi_ports, asn):
+        """
+        Augments list of intnernet exchange PortObject instances for a network
+
+        Will add prefix4, prefix6, mtu and route server md5
+
+        This takes into consideration whether the exchange has its source
+        of truth in ixctl or pdbctl (peeringdb) and will also augment data
+        from both datasets if necessary
+        """
+
+        net = Network.objects.get(asn=asn)
+
+        # will hold pdbctl internet exchange objects, keyed by id
+        pdbctl_ix = {}
+
+        # will hold ixctl internet exchange objects, keyed by id
+        ixctl_ix = {}
+
+        for ixi_port in ixi_ports:
+            source, ix_id = ixi_port.port_info_object.ref_ix_id.split(":")
+
+            ix_id = int(ix_id)
+
+            ixi_port.source = source
+            ixi_port.remote_ix_id = ix_id
+            
+            if source == "pdbctl":
+                pdbctl_ix[ix_id] = None
+            elif source == "ixctl":
+                ixctl_ix[ix_id] = None
+
+        # now get ixctl internet exchange objects
+
+        if ixctl_ix:
+            ix_ix = ixctl.InternetExchange().objects(
+                ids=list(ixctl_ix.keys())
+            )
+            for ix in ix_ix:
+                ixctl_ix[ix.id] = ix
+
+                # if ixctl ix has a peeringdb reference, mark
+                # it so it also gets fetched
+
+                if ix.pdb_id:
+                    pdbctl_ix[ix.pdb_id] = None
+
+        # now get pdbctl internet exchange objects
+
+        if pdbctl_ix:
+            pdb_ix = pdbctl.InternetExchange().objects(
+                ids=list(pdbctl_ix.keys())
+            )
+            for ix in pdb_ix:
+                pdbctl_ix[ix.id] = ix
+ 
+        # now augment data from both sources
+
+        for ixi_port in ixi_ports:
+            mtu = None
+
+            if ixi_port.source == "ixctl":
+
+                # port has SoT in ixctl
+
+                ix = ixctl_ix[ixi_port.remote_ix_id]
+
+                # ixctl ix has a peeringdb reference, so we can
+                # join in MTU from there as ixctl has no MTU field
+                # yet.
+
+                pdb_ix_id = ix.pdb_id
+
+                if pdb_ix_id:
+                    mtu = pdbctl_ix[pdb_ix_id].mtu
+            else:
+
+                # port has SoT in pdbctl
+
+                ix = pdbctl_ix[ixi_port.remote_ix_id]
+
+                mtu = ix.mtu
+
+            ixi_port.prefix4 = net.prefix4
+            ixi_port.prefix6 = net.prefix6
+            ixi_port.mtu = mtu
+
 
 
 @reversion.register

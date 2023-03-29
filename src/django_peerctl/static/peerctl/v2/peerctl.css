@@ -102,3 +102,12 @@ div.peers-row.border-active {
 	position: relative;
   top: -4px;
 }
+
+.ix-header img {
+  height: 25px;
+}
+
+[data-element="ips"] > .action {
+  text-decoration: underline;
+  color: var(--clr-accent-400);
+}

@@ -1,0 +1,12 @@
+{% load static i18n %}
+<div class="tool shift-down" data-component="ix">
+
+  {% include "common/v2/tool_base.html" %}
+
+  <div class="network" data-element="ix_container"></div>
+
+  <div class="templates">
+    {% include "peerctl/v2/tool/ix/menu.html" %}
+    {% include "peerctl/v2/tool/ix/ports.html" %}
+  </div>
+</div>

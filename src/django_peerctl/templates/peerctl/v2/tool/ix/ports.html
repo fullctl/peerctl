@@ -1,0 +1,51 @@
+{% load i18n static %}
+<div
+    class="marg-top-lg"
+    data-api-load="yes"
+    data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
+    data-template="ix_list"
+    data-peeringdb-logo="{% static "peerctl/pdb-logo-white.png" %}"
+    data-ixctl-logo="{% static "common/logos/ixctl-dark.svg" %}"
+    >
+    <div class="list-body">
+    </div>
+
+    <div class="templates">
+        <div data-template="row" class="pad-top-lg">
+            <div class="row ix-header" style="display:none;">
+                <div class="col-4">
+                    <h3><span data-field="ix_simple_name"></span></h3>
+                </div>
+                <div class="col-8 right">
+                    <span data-field="ref_source"></span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-4" data-element="ips">
+                    <h5 data-field="ip4" class="highlight action"></h5>
+                    <div data-field="ip6" class="small-info action"></div>
+                </div>
+                <div class="col-8 secondary">
+                    <div class="property">
+                        <div class="field" style="display:block">
+                            <div class="row">
+                                <div class="col-3">
+                                    <div><span>{% trans "Speed" %}</span> <span data-field="speed"></span></div>
+                                    <div><span>{% trans "Is RS Peer" %}</span> <span data-field="is_route_server_peer"></span></div>             
+                                </div>
+                                <div class="col-2">
+                                    <div><span>{% trans "Prefix 4" %}</span> <span data-field="prefix4"></span></div>
+                                    <div><span>{% trans "Prefix 6" %}</span> <span data-field="prefix6"></span></div>             
+                                </div>
+                                <div class="col-7">
+                                    <div><span>{% trans "MTU" %}</span> <span data-field="mtu"></span></div>
+                                    <div><span>{% trans "MD5" %}</span> <span data-field="md5"></span></div>
+                                </div> 
+                            </div>  
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

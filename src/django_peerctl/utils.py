@@ -125,6 +125,10 @@ def devicectl_create_devices(org, verified_asns):
             )
 
 
+    # TODO: handle SoT change from ixctl <-> pdbctl and transfer sessions
+    # to the new SoT device / ports
+
+
 def port_components(member):
     """
     Returns the source, ip4, ip6, ix_id for a member in a tuple

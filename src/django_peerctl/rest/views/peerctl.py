@@ -56,13 +56,46 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=Serializers.peeringdb_relationship,
+    )
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def facilities(self, request, asn, net, *args, **kwargs):
+
+        """
+        Returns a list of peeringdb facilities for a network
+        """
+
+        entities = list(pdbctl.Facility().objects(asn=asn))
+        serializer = self.get_serializer(entities, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=Serializers.peeringdb_relationship,
+    )
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def internet_exchanges(self, request, asn, net, *args, **kwargs):
+
+        """
+        Returns a list of peeringdb exchanges for a network
+        """
+
+        entities = list(pdbctl.InternetExchange().objects(asn=asn))
+        serializer = self.get_serializer(entities, many=True)
+        return Response(serializer.data)
+    
 
 # policy view
 # list all Polciy for a network
 # create
 # update
 # destroy
-
 
 @route
 class Policy(CachedObjectMixin, viewsets.ModelViewSet):
@@ -169,25 +202,10 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
         port_ids = [int(obj.port) for obj in qset]
 
-        # load ports
+        instances = models.Port.preload(request.org, asn, port_ids, filter_device=filter_device)
 
-        instances = [
-            port
-            for port in models.Port().objects(
-                org=request.org.remote_id, join="device", status="ok"
-            )
-            if port.id in port_ids
-            and (not filter_device or port.device_id == int(filter_device))
-            and (port.ip_address_4 or port.ip_address_6)
-            and (not port.name.startswith("pdb:"))
-        ]
-
-        # prefetch netixlans/ixctl members
-
-        for member in sot.InternetExchangeMember().objects(asn=asn):
-            for port in instances:
-                if port.port_info_object.ref_id == member.ref_id:
-                    port.port_info_object._ref = member
+        if ixi:
+            models.Port.augment_ix(instances, asn)
 
         serializer = self.serializer_class(instances, many=True)
 
