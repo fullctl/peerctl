@@ -103,8 +103,15 @@ div.peers-row.border-active {
   top: -4px;
 }
 
+[data-field="ref_source"] img,
 .ix-header img {
   height: 25px;
+  display: inline;
+}
+
+[data-element="ips"] {
+  background-color: var(--clr-bg-850);
+  padding-top: 3px;
 }
 
 [data-element="ips"] > .action {
