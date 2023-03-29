@@ -1016,7 +1016,7 @@ $peerctl.SessionsSummary = $tc.extend(
       // update list
 
       this.$w.list_peer_sessions.action = action;
-      this.$w.list_peer_sessions.load().then(() => {this.syncing=false;});
+      this.$w.list_peer_sessions.load().finally(() => {this.syncing=false;});
 
       // update API view link
 
