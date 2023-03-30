@@ -1,0 +1,22 @@
+{% with app_id="peerctl" %}
+<div class="tool" data-component="peering_home">
+  <span class="heading">AS List</span>
+  <div data-element="menu" class="row"></div>
+  <div class="asn-container">
+    {% for asn,net in asns.items %}
+    <div class="asn-grid-item">
+      <a class="asn {% if asn == selected_asn %}selected{% endif %}" data-select-asn="{{ asn }}">
+        <span class="icon icon-as"></span><span>AS{{ asn }}</span>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="templates">
+    <div data-template="menu"></div>
+  </div>
+</div>
+  
+  <!-- AS{{ selected_asn }} -->
+
+{{ block.super }}
+{% endwith %}

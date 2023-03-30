@@ -11,6 +11,11 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       }
 
 			this.autoload_page();
+
+      this.tool("home", () => {
+        return new $peerctl.Home();
+      });
+
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();
       });
@@ -729,6 +734,32 @@ $peerctl.PeeringLists = $tc.extend(
   },
   $ctl.application.Tool
 );
+
+
+$peerctl.Home = $tc.extend(
+  "Home",
+  {
+    Home : function() {
+      this.Tool("peering_home");
+      this.widget("as_list", ($e) => {
+        return $('.asn-container');
+      });
+
+      if(this.get_number_of_as() <= 1) {
+        $ctl.peerctl.page("page-summary-sessions");
+        $ctl.peerctl.hide_page("page-home");
+      }
+    },
+
+    get_number_of_as : function() {
+      return this.$w.as_list.find(".asn").length
+    }
+
+  },
+  $ctl.application.Tool
+);
+
+
 
 $peerctl.SessionsSummary = $tc.extend(
   "SessionsSummary",
