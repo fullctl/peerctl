@@ -586,7 +586,7 @@ $peerctl.Networks = $tc.extend(
           $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
             $('<input type="checkbox">')
           ).append(
-            $('<span>').text(loc.ix_name)
+            $('<span>').text(loc.ix_name).addClass((loc.session ? "session-active" : ""))
           ).appendTo(cont_mutual);
         }
 

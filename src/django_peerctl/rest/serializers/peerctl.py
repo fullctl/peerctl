@@ -1191,11 +1191,12 @@ class UserPreferences(ModelSerializer):
 class NetworkLocation(serializers.Serializer):
     ix_id = serializers.IntegerField()
     ix_name = serializers.CharField()
+    session = serializers.BooleanField(required=False)
 
     ref_tag = "network_location"
 
     class Meta:
-        fields = ["ix_id", "ix_name"]
+        fields = ["ix_id", "ix_name", "session"]
 
 
 @register

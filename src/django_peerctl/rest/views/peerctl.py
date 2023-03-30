@@ -1,5 +1,6 @@
 import ipaddress
 
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from fullctl.django.auth import permissions
@@ -393,6 +394,8 @@ class NetworkSearch(viewsets.GenericViewSet):
         locations_them = {}
         locations_us = {}
 
+        # get their exchanges, our exchanges, and also summarize mutual exchanges
+
         for netixlan in pdbctl.NetworkIXLan().objects(asns=[asn, other_asn], join="ix"):
             if netixlan.asn == int(asn):
                 locations_us[netixlan.ix.id] = netixlan.ix.name
@@ -411,6 +414,39 @@ class NetworkSearch(viewsets.GenericViewSet):
             )
             del result["their_locations"][ix_id]
             del result["our_locations"][ix_id]
+
+        # for mutual exchanges also note when there is already a session
+        # configured
+
+        peer_sessions = list(
+            models.PeerSession.objects.filter(
+                peer_port__peer_net__net__asn=asn,
+                peer_port__peer_net__peer__asn=other_asn,
+                status="ok",
+            ).select_related("peer_port", "peer_port__port_info")
+        )
+
+        # loop through mutual locations
+
+        for ix_id, loc_data in result["mutual_locations"].items():
+            # loop through all peering sessions for this net and asn
+            for session in peer_sessions:
+                # check if the session is for this ix
+                # for pdbctl this a straight forward ix id comparison
+                # for ixctl we need to get the ix object and compare the pdb id
+
+                port_info = session.peer_port.port_info
+                source = port_info.ref_source
+                if source == "pdbctl" and port_info.ref.ix_id == f"pdbctl:{ix_id}":
+                    loc_data["session"] = True
+                    break
+                elif source == "ixctl":
+                    ixctl_ix_id = port_info.ref_ix_id.split(":")[1]
+                    ixctl_ix = ixctl.InternetExchange().object(ixctl_ix_id)
+
+                    if ixctl_ix.pdb_id == ix_id:
+                        loc_data["session"] = True
+                        break
 
         result["their_locations"] = sorted(
             list(result["their_locations"].values()), key=lambda x: x["ix_name"]

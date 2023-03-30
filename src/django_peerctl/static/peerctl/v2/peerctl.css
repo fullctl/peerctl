@@ -118,3 +118,7 @@ div.peers-row.border-active {
   text-decoration: underline;
   color: var(--clr-accent-400);
 }
+
+.session-active {
+  color: var(--clr-accent-400);
+}
