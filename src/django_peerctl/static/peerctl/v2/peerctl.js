@@ -376,7 +376,7 @@ $peerctl.Ix = $tc.extend(
       var list = this.$w.list;
 
       this.$w.list.format_request_url = (url) => {
-        return url +"?ixi=1";
+        return url +"?ixi=1&load_md5=1";
       }
 
       this.$w.list.formatters.row = (row, data) => {
@@ -389,22 +389,38 @@ $peerctl.Ix = $tc.extend(
           fullctl.peerctl.$t.peering_lists.sync(data.id);
           fullctl.peerctl.page("page-peering-lists");
         }).css("cursor", "pointer");
+
+        // set up local action handler for opening the edit modal
+
+        row.find("[data-action=edit]").click((e) => {
+          console.log("DATA", data);
+          new $peerctl.ModalIxPort(data);
+        });
+
       };
 
+      // format speed
 
+      this.$w.list.formatters.speed = fullctl.formatters.pretty_speed;
+
+      // format md5 field to simply show whether its set or not
+      // instead of the actual md5 value
+
+      this.$w.list.formatters.md5 =  fullctl.formatters.yesno;
+
+      // format is_route_server_peer to show a checkmark if true
+
+      this.$w.list.formatters.is_route_server_peer = fullctl.formatters.yesno;
 
       // render peeringdb or ixctl logo depending on ref_source value
 
       this.$w.list.formatters.ref_source = (value, data) => {
-        if(value == "pdbctl") {
-          var img_src = list.element.data("peeringdb-logo")
-        } else {
-          var img_src = list.element.data("ixctl-logo")
+        if(value == "ixctl") {
+          return $("<span>").addClass("fullctl-sot");
         }
-        return $("<img>").attr("src", img_src);
+        return "";
       };
-
-
+      
       $(this.$w.list).on("load:after", () => {
         // only show first data-ix-header element distinguishing
         // by value of data-ix-header
@@ -451,6 +467,56 @@ $peerctl.Ix = $tc.extend(
   },
   $ctl.application.Tool
 )
+
+/**
+ * Modal that lets user edit the following values on an ixi port
+ * 
+ * - prefix4
+ * - prefix6
+ * - mac_address
+ * - md5
+ * 
+ * @class ModalIxPort
+ * @extends $ctl.application.Modal
+ * @constructor
+ * @param {object} port - the port object to edit
+ * @namespace fullctl.peerctl
+ */
+
+$peerctl.ModalIxPort = $tc.extend(
+  "ModalIxPort",
+  {
+    ModalIxPort: function(port) {
+      var modal = this;
+      var title = "Edit exchange port"
+      var form = this.form = new twentyc.rest.Form(
+        $ctl.template("form_ix_port")
+      );
+
+      // form api url needs to replace `pk` with port id
+      form.format_request_url = (url) => {
+        return url.replace("/0/", "/"+port.id+"/");
+      }
+      
+      // fill form
+      form.fill(port);
+
+      // form success handler
+      $(this.form).on("api-write:success", (ev, e, payload, response) => {
+        modal.hide();
+        fullctl.peerctl.$t.ix.$w.list.load();
+      });
+
+      // set up modal
+      this.Modal("save_right", title, form.element);
+
+      // wire form to submit
+      form.wire_submit(this.$e.button_submit);
+    }
+  },
+  $ctl.application.Modal
+);
+        
 
 $peerctl.Networks = $tc.extend(
   "Networks",

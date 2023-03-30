@@ -650,6 +650,11 @@ class PeerNetwork(PolicyHolderMixin, Base):
     def policy_parents(self):
         return [self.net]
 
+    def set_route_server_md5(self, md5):
+        self.md5 = md5
+        self.save()
+        self.sync_route_server_md5()
+
     def sync_route_server_md5(self):
         for session in self.peer_sessions.select_related(
             "peer_port", "peer_port__port_info"
@@ -858,6 +863,33 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
                 self.asn, self.port_info_object.ipaddr4, mac_address
             )
 
+    def set_route_server_md5(self, md5):
+        """
+        Sets and syncs the route server md5 to ixctl
+
+        Arguments:
+
+            md5 (str): md5 password to set
+        """
+
+        # only route server peers can set route server md5s
+
+        if not self.is_route_server_peer:
+            return
+
+        # retrieve route server session
+
+        route_server_member = self.get_route_server_member()
+
+        if not route_server_member:
+            return
+
+        peer_port = PeerPort.get_or_create_from_members(
+            self.port_info_object.ref, route_server_member
+        )
+
+        peer_port.peer_net.set_route_server_md5(md5)
+
     def set_is_route_server_peer(self, is_route_server_peer):
         self.port_info_object.is_route_server_peer = is_route_server_peer
         self.port_info_object.save()
@@ -876,6 +908,93 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         except PeerSession.DoesNotExist:
             return None
         return None
+
+    def get_route_server_member(self):
+        """
+        Returns the route server member for this port
+        """
+
+        ref_source = self.port_info_object.ref_source
+
+        # if source ix ixctl we can get the route server member
+        # directly from there
+
+        if ref_source == "ixctl":
+            return self.get_route_server_member_ixctl()
+
+        # if source is pdbctl we need to check network member
+
+        if ref_source == "pdbctl":
+            return self.get_route_server_member_pdbctl()
+
+    def get_route_server_member_ixctl(self):
+        """
+        Returns the route server member for this port when the source is ixctl
+        """
+        port_info = self.port_info_object
+
+        for routeserver in ixctl.Routeserver().objects(
+            ix=port_info.ref_ix_id.split(":")[1]
+        ):
+            return ixctl.InternetExchangeMember().first(ip=routeserver.router_id)
+
+    def get_route_server_member_pdbctl(self):
+        """
+        Returns the route server member for this port when the source is pdbctl
+        """
+        port_info = self.port_info_object
+        return pdbctl.NetworkIXLan().first(
+            ix=port_info.ref_ix_id.split(":")[1], routeserver=1
+        )
+
+    def get_route_server_peer_net(self):
+        """
+        Returns the route server peer for this port
+        """
+
+        ref_source = self.port_info_object.ref_source
+
+        # if source ix ixctl we can get the route server peer
+        # directly from there
+
+        if ref_source == "ixctl":
+            return self.get_route_server_peer_net_ixctl()
+
+        # if source is pdbctl we need to check network type
+
+        if ref_source == "pdbctl":
+            return self.get_route_server_peer_net_pdbctl()
+
+    def get_route_server_peer_net_ixctl(self):
+        """
+        Returns the route server peers for this port when the source is ixctl
+        """
+        port_info = self.port_info_object
+
+        for routeserver in ixctl.Routeserver().objects(
+            ix=port_info.ref_ix_id.split(":")[1]
+        ):
+            try:
+                return PeerNetwork.objects.get(
+                    net__asn=self.asn, peer__asn=routeserver.asn
+                )
+            except PeerNetwork.DoesNotExist:
+                pass
+
+    def get_route_server_peer_net_pdbctl(self):
+        """
+        Returns the route server peers for this port when the source is pdbctl
+        """
+        port_info = self.port_info_object
+        for routeserver in pdbctl.NetworkIXlan().objects(
+            ix=port_info.ref_ix_id.split(":")[1], routeserver=1
+        ):
+            try:
+                return PeerNetwork.objects.get(
+                    net__asn=self.asn, peer__asn=routeserver.asn
+                )
+            except PeerNetwork.DoesNotExist:
+                pass
 
     def __str__(self):
         return "Port"

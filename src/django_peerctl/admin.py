@@ -13,6 +13,7 @@ from django_peerctl.models import (
     Network,
     Organization,
     PeerNetwork,
+    PeerPort,
     PeerSession,
     Policy,
     PortInfo,
@@ -79,6 +80,11 @@ class PeerNetworkAdmin(admin.ModelAdmin):
         if obj.md5:
             return "yes"
         return "no"
+
+
+@admin.register(PeerPort)
+class PeerPortAdmin(admin.ModelAdmin):
+    list_display = ("id", "peer_net", "port_info", "created", "updated")
 
 
 @admin.register(PortInfo)

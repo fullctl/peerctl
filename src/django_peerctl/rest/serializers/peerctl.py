@@ -130,8 +130,8 @@ class Port(serializers.Serializer):
     ip4 = serializers.SerializerMethodField()
     ip6 = serializers.SerializerMethodField()
     mtu = serializers.SerializerMethodField()
-    prefix4 = serializers.SerializerMethodField()
-    prefix6 = serializers.SerializerMethodField()
+    maxprefix4 = serializers.SerializerMethodField()
+    maxprefix6 = serializers.SerializerMethodField()
 
     class Meta:
         fields = [
@@ -155,8 +155,8 @@ class Port(serializers.Serializer):
             "is_route_server_peer",
             "md5",
             "mtu",
-            "prefix4",
-            "prefix6",
+            "maxprefix4",
+            "maxprefix6",
         ]
 
     def get_ip4(self, instance):
@@ -177,11 +177,11 @@ class Port(serializers.Serializer):
         return models.PeerSession.objects.filter(port=instance).count()
 
     @models.ref_fallback(0)
-    def get_prefix4(self, instance):
+    def get_maxprefix4(self, instance):
         return instance.prefix4
 
     @models.ref_fallback(0)
-    def get_prefix6(self, instance):
+    def get_maxprefix6(self, instance):
         return instance.prefix6
 
     @models.ref_fallback(0)
@@ -190,6 +190,14 @@ class Port(serializers.Serializer):
 
     @models.ref_fallback("")
     def get_md5(self, instance):
+        if not instance.is_route_server_peer:
+            return ""
+
+        if self.context.get("load_md5"):
+            peer_net = instance.get_route_server_peer_net()
+            if peer_net:
+                return peer_net.md5
+
         return instance.port_info_object._ref.md5
 
     @models.ref_fallback(0)
@@ -276,6 +284,53 @@ class Port(serializers.Serializer):
 
     def get_policy6(self, instance):
         return self.get_policy(instance, 6)
+
+
+@register
+class PortUpdate(serializers.Serializer):
+
+    """
+    Allows updating of certain fields on a port or related
+    to a port
+
+    - prefix limits
+    - mac address
+    - route server md5
+    """
+
+    maxprefix4 = serializers.IntegerField(required=False)
+    maxprefix6 = serializers.IntegerField(required=False)
+    md5 = serializers.CharField(required=False, allow_blank=True)
+    mac_address = serializers.CharField(required=False, allow_blank=True)
+
+    ref_tag = "port_update"
+
+    class Meta:
+        fields = ["maxprefix4", "maxprefix6", "md5", "mac_address"]
+
+    def save(self):
+        # port will be a models.PortObject instance
+        port = self.context.get("port")
+
+        if not port:
+            raise KeyError("No `port` object set in serializer context")
+
+        prefix4 = self.validated_data.get("maxprefix4")
+        prefix6 = self.validated_data.get("maxprefix6")
+        md5 = self.validated_data.get("md5")
+        mac_address = self.validated_data.get("mac_address")
+
+        # set mac address
+        port.set_mac_address(mac_address)
+
+        # set md5
+        port.set_route_server_md5(md5)
+
+        # override prefix limits
+        net = port.port_info_object.net
+        net.prefix4_override = prefix4
+        net.prefix6_override = prefix6
+        net.save()
 
 
 @register

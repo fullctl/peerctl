@@ -183,10 +183,16 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     serializer_class = Serializers.port
     require_asn = True
 
+    def get_serializer_class(self):
+        if self.action == "update":
+            return Serializers.port_update
+        return super().get_serializer_class()
+
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, *args, **kwargs):
         filter_device = request.GET.get("device")
         ixi = request.GET.get("ixi")
+        load_md5 = request.GET.get("load_md5", False)
 
         qset = models.PortInfo.objects.filter(
             net__org=request.org, net__asn=asn, port__gt=0
@@ -208,7 +214,9 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
         if ixi:
             models.Port.augment_ix(instances, asn)
 
-        serializer = self.serializer_class(instances, many=True)
+        serializer = self.serializer_class(
+            instances, many=True, context={"load_md5": load_md5}
+        )
 
         data = sorted(serializer.data, key=lambda x: x["ix_name"])
 
@@ -218,6 +226,18 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     def retrieve(self, request, asn, pk, *args, **kwargs):
         port = models.Port().object(pk)
         serializer = Serializers.port(instance=port)
+        return Response(serializer.data)
+
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def update(self, request, asn, pk, *args, **kwargs):
+        port = models.Port().object(pk)
+
+        serializer = self.get_serializer_class()(
+            data=request.data, context={"port": port}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
         return Response(serializer.data)
 
     @action(
