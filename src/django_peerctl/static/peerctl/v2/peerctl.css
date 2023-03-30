@@ -26,7 +26,29 @@ button.peer_session-live {
   margin-left: -15px;
 }
 
-div.peers-row .border-show{
+.peers-row {
+  border-right: 1px solid var(--clr-border-400);
+}
+
+.peers-row + .peers-row {
+  margin-top: 4rem;
+}
+
+.other-exchange-points {
+  border: 1px solid var(--clr-border-400);
+  border-right: none;
+}
+
+div.peers-row .secondary.row {
+  border-top: 1px solid var(--clr-border-400);
+}
+
+.peers-row .other-exchange-points .secondary.row,
+div.peers-row .secondary.row .secondary.row {
+  border-color: transparent;
+}
+
+div.peers-row .border-show {
   border-left: 4px solid;
 }
 
