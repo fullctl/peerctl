@@ -1214,12 +1214,21 @@ $peerctl.Policies = $tc.extend(
 
       this.$w.list.load();
 
-      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+      const reset_form = () => {
         this.$e.editor.addClass("create");
         this.$w.form.form_action = "";
         this.$w.form.method = "post";
         this.$w.form.reset();
         this.$e.editor_title.text("Create new policy");
+      }
+
+      this.$e.menu.find('[data-element="button_new_policy"]').click(()=>{
+        reset_form();
+        this.$w.form.element.find(":input").first().focus();
+      });
+
+      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+        reset_form();
       });
 
       $(this.$w.form).on("api-write:success", ()=>{
@@ -1289,13 +1298,22 @@ $peerctl.TemplateEditor= $tc.extend(
 
       this.$w.list.load();
 
-      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+      const reset_form = () => {
         this.$e.editor.addClass("create");
         this.$w.form.form_action = "";
         this.$w.form.method = "post";
         this.$w.form.reset();
         this.$e.editor_title.text("Create new template");
         this.$w.form.element.find('#preview,#body').val("");
+      }
+
+      this.$e.menu.find(`[data-element="button_new_${this.tag}"]`).click(()=>{
+        reset_form();
+        this.$w.form.element.find(":input").first().focus();
+      });
+
+      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+        reset_form()
       });
 
       $(this.$w.form).on("api-write:success", ()=>{
