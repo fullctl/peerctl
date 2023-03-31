@@ -560,7 +560,7 @@ $peerctl.Networks = $tc.extend(
         var cont_us = $('<div>');
         var cont_them = $('<div>');
         var cont_mutual = $('<div>');
-        var session_icon = $('<img>').attr('src', fullctl.util.static('common/icons/Indicator/Check-Ind/Check.svg')).addClass("indicator");
+        var session_icon = $('<img>').attr('src', fullctl.util.static('common/icons/Indicator/Check-Ind/Check.svg')).addClass("indicator").attr("title", "Peering session(s) configured")
         var loc,i, node;
 
 
