@@ -1190,12 +1190,21 @@ $peerctl.Policies = $tc.extend(
         return new twentyc.rest.Form(this.template("form_policy", $e.editor));
       });
 
+      this.edit_mode = false;
+      this.active_changes = false;
       this.$w.list.local_actions.edit_policy = (policy)=>{
         this.$e.editor.removeClass("create");
         this.$w.form.form_action = policy.id;
         this.$w.form.method = "put";
         this.$w.form.fill(policy);
         this.$e.editor_title.text("Edit policy");
+        this.edit_mode = true;
+        this.$w.form.element.find(":input").on("input", (e) => {
+          // might be out of edit mode when the listener fires
+          if (this.edit_mode) {
+            this.active_changes = true;
+          }
+        });
       };
 
       this.$w.list.formatters.row = (row, data) => {
@@ -1220,9 +1229,14 @@ $peerctl.Policies = $tc.extend(
         this.$w.form.method = "post";
         this.$w.form.reset();
         this.$e.editor_title.text("Create new policy");
+        this.edit_mode = false;
       }
 
       this.$e.menu.find('[data-element="button_new_policy"]').click(()=>{
+        if (this.edit_mode && this.active_changes &&
+          !confirm("You have unsaved edits, are you sure you want to discard them?")) {
+          return;
+        }
         reset_form();
         this.$w.form.element.find(":input").first().focus();
       });
@@ -1233,6 +1247,10 @@ $peerctl.Policies = $tc.extend(
 
       $(this.$w.form).on("api-write:success", ()=>{
         this.$w.list.load();
+        if (!this.edit_mode) {
+          reset_form();
+        }
+        this.active_changes = false;
         fullctl.peerctl.sync();
       });
 
@@ -1287,6 +1305,8 @@ $peerctl.TemplateEditor= $tc.extend(
         });
       });
 
+      this.edit_mode = false;
+      this.active_changes = false;
       this.$w.list.local_actions.edit_template = (template)=>{
         this.$e.editor.removeClass("create");
         this.$w.form.form_action = template.id;
@@ -1294,6 +1314,13 @@ $peerctl.TemplateEditor= $tc.extend(
         this.$w.form.fill(template);
         this.$e.editor_title.text("Edit template");
         this.preview();
+        this.edit_mode = true;
+        this.$w.form.element.find(":input:not(#preview)").on("input", (e) => {
+          // might be out of edit mode when the listener fires
+          if (this.edit_mode) {
+            this.active_changes = true;
+          }
+        });
       };
 
       this.$w.list.load();
@@ -1305,9 +1332,14 @@ $peerctl.TemplateEditor= $tc.extend(
         this.$w.form.reset();
         this.$e.editor_title.text("Create new template");
         this.$w.form.element.find('#preview,#body').val("");
+        this.edit_mode = false;
       }
 
       this.$e.menu.find(`[data-element="button_new_${this.tag}"]`).click(()=>{
+        if (this.edit_mode && this.active_changes &&
+          !confirm("You have unsaved edits, are you sure you want to discard them?")) {
+          return;
+        }
         reset_form();
         this.$w.form.element.find(":input").first().focus();
       });
@@ -1317,6 +1349,10 @@ $peerctl.TemplateEditor= $tc.extend(
       });
 
       $(this.$w.form).on("api-write:success", ()=>{
+        this.active_changes = false;
+        if (!this.edit_mode) {
+          reset_form();
+        }
         this.$w.list.load();
       });
       this.$w.form.element.find("#body").on("input", ()=>{
