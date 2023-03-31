@@ -560,7 +560,8 @@ $peerctl.Networks = $tc.extend(
         var cont_us = $('<div>');
         var cont_them = $('<div>');
         var cont_mutual = $('<div>');
-        var loc,i;
+        var session_icon = $('<img>').attr('src', fullctl.util.static('common/icons/Indicator/Check-Ind/Check.svg')).addClass("indicator");
+        var loc,i, node;
 
 
         for(i=0; i< data.our_locations.length; i++) {
@@ -583,11 +584,15 @@ $peerctl.Networks = $tc.extend(
 
         for(i=0; i< data.mutual_locations.length; i++) {
           loc = data.mutual_locations[i];
-          $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
-            $('<input type="checkbox">')
+          node = $('<div class="compact-row field">').data("ix-id", loc.ix_id).append(
+            $('<input type="checkbox">').attr("disabled", loc.session).css("visibility", (loc.session ? "hidden" : "visible"))
           ).append(
             $('<span>').text(loc.ix_name).addClass((loc.session ? "session-active" : ""))
           ).appendTo(cont_mutual);
+
+          if(loc.session) {
+            node.append(session_icon.clone());
+          }
         }
 
         row.find('.our-locations').append(cont_us);
