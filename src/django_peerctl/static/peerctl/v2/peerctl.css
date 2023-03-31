@@ -28,6 +28,7 @@ button.peer_session-live {
 
 .peers-row {
   border-right: 1px solid var(--clr-border-400);
+  border-top: 1px solid var(--clr-border-400);
 }
 
 .peers-row + .peers-row {
@@ -37,10 +38,11 @@ button.peer_session-live {
 .other-exchange-points {
   border: 1px solid var(--clr-border-400);
   border-right: none;
+  border-top: none;
 }
 
 div.peers-row .secondary.row {
-  border-top: 1px solid var(--clr-border-400);
+  border-top: 1px solid transparent;
 }
 
 .peers-row .other-exchange-points .secondary.row,
