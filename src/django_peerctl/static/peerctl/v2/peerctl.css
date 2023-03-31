@@ -181,3 +181,23 @@ div.peers-row.border-active .border-show {
 .asn-container .selected .icon {
   background-color: var(--clr-accent-400);
 }
+
+[data-field="ref_source"] img,
+.ix-header img {
+  height: 25px;
+  display: inline;
+}
+
+[data-element="ips"] {
+  background-color: var(--clr-bg-850);
+  padding-top: 3px;
+}
+
+[data-element="ips"] > .action {
+  text-decoration: underline;
+  color: var(--clr-accent-400);
+}
+
+.session-active {
+  color: var(--clr-accent-400);
+}

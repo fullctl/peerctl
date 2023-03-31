@@ -10,35 +10,56 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return;
       }
 
-			this.autoload_page();
+      this.autoload_page();
 
       this.tool("home", () => {
         return new $peerctl.Home();
       });
+			
+
+      // init peering lists tool
 
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();
       });
 
+      // init network search tool 
+
       this.tool("networks", () => {
         return new $peerctl.Networks();
       });
+
+      // init network settings tool
 
       this.tool("network_settings", () => {
         return new $peerctl.NetworkSettings();
       });
 
+      // init ix tool
+
+      this.tool("ix", () => {
+        return new $peerctl.Ix();
+      });
+
+      // init sessions summary tool
+
       this.tool("sessions_summary", () => {
         return new $peerctl.SessionsSummary();
       });
+
+      // init policies management tool
 
       this.tool("policies", ()=> {
         return new $peerctl.Policies();
       });
 
+      // init email templates tool
+
       this.tool("email_templates", ()=> {
         return new $peerctl.EmailTemplates();
       });
+
+      // init device templates tool
 
       this.tool("device_templates", ()=> {
         return new $peerctl.DeviceTemplates();
@@ -76,7 +97,11 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         this.$t.sessions_summary.sync_url(true);
       });
 
+      $('#tab-ix').on('shown.bs.tab', () => {
+        this.$t.ix.sync();
+      });
 
+      this.autoload_page();
 
     },
 
@@ -169,9 +194,27 @@ $peerctl.NetworkSettings = $tc.extend(
 
       this.widget("form", ($e) => {
         return new twentyc.rest.Form(
-          this.template("form", this.$e.body)
+          this.template("form", this.$e.network_settings_container)
         );
       });
+
+
+      // facilities list
+
+      this.widget("facilities", ($e) => {
+        return new twentyc.rest.List(
+          this.template("facilities_list", this.$e.facilities_container)
+        );
+      });
+
+      // exchanges list
+
+      this.widget("exchanges", ($e) => {
+        return new twentyc.rest.List(
+          this.template("exchanges_list", this.$e.internet_exchanges_container)
+        );
+      });
+
 
       this.$w.form.wire_submit(this.$w.form.element.find('[data-element=save_network]'));
 
@@ -306,11 +349,179 @@ $peerctl.NetworkSettings = $tc.extend(
         this.sync_ux();
       });
 
+      this.$w.facilities.load();
+      this.$w.exchanges.load();
+
     }
   },
   $ctl.application.Tool
 )
 
+/**
+ * Renders a list of exchanges for the selected ASN
+ * @class Ix
+ * @extends $ctl.application.Tool
+ * @constructor
+ * @namespace fullctl.peerctl
+ */
+$peerctl.Ix = $tc.extend(
+  "Ix",
+  {
+    Ix: function() {
+      this.Tool("ix");
+
+      // init list
+
+      this.widget("list", ($e) => {
+        return new twentyc.rest.List(
+          this.template("ix_list", this.$e.body)
+        );
+      });
+
+      var list = this.$w.list;
+
+      this.$w.list.format_request_url = (url) => {
+        return url +"?ixi=1&load_md5=1";
+      }
+
+      this.$w.list.formatters.row = (row, data) => {
+        row.find(".ix-header").attr("data-ix-header", data.ref_ix_id);
+
+        // wire up clicking the ip column to change to the peering lists
+        // page and auto select the port
+
+        row.find("[data-element=ips").click((e) => {
+          fullctl.peerctl.$t.peering_lists.sync(data.id);
+          fullctl.peerctl.page("page-peering-lists");
+        }).css("cursor", "pointer");
+
+        // set up local action handler for opening the edit modal
+
+        row.find("[data-action=edit]").click((e) => {
+          console.log("DATA", data);
+          new $peerctl.ModalIxPort(data);
+        });
+
+      };
+
+      // format speed
+
+      this.$w.list.formatters.speed = fullctl.formatters.pretty_speed;
+
+      // format md5 field to simply show whether its set or not
+      // instead of the actual md5 value
+
+      this.$w.list.formatters.md5 =  fullctl.formatters.yesno;
+
+      // format is_route_server_peer to show a checkmark if true
+
+      this.$w.list.formatters.is_route_server_peer = fullctl.formatters.yesno;
+
+      // render peeringdb or ixctl logo depending on ref_source value
+
+      this.$w.list.formatters.ref_source = (value, data) => {
+        if(value == "ixctl") {
+          return $("<span>").addClass("fullctl-sot");
+        }
+        return "";
+      };
+      
+      $(this.$w.list).on("load:after", () => {
+        // only show first data-ix-header element distinguishing
+        // by value of data-ix-header
+
+        var shown = {};
+
+        this.$w.list.element.find("[data-ix-header]").each(function() {
+          var ix_id = $(this).data("ix-header");
+          if(!shown[ix_id]) {
+            $(this).show();
+            shown[ix_id] = true;
+          }
+        });
+      })
+    },
+
+    /**
+     * Reloads the ix port list from the server
+     * @method sync
+     * @param {boolean} force - if true will force a reload from the server, otherwise respect a 60 second cache
+     */
+
+    sync: function(force) {
+      
+      // if force is false check if we have already loaded the list
+      // in the last minute and dont sync if we have
+      var now = new Date();
+
+      if(!force) {
+        var last_sync = this.$w.list.element.data("last-sync");
+        if(last_sync) {
+          var diff = now - last_sync;
+          if(diff < 60000) {
+            return;
+          }
+        }
+      }
+
+      // set last sync time
+      this.$w.list.element.data("last-sync", now);
+      
+      this.$w.list.load();
+    }
+  },
+  $ctl.application.Tool
+)
+
+/**
+ * Modal that lets user edit the following values on an ixi port
+ * 
+ * - prefix4
+ * - prefix6
+ * - mac_address
+ * - md5
+ * 
+ * @class ModalIxPort
+ * @extends $ctl.application.Modal
+ * @constructor
+ * @param {object} port - the port object to edit
+ * @namespace fullctl.peerctl
+ */
+
+$peerctl.ModalIxPort = $tc.extend(
+  "ModalIxPort",
+  {
+    ModalIxPort: function(port) {
+      var modal = this;
+      var title = "Edit exchange port"
+      var form = this.form = new twentyc.rest.Form(
+        $ctl.template("form_ix_port")
+      );
+
+      // form api url needs to replace `pk` with port id
+      form.format_request_url = (url) => {
+        return url.replace("/0/", "/"+port.id+"/");
+      }
+      
+      // fill form
+      form.fill(port);
+
+      // form success handler
+      $(this.form).on("api-write:success", (ev, e, payload, response) => {
+        modal.hide();
+        fullctl.peerctl.$t.ix.$w.list.load();
+      });
+
+      // set up modal
+      this.Modal("save_right", title, form.element);
+
+      // wire form to submit
+      form.wire_submit(this.$e.button_submit);
+    }
+  },
+  $ctl.application.Modal
+);
+        
 
 $peerctl.Networks = $tc.extend(
   "Networks",
@@ -354,7 +565,8 @@ $peerctl.Networks = $tc.extend(
         var cont_us = $('<div>');
         var cont_them = $('<div>');
         var cont_mutual = $('<div>');
-        var loc,i;
+        var session_icon = $('<img>').attr('src', fullctl.util.static('common/icons/Indicator/Check-Ind/Check.svg')).addClass("indicator").attr("title", "Peering session(s) configured")
+        var loc,i, node;
 
 
         for(i=0; i< data.our_locations.length; i++) {
@@ -377,11 +589,15 @@ $peerctl.Networks = $tc.extend(
 
         for(i=0; i< data.mutual_locations.length; i++) {
           loc = data.mutual_locations[i];
-          $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
-            $('<input type="checkbox">')
+          node = $('<div class="compact-row field">').data("ix-id", loc.ix_id).append(
+            $('<input type="checkbox">').attr("disabled", loc.session).css("visibility", (loc.session ? "hidden" : "visible"))
           ).append(
-            $('<span>').text(loc.ix_name)
+            $('<span>').text(loc.ix_name).addClass((loc.session ? "session-active" : ""))
           ).appendTo(cont_mutual);
+
+          if(loc.session) {
+            node.append(session_icon.clone());
+          }
         }
 
         row.find('.our-locations').append(cont_us);
