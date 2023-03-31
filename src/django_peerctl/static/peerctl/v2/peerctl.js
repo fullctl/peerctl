@@ -391,9 +391,20 @@ $peerctl.Networks = $tc.extend(
       }
 
       $(this.$w.list).on("load:after", (ev,response) => {
-        var data = response.first();
-        var request_peering = this.$w.list.element.find('[data-element=request_peering]');
+        let request_peering = this.$w.list.element.find('[data-element=request_peering]');
         request_peering.show().prop("disabled", false).children('.label').hide().filter('.ok').show();
+
+        let request_peering_tr = this.$w.list.element.find('[data-element=request_peering_tr]');
+
+        this.$w.list.element.find('input[type=checkbox]').on("change", (ev) => {
+          if(this.get_number_of_selected_networks() > 0) {
+            request_peering.show().prop("disabled", false)
+            request_peering_tr.show();
+          } else {
+            request_peering.show().prop("disabled", true)
+            request_peering_tr.hide();
+          }
+        });
 
       });
 
@@ -462,6 +473,10 @@ $peerctl.Networks = $tc.extend(
 
     sync : function() {
       this.$w.list.load();
+    },
+
+    get_number_of_selected_networks() {
+      return this.$w.list.element.find('input[type=checkbox]:checked').length;
     },
 
     request_peering : function() {
