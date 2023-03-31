@@ -302,11 +302,18 @@ class PortUpdate(serializers.Serializer):
     maxprefix6 = serializers.IntegerField(required=False)
     md5 = serializers.CharField(required=False, allow_blank=True)
     mac_address = serializers.CharField(required=False, allow_blank=True)
+    is_route_server_peer = serializers.BooleanField(required=False)
 
     ref_tag = "port_update"
 
     class Meta:
-        fields = ["maxprefix4", "maxprefix6", "md5", "mac_address"]
+        fields = [
+            "maxprefix4",
+            "maxprefix6",
+            "md5",
+            "mac_address",
+            "is_route_server_peer",
+        ]
 
     def save(self):
         # port will be a models.PortObject instance
@@ -319,6 +326,7 @@ class PortUpdate(serializers.Serializer):
         prefix6 = self.validated_data.get("maxprefix6")
         md5 = self.validated_data.get("md5")
         mac_address = self.validated_data.get("mac_address")
+        is_route_server_peer = self.validated_data.get("is_route_server_peer")
 
         # set mac address
         port.set_mac_address(mac_address)
@@ -331,6 +339,9 @@ class PortUpdate(serializers.Serializer):
         net.prefix4_override = prefix4
         net.prefix6_override = prefix6
         net.save()
+
+        # override is_route_server_peer
+        port.port_info_object.set_is_route_server_peer(is_route_server_peer)
 
 
 @register

@@ -28,17 +28,25 @@
 
     <div class="row mb-3">
       <div class="col-12" data-api-submit="yes">
+        <label class="form-label" for="mac-mac_address">{% trans "MAC-Address" %}</label>
+        <input type="text" class="form-control" id="mac-address" name="mac_address" />
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <input type="checkbox" class="form-check-input" id="is-route-server-peer" name="is_route_server_peer" />
+        <label class="form-check-label" for="is_route_server_peer">{% trans "Is Route Server Peer" %}</label>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
         <label class="form-label" for="md5">{% trans "Route Server MD5" %}</label>
         <input type="text" class="form-control" id="md5" name="md5" />
       </div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col-12" data-api-submit="yes">
-          <label class="form-label" for="mac-mac_address">{% trans "MAC-Address" %}</label>
-          <input type="text" class="form-control" id="mac-address" name="mac_address" />
-        </div>
-      </div>
 
   </div>
 </form>

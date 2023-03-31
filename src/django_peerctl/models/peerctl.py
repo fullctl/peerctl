@@ -33,7 +33,7 @@ from django_peerctl.email import send_mail_from_default
 from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.meta import PeerSessionSchema
-from django_peerctl.models.tasks import SyncMacAddress, SyncRouteServerMD5
+from django_peerctl.models.tasks import SyncIsRsPeer, SyncMacAddress, SyncRouteServerMD5
 from django_peerctl.templating import make_variable_name
 
 # naming::
@@ -1279,6 +1279,15 @@ class PortInfo(sot.ReferenceMixin, Base):
         elif version == 6:
             return self.info_prefixes6
         raise ValueError(f"Ip Protocol version invalid: {version}")
+
+    def set_is_route_server_peer(self, value):
+        """
+        Updates the is_route_server_peer value and also
+        syncs to other services (ixctl)
+        """
+        self.is_route_server_peer = value
+        self.save()
+        SyncIsRsPeer.create_task(self.net.asn, self.ipaddr4, self.is_route_server_peer)
 
 
 class DeviceObject(devicectl.DeviceCtlEntity):
