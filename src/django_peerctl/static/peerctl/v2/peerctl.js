@@ -12,11 +12,12 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
 
       this.autoload_page();
 
+      // init home page tool
+
       this.tool("home", () => {
         return new $peerctl.Home();
       });
 			
-
       // init peering lists tool
 
       this.tool("peering_lists", () => {
