@@ -2,14 +2,14 @@
 <table
 class="table list-table table-borderless center marg-top-lg"
 data-api-load="yes"
-data-api-base="{% url "peerctl_api:net-internet-exchanges" asn=selected_asn %}"
-data-template="exchanges_list">
+data-api-base="{% url "peerctl_api:net-facilities" asn=selected_asn %}"
+data-template="facilities_list">
 <thead>
-  <tr>
+<tr>
     <th>
-      <div>{% trans "Exchange Presences" %}</div>
+    <div>{% trans "Facility Presences" %}</div>
     </th>
-  </tr>
+</tr>
 </thead>
 
 <tbody class="list-body">
@@ -17,10 +17,9 @@ data-template="exchanges_list">
 
 <tbody class="templates">
     <tr data-template="row" class="with-border">
-      <td>
+    <td>
         <div data-field="name" class="highlight"></div>
-      </td>
+    </td>
     </tr>
 </tbody>
 </table>
-

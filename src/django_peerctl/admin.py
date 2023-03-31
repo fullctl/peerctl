@@ -13,6 +13,7 @@ from django_peerctl.models import (
     Network,
     Organization,
     PeerNetwork,
+    PeerPort,
     PeerSession,
     Policy,
     PortInfo,
@@ -79,6 +80,11 @@ class PeerNetworkAdmin(admin.ModelAdmin):
         if obj.md5:
             return "yes"
         return "no"
+
+
+@admin.register(PeerPort)
+class PeerPortAdmin(admin.ModelAdmin):
+    list_display = ("id", "peer_net", "port_info", "created", "updated")
 
 
 @admin.register(PortInfo)
@@ -157,10 +163,14 @@ class PeerSessionAdmin(admin.ModelAdmin):
             return ""
 
     def ipaddr4(self, obj):
-        return obj.port.object.port_info_object.ipaddr4
+        if obj.port.object.port_info_object:
+            return obj.port.object.port_info_object.ipaddr4
+        return None
 
     def ipaddr6(self, obj):
-        return obj.port.object.port_info_object.ipaddr6
+        if obj.port.object.port_info_object:
+            return obj.port.object.port_info_object.ipaddr6
+        return None
 
     def peer_ipaddr4(self, obj):
         return obj.peer_port.port_info.ipaddr4

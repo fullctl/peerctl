@@ -1,0 +1,53 @@
+
+{% load static i18n %}
+<form data-template="form_ix_port"
+  data-api-base="{% url "peerctl_api:port-detail" asn=selected_asn pk=0 %}"
+  data-api-method="PUT"
+  >
+  <div class="container-fluid">
+
+    <div>
+        <h5 data-field="ix_simple_name"></h5>
+        <div data-field="ip4"></div>
+        <div data-field="ip6"></div>
+    </div>
+
+    <div class="marg-top-lg row mb-3">
+      <div class="col" data-api-submit="yes">
+        <label class="form-label" for="maxprefix4">{% trans "Max. v4 Prefixes" %}</label>
+        <input type="text" class="form-control" id="maxprefix4" name="maxprefix4">
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col" data-api-submit="yes">
+        <label class="form-label" for="maxprefix6">{% trans "Max. v6 Prefixes" %}</label>
+        <input type="text" class="form-control" id="maxprefix6" name="maxprefix6">
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <label class="form-label" for="mac-mac_address">{% trans "MAC-Address" %}</label>
+        <input type="text" class="form-control" id="mac-address" name="mac_address" />
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <input type="checkbox" class="form-check-input" id="is-route-server-peer" name="is_route_server_peer" />
+        <label class="form-check-label" for="is_route_server_peer">{% trans "Is Route Server Peer" %}</label>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <label class="form-label" for="md5">{% trans "Route Server MD5" %}</label>
+        <input type="text" class="form-control" id="md5" name="md5" />
+      </div>
+    </div>
+
+
+  </div>
+</form>
+

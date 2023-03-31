@@ -12,7 +12,11 @@ Serializers, register = serializer_registry()
 
 
 def is_dummy(name):
-    return name.startswith("pdb:") or name.startswith("ixctl:")
+    return (
+        name.startswith("pdb:")
+        or name.startswith("ixctl:")
+        or name.startswith("peerctl:")
+    )
 
 
 @register
@@ -112,22 +116,29 @@ class Port(serializers.Serializer):
 
     ix = serializers.SerializerMethodField()
     ix_name = serializers.SerializerMethodField()
+    ix_simple_name = serializers.SerializerMethodField()
     speed = serializers.SerializerMethodField()
     policy4 = serializers.SerializerMethodField()
     policy6 = serializers.SerializerMethodField()
     device = serializers.SerializerMethodField()
     mac_address = serializers.SerializerMethodField()
     is_route_server_peer = serializers.SerializerMethodField()
+    md5 = serializers.SerializerMethodField()
 
     ref_ix_id = serializers.SerializerMethodField()
+    ref_source = serializers.SerializerMethodField()
     ip4 = serializers.SerializerMethodField()
     ip6 = serializers.SerializerMethodField()
+    mtu = serializers.SerializerMethodField()
+    maxprefix4 = serializers.SerializerMethodField()
+    maxprefix6 = serializers.SerializerMethodField()
 
     class Meta:
         fields = [
             "id",
             "ix",
             "ix_name",
+            "ix_simple_name",
             "display_name",
             "net",
             "asn",
@@ -139,8 +150,13 @@ class Port(serializers.Serializer):
             "ip6",
             "device",
             "ref_ix_id",
+            "ref_source",
             "mac_address",
             "is_route_server_peer",
+            "md5",
+            "mtu",
+            "maxprefix4",
+            "maxprefix6",
         ]
 
     def get_ip4(self, instance):
@@ -150,7 +166,9 @@ class Port(serializers.Serializer):
         return instance.ip_address_6
 
     def get_mac_address(self, instance):
-        return f"{instance.mac_address}"
+        if instance.mac_address:
+            return f"{instance.mac_address}"
+        return None
 
     def get_is_route_server_peer(self, instance):
         return instance.is_route_server_peer
@@ -159,13 +177,54 @@ class Port(serializers.Serializer):
         return models.PeerSession.objects.filter(port=instance).count()
 
     @models.ref_fallback(0)
+    def get_maxprefix4(self, instance):
+        return instance.prefix4
+
+    @models.ref_fallback(0)
+    def get_maxprefix6(self, instance):
+        return instance.prefix6
+
+    @models.ref_fallback(0)
+    def get_mtu(self, instance):
+        return instance.mtu
+
+    @models.ref_fallback("")
+    def get_md5(self, instance):
+        if not instance.is_route_server_peer:
+            return ""
+
+        if self.context.get("load_md5"):
+            peer_net = instance.get_route_server_peer_net()
+            if peer_net:
+                return peer_net.md5
+
+        return instance.port_info_object._ref.md5
+
+    @models.ref_fallback(0)
     def get_ix(self, instance):
-        return models.InternetExchange.objects.get(
+        return self.get_ix_object(instance).id
+
+    def get_ix_object(self, instance):
+        if not hasattr(self, "_ix_obj"):
+            self._ix_obj = {}
+
+        ref_id = instance.port_info_object.ref_ix_id
+
+        if ref_id in self._ix_obj:
+            return self._ix_obj[ref_id]
+
+        self._ix_obj[ref_id] = models.InternetExchange.objects.get(
             ref_id=instance.port_info_object.ref_ix_id
-        ).id
+        )
+
+        return self._ix_obj[ref_id]
 
     def get_ref_ix_id(self, instance):
         return instance.port_info_object.ref_ix_id
+
+    @models.ref_fallback("")
+    def get_ref_source(self, instance):
+        return self.get_ref_ix_id(instance).split(":")[0]
 
     @models.ref_fallback("")
     def get_ix_name(self, instance):
@@ -175,9 +234,7 @@ class Port(serializers.Serializer):
         if instance.device and not is_dummy(instance.device.name):
             parts.append(instance.device.name)
 
-        ix = models.InternetExchange.objects.filter(
-            ref_id=instance.port_info_object.ref_ix_id
-        ).first()
+        ix = self.get_ix_object(instance)
 
         if ix:
             parts.append(ix.name)
@@ -189,7 +246,14 @@ class Port(serializers.Serializer):
         if instance.virtual_port_name and not is_dummy(instance.virtual_port_name):
             parts.append(instance.virtual_port_name)
 
-        return " ".join(parts)
+        return " ".join([str(p) for p in parts])
+
+    def get_ix_simple_name(self, instance):
+        ix = self.get_ix_object(instance)
+
+        if ix:
+            return ix.name
+        return ""
 
     def get_display_name(self, instance):
         if instance.virtual_port_name and not is_dummy(instance.virtual_port_name):
@@ -220,6 +284,64 @@ class Port(serializers.Serializer):
 
     def get_policy6(self, instance):
         return self.get_policy(instance, 6)
+
+
+@register
+class PortUpdate(serializers.Serializer):
+
+    """
+    Allows updating of certain fields on a port or related
+    to a port
+
+    - prefix limits
+    - mac address
+    - route server md5
+    """
+
+    maxprefix4 = serializers.IntegerField(required=False)
+    maxprefix6 = serializers.IntegerField(required=False)
+    md5 = serializers.CharField(required=False, allow_blank=True)
+    mac_address = serializers.CharField(required=False, allow_blank=True)
+    is_route_server_peer = serializers.BooleanField(required=False)
+
+    ref_tag = "port_update"
+
+    class Meta:
+        fields = [
+            "maxprefix4",
+            "maxprefix6",
+            "md5",
+            "mac_address",
+            "is_route_server_peer",
+        ]
+
+    def save(self):
+        # port will be a models.PortObject instance
+        port = self.context.get("port")
+
+        if not port:
+            raise KeyError("No `port` object set in serializer context")
+
+        prefix4 = self.validated_data.get("maxprefix4")
+        prefix6 = self.validated_data.get("maxprefix6")
+        md5 = self.validated_data.get("md5")
+        mac_address = self.validated_data.get("mac_address")
+        is_route_server_peer = self.validated_data.get("is_route_server_peer")
+
+        # set mac address
+        port.set_mac_address(mac_address)
+
+        # set md5
+        port.set_route_server_md5(md5)
+
+        # override prefix limits
+        net = port.port_info_object.net
+        net.prefix4_override = prefix4
+        net.prefix6_override = prefix6
+        net.save()
+
+        # override is_route_server_peer
+        port.port_info_object.set_is_route_server_peer(is_route_server_peer)
 
 
 @register
@@ -1080,11 +1202,12 @@ class UserPreferences(ModelSerializer):
 class NetworkLocation(serializers.Serializer):
     ix_id = serializers.IntegerField()
     ix_name = serializers.CharField()
+    session = serializers.BooleanField(required=False)
 
     ref_tag = "network_location"
 
     class Meta:
-        fields = ["ix_id", "ix_name"]
+        fields = ["ix_id", "ix_name", "session"]
 
 
 @register
@@ -1108,3 +1231,33 @@ class NetworkSearch(serializers.Serializer):
             "their_locations",
             "our_locations",
         ]
+
+
+@register
+class PeeringDBRelationship(serializers.Serializer):
+
+    """
+    Renders a relationship to a PeeringDB object
+    """
+
+    remote_ref_tag = serializers.SerializerMethodField()
+    name = serializers.CharField()
+    id = serializers.IntegerField()
+    org_id = serializers.IntegerField()
+    url = serializers.SerializerMethodField()
+
+    ref_tag = "peeringdb_relationship"
+
+    class Meta:
+        fields = [
+            "remote_ref_tag",
+            "name",
+            "id",
+            "org_id",
+        ]
+
+    def get_remote_ref_tag(self, obj):
+        return obj.ref_tag
+
+    def get_url(self, obj):
+        return f"https://www.peeringdb.com/{obj.ref_tag}/{obj.id}"

@@ -5,6 +5,7 @@ import logging
 import os.path
 
 import fullctl.service_bridge.devicectl as devicectl
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 import reversion
@@ -32,7 +33,7 @@ from django_peerctl.email import send_mail_from_default
 from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.meta import PeerSessionSchema
-from django_peerctl.models.tasks import SyncMacAddress, SyncRouteServerMD5
+from django_peerctl.models.tasks import SyncIsRsPeer, SyncMacAddress, SyncRouteServerMD5
 from django_peerctl.templating import make_variable_name
 
 # naming::
@@ -649,6 +650,11 @@ class PeerNetwork(PolicyHolderMixin, Base):
     def policy_parents(self):
         return [self.net]
 
+    def set_route_server_md5(self, md5):
+        self.md5 = md5
+        self.save()
+        self.sync_route_server_md5()
+
     def sync_route_server_md5(self):
         for session in self.peer_sessions.select_related(
             "peer_port", "peer_port__port_info"
@@ -857,6 +863,33 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
                 self.asn, self.port_info_object.ipaddr4, mac_address
             )
 
+    def set_route_server_md5(self, md5):
+        """
+        Sets and syncs the route server md5 to ixctl
+
+        Arguments:
+
+            md5 (str): md5 password to set
+        """
+
+        # only route server peers can set route server md5s
+
+        if not self.is_route_server_peer:
+            return
+
+        # retrieve route server session
+
+        route_server_member = self.get_route_server_member()
+
+        if not route_server_member:
+            return
+
+        peer_port = PeerPort.get_or_create_from_members(
+            self.port_info_object.ref, route_server_member
+        )
+
+        peer_port.peer_net.set_route_server_md5(md5)
+
     def set_is_route_server_peer(self, is_route_server_peer):
         self.port_info_object.is_route_server_peer = is_route_server_peer
         self.port_info_object.save()
@@ -876,6 +909,93 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
             return None
         return None
 
+    def get_route_server_member(self):
+        """
+        Returns the route server member for this port
+        """
+
+        ref_source = self.port_info_object.ref_source
+
+        # if source ix ixctl we can get the route server member
+        # directly from there
+
+        if ref_source == "ixctl":
+            return self.get_route_server_member_ixctl()
+
+        # if source is pdbctl we need to check network member
+
+        if ref_source == "pdbctl":
+            return self.get_route_server_member_pdbctl()
+
+    def get_route_server_member_ixctl(self):
+        """
+        Returns the route server member for this port when the source is ixctl
+        """
+        port_info = self.port_info_object
+
+        for routeserver in ixctl.Routeserver().objects(
+            ix=port_info.ref_ix_id.split(":")[1]
+        ):
+            return ixctl.InternetExchangeMember().first(ip=routeserver.router_id)
+
+    def get_route_server_member_pdbctl(self):
+        """
+        Returns the route server member for this port when the source is pdbctl
+        """
+        port_info = self.port_info_object
+        return pdbctl.NetworkIXLan().first(
+            ix=port_info.ref_ix_id.split(":")[1], routeserver=1
+        )
+
+    def get_route_server_peer_net(self):
+        """
+        Returns the route server peer for this port
+        """
+
+        ref_source = self.port_info_object.ref_source
+
+        # if source ix ixctl we can get the route server peer
+        # directly from there
+
+        if ref_source == "ixctl":
+            return self.get_route_server_peer_net_ixctl()
+
+        # if source is pdbctl we need to check network type
+
+        if ref_source == "pdbctl":
+            return self.get_route_server_peer_net_pdbctl()
+
+    def get_route_server_peer_net_ixctl(self):
+        """
+        Returns the route server peers for this port when the source is ixctl
+        """
+        port_info = self.port_info_object
+
+        for routeserver in ixctl.Routeserver().objects(
+            ix=port_info.ref_ix_id.split(":")[1]
+        ):
+            try:
+                return PeerNetwork.objects.get(
+                    net__asn=self.asn, peer__asn=routeserver.asn
+                )
+            except PeerNetwork.DoesNotExist:
+                pass
+
+    def get_route_server_peer_net_pdbctl(self):
+        """
+        Returns the route server peers for this port when the source is pdbctl
+        """
+        port_info = self.port_info_object
+        for routeserver in pdbctl.NetworkIXlan().objects(
+            ix=port_info.ref_ix_id.split(":")[1], routeserver=1
+        ):
+            try:
+                return PeerNetwork.objects.get(
+                    net__asn=self.asn, peer__asn=routeserver.asn
+                )
+            except PeerNetwork.DoesNotExist:
+                pass
+
     def __str__(self):
         return "Port"
 
@@ -885,6 +1005,125 @@ class Port(devicectl.Port):
 
     class Meta(devicectl.Port.Meta):
         data_object_cls = PortObject
+
+    @classmethod
+    def preload(cls, org, asn, port_ids, filter_device=None):
+        """
+        Preloads ixctl and pdbctl member reference (port_info ref)
+
+        Arguments:
+
+            org: org object
+            asn: asn
+            port_ids: list of port ids
+            filter_device: device id to filter on
+
+        Returns:
+
+            list of PortObject instances
+        """
+
+        # load ports
+
+        instances = [
+            port
+            for port in Port().objects(org=org.remote_id, join="device", status="ok")
+            if port.id in port_ids
+            and (not filter_device or port.device_id == int(filter_device))
+            and (port.ip_address_4 or port.ip_address_6)
+            and (not port.name.startswith("pdb:"))
+        ]
+
+        # prefetch netixlans/ixctl members
+
+        for member in sot.InternetExchangeMember().objects(asn=asn):
+            for port in instances:
+                if port.port_info_object.ref_id == member.ref_id:
+                    port.port_info_object._ref = member
+
+        return instances
+
+    @classmethod
+    def augment_ix(cls, ixi_ports, asn):
+        """
+        Augments list of intnernet exchange PortObject instances for a network
+
+        Will add prefix4, prefix6, mtu and route server md5
+
+        This takes into consideration whether the exchange has its source
+        of truth in ixctl or pdbctl (peeringdb) and will also augment data
+        from both datasets if necessary
+        """
+
+        net = Network.objects.get(asn=asn)
+
+        # will hold pdbctl internet exchange objects, keyed by id
+        pdbctl_ix = {}
+
+        # will hold ixctl internet exchange objects, keyed by id
+        ixctl_ix = {}
+
+        for ixi_port in ixi_ports:
+            source, ix_id = ixi_port.port_info_object.ref_ix_id.split(":")
+
+            ix_id = int(ix_id)
+
+            ixi_port.source = source
+            ixi_port.remote_ix_id = ix_id
+
+            if source == "pdbctl":
+                pdbctl_ix[ix_id] = None
+            elif source == "ixctl":
+                ixctl_ix[ix_id] = None
+
+        # now get ixctl internet exchange objects
+
+        if ixctl_ix:
+            ix_ix = ixctl.InternetExchange().objects(ids=list(ixctl_ix.keys()))
+            for ix in ix_ix:
+                ixctl_ix[ix.id] = ix
+
+                # if ixctl ix has a peeringdb reference, mark
+                # it so it also gets fetched
+
+                if ix.pdb_id:
+                    pdbctl_ix[ix.pdb_id] = None
+
+        # now get pdbctl internet exchange objects
+
+        if pdbctl_ix:
+            pdb_ix = pdbctl.InternetExchange().objects(ids=list(pdbctl_ix.keys()))
+            for ix in pdb_ix:
+                pdbctl_ix[ix.id] = ix
+
+        # now augment data from both sources
+
+        for ixi_port in ixi_ports:
+            mtu = None
+
+            if ixi_port.source == "ixctl":
+                # port has SoT in ixctl
+
+                ix = ixctl_ix[ixi_port.remote_ix_id]
+
+                # ixctl ix has a peeringdb reference, so we can
+                # join in MTU from there as ixctl has no MTU field
+                # yet.
+
+                pdb_ix_id = ix.pdb_id
+
+                if pdb_ix_id:
+                    mtu = pdbctl_ix[pdb_ix_id].mtu
+            else:
+                # port has SoT in pdbctl
+
+                ix = pdbctl_ix[ixi_port.remote_ix_id]
+
+                mtu = ix.mtu
+
+            ixi_port.prefix4 = net.prefix4
+            ixi_port.prefix6 = net.prefix6
+            ixi_port.mtu = mtu
 
 
 @reversion.register
@@ -1040,6 +1279,15 @@ class PortInfo(sot.ReferenceMixin, Base):
         elif version == 6:
             return self.info_prefixes6
         raise ValueError(f"Ip Protocol version invalid: {version}")
+
+    def set_is_route_server_peer(self, value):
+        """
+        Updates the is_route_server_peer value and also
+        syncs to other services (ixctl)
+        """
+        self.is_route_server_peer = value
+        self.save()
+        SyncIsRsPeer.create_task(self.net.asn, self.ipaddr4, self.is_route_server_peer)
 
 
 class DeviceObject(devicectl.DeviceCtlEntity):

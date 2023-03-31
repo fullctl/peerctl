@@ -3,9 +3,17 @@
 
   {% include "common/v2/tool_base.html" %}
 
+  <div class="network" data-element="network_settings_container"></div>
+
+  <div class="presences row">
+    <div class="col-6 facilities" data-element="facilities_container"></div>
+    <div class="col-6 internet-exchanges" data-element="internet_exchanges_container"></div>
+  </div>
+
   <div class="templates">
     {% include "peerctl/v2/tool/network-settings/form.html" %}
     {% include "peerctl/v2/tool/network-settings/menu.html" %}
-
+    {% include "peerctl/v2/tool/network-settings/exchanges.html" %}
+    {% include "peerctl/v2/tool/network-settings/facilities.html" %}
   </div>
 </div>

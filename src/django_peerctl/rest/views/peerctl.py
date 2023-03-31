@@ -1,5 +1,6 @@
 import ipaddress
 
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from fullctl.django.auth import permissions
@@ -54,6 +55,38 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
         serializer.save()
         SyncASSet.create_task(asn, net.as_set_override)
 
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=Serializers.peeringdb_relationship,
+    )
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def facilities(self, request, asn, net, *args, **kwargs):
+        """
+        Returns a list of peeringdb facilities for a network
+        """
+
+        entities = list(pdbctl.Facility().objects(asn=asn))
+        serializer = self.get_serializer(entities, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=Serializers.peeringdb_relationship,
+    )
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def internet_exchanges(self, request, asn, net, *args, **kwargs):
+        """
+        Returns a list of peeringdb exchanges for a network
+        """
+
+        entities = list(pdbctl.InternetExchange().objects(asn=asn))
+        serializer = self.get_serializer(entities, many=True)
         return Response(serializer.data)
 
 
@@ -151,10 +184,16 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     serializer_class = Serializers.port
     require_asn = True
 
+    def get_serializer_class(self):
+        if self.action == "update":
+            return Serializers.port_update
+        return super().get_serializer_class()
+
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, *args, **kwargs):
         filter_device = request.GET.get("device")
         ixi = request.GET.get("ixi")
+        load_md5 = request.GET.get("load_md5", False)
 
         qset = models.PortInfo.objects.filter(
             net__org=request.org, net__asn=asn, port__gt=0
@@ -169,25 +208,16 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
         port_ids = [int(obj.port) for obj in qset]
 
-        # load ports
+        instances = models.Port.preload(
+            request.org, asn, port_ids, filter_device=filter_device
+        )
 
-        instances = [
-            port
-            for port in models.Port().objects(
-                org=request.org.remote_id, join="device", status="ok"
-            )
-            if port.id in port_ids
-            and (not filter_device or port.device_id == int(filter_device))
-        ]
+        if ixi:
+            models.Port.augment_ix(instances, asn)
 
-        # prefetch netixlans/ixctl members
-
-        for member in sot.InternetExchangeMember().objects(asn=asn):
-            for port in instances:
-                if port.port_info_object.ref_id == member.ref_id:
-                    port.port_info_object._ref = member
-
-        serializer = self.serializer_class(instances, many=True)
+        serializer = self.serializer_class(
+            instances, many=True, context={"load_md5": load_md5}
+        )
 
         data = sorted(serializer.data, key=lambda x: x["ix_name"])
 
@@ -197,6 +227,18 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     def retrieve(self, request, asn, pk, *args, **kwargs):
         port = models.Port().object(pk)
         serializer = Serializers.port(instance=port)
+        return Response(serializer.data)
+
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def update(self, request, asn, pk, *args, **kwargs):
+        port = models.Port().object(pk)
+
+        serializer = self.get_serializer_class()(
+            data=request.data, context={"port": port}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
         return Response(serializer.data)
 
     @action(
@@ -352,6 +394,8 @@ class NetworkSearch(viewsets.GenericViewSet):
         locations_them = {}
         locations_us = {}
 
+        # get their exchanges, our exchanges, and also summarize mutual exchanges
+
         for netixlan in pdbctl.NetworkIXLan().objects(asns=[asn, other_asn], join="ix"):
             if netixlan.asn == int(asn):
                 locations_us[netixlan.ix.id] = netixlan.ix.name
@@ -370,6 +414,39 @@ class NetworkSearch(viewsets.GenericViewSet):
             )
             del result["their_locations"][ix_id]
             del result["our_locations"][ix_id]
+
+        # for mutual exchanges also note when there is already a session
+        # configured
+
+        peer_sessions = list(
+            models.PeerSession.objects.filter(
+                peer_port__peer_net__net__asn=asn,
+                peer_port__peer_net__peer__asn=other_asn,
+                status="ok",
+            ).select_related("peer_port", "peer_port__port_info")
+        )
+
+        # loop through mutual locations
+
+        for ix_id, loc_data in result["mutual_locations"].items():
+            # loop through all peering sessions for this net and asn
+            for session in peer_sessions:
+                # check if the session is for this ix
+                # for pdbctl this a straight forward ix id comparison
+                # for ixctl we need to get the ix object and compare the pdb id
+
+                port_info = session.peer_port.port_info
+                source = port_info.ref_source
+                if source == "pdbctl" and port_info.ref.ix_id == f"pdbctl:{ix_id}":
+                    loc_data["session"] = True
+                    break
+                elif source == "ixctl":
+                    ixctl_ix_id = port_info.ref_ix_id.split(":")[1]
+                    ixctl_ix = ixctl.InternetExchange().object(ixctl_ix_id)
+
+                    if ixctl_ix.pdb_id == ix_id:
+                        loc_data["session"] = True
+                        break
 
         result["their_locations"] = sorted(
             list(result["their_locations"].values()), key=lambda x: x["ix_name"]
