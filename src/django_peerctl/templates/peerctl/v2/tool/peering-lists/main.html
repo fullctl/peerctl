@@ -27,134 +27,140 @@
 
         <!-- PEERS: ROW TEMPLATE -->
 
-        <div data-template="row" class="peers-row border-inactive marg-top-lg">
-          <div class="row pad-top-lg">
-            <div class="col-12">
-              <span data-field="name" class="primary-row-name highlight"></span>
-            </div>
-          </div>
-
-          <div class="row secondary marg-top-lg">
-            <div class="col-xs-12 col-3">
-              <div class="property"><div class="field">
-              {% trans "ASN:" %}
-              <span data-field="asn"></span>
-              <button data-element="md5" class="primary btn | small"><span class="label">{% trans "MD5 Password" %}</span></button>
-              </div></div>
-            </div>
-            <div class="col-xs-12 col-2">
-              <div class="property"><div class="field">
-              {% trans "Prefix 4:" %}
-              <input data-field="info_prefixes4"
-                class="slim"
-                type="text"
-                data-api-action=""
-                data-api-method="put"
-                data-ip-version="4"
-                data-api-base="{% url "peerctl_api:peer-set-max-prefix" asn=selected_asn port_pk="port_pk" pk="peer_id" %}">
-              </div></div>
-            </div>
-            <div class="col-xs-12 col-2">
-              <div class="property"><div class="field">
-              {% trans "Scope:" %}<span data-field="scope"></span>
-              </div></div>
-            </div>
-            <div class="col-xs-12 col-2">
-              <div class="property"><div class="field">
-              {% trans "Peering policy:" %}<span data-field="policy_general"></span>
-              </div></div>
-            </div>
-            <div class="col-xs-12 col-3">
-              <div class="property"><div class="field">
-              {% trans "Multiple locations:" %}<span data-field="policy_locations"></span>
-              </div></div>
-            </div>
-          </div>
-
-          <div class="row secondary">
-            <div class="col-xs-12 col-3">
-              <div class="property"><div class="field">
-              <span data-field="peeringdb"></span>
-              </div></div>
-            </div>
-            <div class="col-xs-12 col-2">
-              <div class="property"><div class="field">
-              {% trans "Prefix 6:" %}
-              <input data-field="info_prefixes6"
-                class="slim"
-                type="text"
-                data-api-action=""
-                data-api-method="put"
-                data-ip-version="6"
-                data-api-base="{% url "peerctl_api:peer-set-max-prefix" asn=selected_asn port_pk="port_pk" pk="peer_id" %}">
-
-              </div></div>
-            </div>
-            <div class="col-xs-12 col-2">
-              <div class="property"><div class="field">
-              {% trans "Type:" %}<span data-field="type"></span>
-              </div></div>
-            </div>
-            <div class="col-xs-12 col-2">
-              <div class="property"><div class="field">
-              {% trans "Ratio Req.:" %}<span data-field="policy_ratio"></span>
-              </div></div>
-            </div>
-            <div class="col-xs-12 col-3">
-              <div class="property"><div class="field">
-              {% trans "Contract Req.:" %}<span data-field="policy_contracts"></span>
-              </div></div>
-            </div>
-          </div>
-
+        <div data-template="row" class="peers-row border-inactive marg-top-lg container-fluid">
           <div class="row">
-            <div class="col-12 port-list">
+            <div class="col ps-0 border-show">
+              <div class="secondary row pad-top-lg marg-bottom-lg">
+                <div class="col">
+                  <span data-field="name" class="primary-row-name highlight"></span>
+                </div>
+              </div>
+              <div class="secondary row">
+                <div class="col-xs-12 col-3">
+                  <div class="property">
+                    <div class="field py-0 d-inline-flex align-items-center">
+                      {% trans "ASN:" %}
+                      <span data-field="asn"></span>
+                      <button data-element="md5" class="primary btn | small ms-1"><span class="label">{% trans "MD5 Password" %}</span></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-xs-12 col-2">
+                  <div class="property"><div class="field">
+                  {% trans "Prefix 4:" %}
+                  <input data-field="info_prefixes4"
+                    class="slim"
+                    type="text"
+                    data-api-action=""
+                    data-api-method="put"
+                    data-ip-version="4"
+                    data-api-base="{% url "peerctl_api:peer-set-max-prefix" asn=selected_asn port_pk="port_pk" pk="peer_id" %}">
+                  </div></div>
+                </div>
+                <div class="col-xs-12 col-2">
+                  <div class="property"><div class="field">
+                  {% trans "Scope:" %}<span data-field="scope"></span>
+                  </div></div>
+                </div>
+                <div class="col-xs-12 col-2">
+                  <div class="property"><div class="field">
+                  {% trans "Peering policy:" %}<span data-field="policy_general"></span>
+                  </div></div>
+                </div>
+                <div class="col-xs-12 col-3">
+                  <div class="property"><div class="field">
+                  {% trans "Multiple locations:" %}<span data-field="policy_locations"></span>
+                  </div></div>
+                </div>
+              </div>
+
+              <div class="secondary row">
+                <div class="col-xs-12 col-3">
+                  <div class="property"><div class="field">
+                  <span data-field="peeringdb"></span>
+                  </div></div>
+                </div>
+                <div class="col-xs-12 col-2">
+                  <div class="property"><div class="field">
+                  {% trans "Prefix 6:" %}
+                  <input data-field="info_prefixes6"
+                    class="slim"
+                    type="text"
+                    data-api-action=""
+                    data-api-method="put"
+                    data-ip-version="6"
+                    data-api-base="{% url "peerctl_api:peer-set-max-prefix" asn=selected_asn port_pk="port_pk" pk="peer_id" %}">
+
+                  </div></div>
+                </div>
+                <div class="col-xs-12 col-2">
+                  <div class="property"><div class="field">
+                  {% trans "Type:" %}<span data-field="type"></span>
+                  </div></div>
+                </div>
+                <div class="col-xs-12 col-2">
+                  <div class="property"><div class="field">
+                  {% trans "Ratio Req.:" %}<span data-field="policy_ratio"></span>
+                  </div></div>
+                </div>
+                <div class="col-xs-12 col-3">
+                  <div class="property"><div class="field">
+                  {% trans "Contract Req.:" %}<span data-field="policy_contracts"></span>
+                  </div></div>
+                </div>
+              </div>
+
+              <div class="secondary row">
+                <div class="col-12 port-list ps-0">
+
+                </div>
+              </div>
+
 
             </div>
           </div>
-
-          <div class="other-exchange-points">
-            <div class="row secondary">
-              <div class="col-3 row-gap">
-                <div class="property"><div class="transparent-field">
-                  <button class="toggle-mutual-locations"><span class="icon neutral icon-caret-left"></span>{% trans "Other exchange points" %}</button>
-                </div></div>
-              </div>
-              <div class="col-9">
-                <div class="property">
-                  <div class="transparent-field">
-                    <button class="primary btn | small" data-element="request_peering">
-                      <div class="row align-items-center">
-                        <div class="col label pe-0">
-                          {% trans "Request peering" %}
+          <div class="other-exchange-points row">
+            <div class="col">
+              <div class="row secondary">
+                <div class="col-3 row-gap">
+                  <div class="property">
+                    <div class="transparent-field">
+                      <button class="toggle-mutual-locations"><span class="icon neutral icon-caret-left"></span>{% trans "Other exchange points" %}</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-9">
+                  <div class="property right">
+                    <div class="transparent-field">
+                      <button class="primary btn | small" data-element="request_peering">
+                        <div class="row align-items-center">
+                          <div class="col label pe-0">
+                            {% trans "Request peering" %}
+                          </div>
+                          <div class="col-auto">
+                            <span class="icon fullctl icon-mail"></span>
+                          </div>
                         </div>
-                        <div class="col-auto">
-                          <span class="icon fullctl icon-mail"></span>
-                        </div>
-                      </div>
-                    </button>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="row">
-              <div class="col-12 mutual-locations indent-on">
+              <div class="row">
+                <div class="col-12 mutual-locations indent-on">
 
+                </div>
               </div>
             </div>
           </div>
-
         </div>
-
-
-
 
       </div>
     </div>
 
    <!-- PORT LIST -->
 
-    <div style="margin-top:-3px;" data-template="port_list" data-api-base="{% url "peerctl_api:peer-mutual-locations" asn=selected_asn port_pk="port_id" pk="peer_id" %}" data-api-action="">
+    <div data-template="port_list" data-api-base="{% url "peerctl_api:peer-mutual-locations" asn=selected_asn port_pk="port_id" pk="peer_id" %}" data-api-action="">
       <div class="list-body"></div>
       <div class="list-no-data">No entries found</div>
       <div class="templates">
@@ -203,13 +209,13 @@
 
 
           </div>
-          <div class="col-xs-12 col-2 right">
-            <div class="property"><div class="transparent-field">
-            <button class="peer_session-active-toggled | secondary btn small" data-element="peer_session_device_config">
-              <span class="icon fullctl icon-settings"></span>
-              <span class="label">{% trans "Show Config" %}</span></button>
+            <div class="col-xs-12 col-2 right">
+              <div class="property"><div class="transparent-field py-0 d-flex align-items-center">
+              <button class="peer_session-active-toggled | secondary btn small ms-auto" data-element="peer_session_device_config">
+                <span class="icon fullctl icon-settings"></span>
+                <span class="label">{% trans "Show Config" %}</span></button>
+              </div>
             </div>
-          </div>
           </div>
         </div>
       </div>
@@ -315,8 +321,6 @@
       </div>
 
 
-
-
       <div class="row mt-4">
 
             <div class="toolbar-field col-auto py-0">
@@ -346,5 +350,6 @@
         </div>
       </div>
     </div>
+
   </div>
 </div>

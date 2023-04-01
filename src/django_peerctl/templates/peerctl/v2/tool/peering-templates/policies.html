@@ -6,7 +6,21 @@
       <h4>{% trans "Policies" %}</h4>
     </div>
     <div class="col-7">
-      <h4 data-element="editor_title">{% trans "Create new policy" %}</h4>
+      <div class="row">
+        <div class="col d-flex align-items-center">
+          <h4 data-element="editor_title">{% trans "Create new policy" %}</h4>
+        </div>
+        <div class="col-md-auto ms-auto">
+          <button type="button" class="primary btn d-flex" data-element="button_new_policy">
+            <div class="row align-items-center">
+              <div class="col label pe-0">New Policy</div>
+              <div class="col-auto">
+                <span class="icon icon-add"></span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
   <div data-element="body" class="row">

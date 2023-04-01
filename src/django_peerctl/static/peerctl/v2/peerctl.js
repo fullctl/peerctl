@@ -10,8 +10,14 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return;
       }
 
-			
+      this.autoload_page();
 
+      // init home page tool
+
+      this.tool("home", () => {
+        return new $peerctl.Home();
+      });
+			
       // init peering lists tool
 
       this.tool("peering_lists", () => {
@@ -602,9 +608,20 @@ $peerctl.Networks = $tc.extend(
       }
 
       $(this.$w.list).on("load:after", (ev,response) => {
-        var data = response.first();
-        var request_peering = this.$w.list.element.find('[data-element=request_peering]');
+        let request_peering = this.$w.list.element.find('[data-element=request_peering]');
         request_peering.show().prop("disabled", false).children('.label').hide().filter('.ok').show();
+
+        let request_peering_tr = this.$w.list.element.find('[data-element=request_peering_tr]');
+
+        this.$w.list.element.find('input[type=checkbox]').on("change", (ev) => {
+          if(this.get_number_of_selected_networks() > 0) {
+            request_peering.show().prop("disabled", false)
+            request_peering_tr.show();
+          } else {
+            request_peering.show().prop("disabled", true)
+            request_peering_tr.hide();
+          }
+        });
 
       });
 
@@ -673,6 +690,10 @@ $peerctl.Networks = $tc.extend(
 
     sync : function() {
       this.$w.list.load();
+    },
+
+    get_number_of_selected_networks() {
+      return this.$w.list.element.find('input[type=checkbox]:checked').length;
     },
 
     request_peering : function() {
@@ -945,6 +966,32 @@ $peerctl.PeeringLists = $tc.extend(
   },
   $ctl.application.Tool
 );
+
+
+$peerctl.Home = $tc.extend(
+  "Home",
+  {
+    Home : function() {
+      this.Tool("peering_home");
+      this.widget("as_list", ($e) => {
+        return $('.asn-container');
+      });
+
+      if(this.get_number_of_as() <= 1) {
+        $ctl.peerctl.page("page-summary-sessions");
+        $ctl.peerctl.hide_page("page-home");
+      }
+    },
+
+    get_number_of_as : function() {
+      return this.$w.as_list.find(".asn").length
+    }
+
+  },
+  $ctl.application.Tool
+);
+
+
 
 $peerctl.SessionsSummary = $tc.extend(
   "SessionsSummary",
@@ -1232,7 +1279,7 @@ $peerctl.SessionsSummary = $tc.extend(
       // update list
 
       this.$w.list_peer_sessions.action = action;
-      this.$w.list_peer_sessions.load().then(() => {this.syncing=false;});
+      this.$w.list_peer_sessions.load().finally(() => {this.syncing=false;});
 
       // update API view link
 
@@ -1375,12 +1422,21 @@ $peerctl.Policies = $tc.extend(
         return new twentyc.rest.Form(this.template("form_policy", $e.editor));
       });
 
+      this.edit_mode = false;
+      this.active_changes = false;
       this.$w.list.local_actions.edit_policy = (policy)=>{
         this.$e.editor.removeClass("create");
         this.$w.form.form_action = policy.id;
         this.$w.form.method = "put";
         this.$w.form.fill(policy);
         this.$e.editor_title.text("Edit policy");
+        this.edit_mode = true;
+        this.$w.form.element.find(":input").on("input", (e) => {
+          // might be out of edit mode when the listener fires
+          if (this.edit_mode) {
+            this.active_changes = true;
+          }
+        });
       };
 
       this.$w.list.formatters.row = (row, data) => {
@@ -1399,16 +1455,34 @@ $peerctl.Policies = $tc.extend(
 
       this.$w.list.load();
 
-      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+      const reset_form = () => {
         this.$e.editor.addClass("create");
         this.$w.form.form_action = "";
         this.$w.form.method = "post";
         this.$w.form.reset();
         this.$e.editor_title.text("Create new policy");
+        this.edit_mode = false;
+      }
+
+      this.$e.menu.find('[data-element="button_new_policy"]').click(()=>{
+        if (this.edit_mode && this.active_changes &&
+          !confirm("You have unsaved edits, are you sure you want to discard them?")) {
+          return;
+        }
+        reset_form();
+        this.$w.form.element.find(":input").first().focus();
+      });
+
+      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+        reset_form();
       });
 
       $(this.$w.form).on("api-write:success", ()=>{
         this.$w.list.load();
+        if (!this.edit_mode) {
+          reset_form();
+        }
+        this.active_changes = false;
         fullctl.peerctl.sync();
       });
 
@@ -1463,6 +1537,8 @@ $peerctl.TemplateEditor= $tc.extend(
         });
       });
 
+      this.edit_mode = false;
+      this.active_changes = false;
       this.$w.list.local_actions.edit_template = (template)=>{
         this.$e.editor.removeClass("create");
         this.$w.form.form_action = template.id;
@@ -1470,20 +1546,45 @@ $peerctl.TemplateEditor= $tc.extend(
         this.$w.form.fill(template);
         this.$e.editor_title.text("Edit template");
         this.preview();
+        this.edit_mode = true;
+        this.$w.form.element.find(":input:not(#preview)").on("input", (e) => {
+          // might be out of edit mode when the listener fires
+          if (this.edit_mode) {
+            this.active_changes = true;
+          }
+        });
       };
 
       this.$w.list.load();
 
-      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+      const reset_form = () => {
         this.$e.editor.addClass("create");
         this.$w.form.form_action = "";
         this.$w.form.method = "post";
         this.$w.form.reset();
         this.$e.editor_title.text("Create new template");
         this.$w.form.element.find('#preview,#body').val("");
+        this.edit_mode = false;
+      }
+
+      this.$e.menu.find(`[data-element="button_new_${this.tag}"]`).click(()=>{
+        if (this.edit_mode && this.active_changes &&
+          !confirm("You have unsaved edits, are you sure you want to discard them?")) {
+          return;
+        }
+        reset_form();
+        this.$w.form.element.find(":input").first().focus();
+      });
+
+      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+        reset_form()
       });
 
       $(this.$w.form).on("api-write:success", ()=>{
+        this.active_changes = false;
+        if (!this.edit_mode) {
+          reset_form();
+        }
         this.$w.list.load();
       });
       this.$w.form.element.find("#body").on("input", ()=>{
