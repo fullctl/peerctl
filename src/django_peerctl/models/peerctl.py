@@ -1031,7 +1031,7 @@ class Port(devicectl.Port):
             if port.id in port_ids
             and (not filter_device or port.device_id == int(filter_device))
             and (port.ip_address_4 or port.ip_address_6)
-            #and (not port.name or not port.name.startswith("peerctl:"))
+            # and (not port.name or not port.name.startswith("peerctl:"))
         ]
 
         # prefetch netixlans/ixctl members

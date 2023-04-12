@@ -12,7 +12,6 @@ Serializers, register = serializer_registry()
 
 
 def is_dummy(name):
-
     if not name:
         return False
 
