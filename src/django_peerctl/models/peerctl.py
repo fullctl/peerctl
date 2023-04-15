@@ -1031,7 +1031,7 @@ class Port(devicectl.Port):
             if port.id in port_ids
             and (not filter_device or port.device_id == int(filter_device))
             and (port.ip_address_4 or port.ip_address_6)
-            and (not port.name.startswith("pdb:"))
+            # and (not port.name or not port.name.startswith("peerctl:"))
         ]
 
         # prefetch netixlans/ixctl members
@@ -1697,6 +1697,12 @@ class DeviceTemplate(Base, TemplateBase):
     @property
     def template_loader_paths(self):
         return [settings.NETOM_TEMPLATE_DIR] + super().template_loader_paths
+
+    def render(self):
+        r = super().render()
+        if not r:
+            return "There were no active sessions to generate configuration output for."
+        return r
 
     def get_data(self):
         data = super().get_data()
