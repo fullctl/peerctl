@@ -27,7 +27,6 @@ netom = { git = "https://github.com/20c/netom.git", branch = "prep-release" }
 
 [tool.poetry.dev-dependencies]
 # tests
-codecov = ">=2"
 coverage = ">=5"
 pytest = ">=6"
 pytest-django = ">=3.8"
