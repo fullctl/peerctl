@@ -5,7 +5,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 
 from django_peerctl.models import (
-    ref_fallback,
     AuditLog,
     DeviceTemplate,
     EmailLog,
@@ -21,6 +20,7 @@ from django_peerctl.models import (
     PortInfo,
     UserSession,
     Wish,
+    ref_fallback,
 )
 
 
@@ -37,17 +37,20 @@ def status_form(choices=None):
 
 
 class CachedPortMixin:
-
     def _cache_ports(self, qs):
-
         """
         Caches Port instances in _ports
         """
 
         if hasattr(self, "_ports"):
             return
-        
-        self._ports = {port.id: port for port in Port().objects(id__in=[i for i in qs.values_list("port", flat=True)])}
+
+        self._ports = {
+            port.id: port
+            for port in Port().objects(
+                id__in=[i for i in qs.values_list("port", flat=True)]
+            )
+        }
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -119,22 +122,22 @@ class PortInfoAdmin(CachedPortMixin, admin.ModelAdmin):
         return obj.net.asn
 
     @ref_fallback(None)
-    def ip4(self,obj):
+    def ip4(self, obj):
         try:
             return self._ports.get(int(obj.port)).ip_address_4
         except (KeyError, AttributeError):
             pass
 
-        return (obj.ip_address_4 or obj.ref.ipaddr4)
+        return obj.ip_address_4 or obj.ref.ipaddr4
 
     @ref_fallback(None)
-    def ip6(self,obj):
+    def ip6(self, obj):
         try:
             return self._ports.get(int(obj.port)).ip_address_6
         except (KeyError, AttributeError):
             pass
-        
-        return (obj.ip_address_6 or obj.ref.ipaddr6)
+
+        return obj.ip_address_6 or obj.ref.ipaddr6
 
 
 @admin.register(DeviceTemplate)
@@ -182,16 +185,14 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
 
     @ref_fallback(0)
     def ix_id(self, obj):
-    
         return self._ports.get(int(obj.port)).port_info_object.ix.id
 
     @ref_fallback(None)
     def ix_name(self, obj):
-
         return self._ports.get(int(obj.port)).port_info_object.ix.name
 
     @ref_fallback(None)
-    def ip4(self,obj):
+    def ip4(self, obj):
         try:
             return self._ports.get(int(obj.port)).ip_address_4
         except (KeyError, AttributeError):
@@ -200,12 +201,12 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
         return obj.port.object.port_info_object.ipaddr4
 
     @ref_fallback(None)
-    def ip6(self,obj):
+    def ip6(self, obj):
         try:
             return self._ports.get(int(obj.port)).ip_address_6
         except (KeyError, AttributeError):
             pass
-        
+
         return obj.port.object.port_info_object.ipaddr6
 
     def peer_ipaddr4(self, obj):
