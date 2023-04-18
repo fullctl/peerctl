@@ -1,4 +1,5 @@
 from django.db.models import Q
+from fullctl.django.models.concrete.tasks import TaskLimitError
 from fullctl.django.rest.route.service_bridge import route
 from fullctl.django.rest.views.service_bridge import (
     DataViewSet,
@@ -6,13 +7,13 @@ from fullctl.django.rest.views.service_bridge import (
     HeartbeatViewSet,
     StatusViewSet,
 )
-from fullctl.django.models.concrete.tasks import TaskLimitError
-import django_peerctl.models.peerctl as models
-from django_peerctl.rest.serializers.service_bridge import Serializers
-from django_peerctl.models.tasks import SyncDevicePorts
-
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+import django_peerctl.models.peerctl as models
+from django_peerctl.models.tasks import SyncDevicePorts
+from django_peerctl.rest.serializers.service_bridge import Serializers
+
 
 @route
 class Status(StatusViewSet):
@@ -56,13 +57,17 @@ class Network(DataViewSet):
     serializer_class = Serializers.net
 
     @action(
-        detail=False, methods=["POST"], serializer_class=Serializers.request_devicectl_sync
+        detail=False,
+        methods=["POST"],
+        serializer_class=Serializers.request_devicectl_sync,
     )
     def request_devicectl_sync(self, request, *args, **kwargs):
         serializer = Serializers.request_devicectl_sync(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        org = models.Organization.objects.get(remote_id=serializer.validated_data["org_id"])
+        org = models.Organization.objects.get(
+            remote_id=serializer.validated_data["org_id"]
+        )
 
         try:
             SyncDevicePorts.create_task(org=org)

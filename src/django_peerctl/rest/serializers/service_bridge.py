@@ -1,10 +1,8 @@
 from fullctl.django.rest.decorators import serializer_registry
 from fullctl.django.rest.serializers import ModelSerializer
-
-import django_peerctl.models.peerctl as models
-
 from rest_framework import serializers
 
+import django_peerctl.models.peerctl as models
 
 Serializers, register = serializer_registry()
 
@@ -20,5 +18,6 @@ class Network(ModelSerializer):
 class RequestDevicectlSync(serializers.Serializer):
     org_id = serializers.IntegerField()
     ref_tag = "request_devicectl_sync"
+
     class Meta:
         fields = ["org_id"]

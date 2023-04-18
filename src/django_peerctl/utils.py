@@ -116,7 +116,7 @@ def devicectl_create_devices(org, verified_asns):
     )
     ports = {}
 
-    # re-arrange ports by ip address, using ip4 if its set and 
+    # re-arrange ports by ip address, using ip4 if its set and
     # falling back ip6 if its set. Skipping if neither are set.
 
     for port in _ports:
@@ -130,14 +130,11 @@ def devicectl_create_devices(org, verified_asns):
 
     for _, members in required_port_infos.items():
         for member in members:
-            
-            ip = (member.ipaddr4 if member.ipaddr4 else member.ipaddr6)
+            ip = member.ipaddr4 if member.ipaddr4 else member.ipaddr6
             if not ip or ip not in ports:
                 continue
             network = networks[member.asn]
-            PortInfo.require_for_pdb_netixlan(
-                network, ports[ip]["id"], member
-            )
+            PortInfo.require_for_pdb_netixlan(network, ports[ip]["id"], member)
 
 
 def port_components(member):

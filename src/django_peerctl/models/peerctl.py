@@ -1174,7 +1174,6 @@ class PortInfo(sot.ReferenceMixin, Base):
 
     @classmethod
     def require_for_pdb_netixlan(cls, network, port_id, member):
-
         """
         makes sure a portinfo instance exists for a peeringdb networkixlan
         or fullctl ixctl member object.
@@ -1197,7 +1196,6 @@ class PortInfo(sot.ReferenceMixin, Base):
         """
 
         if not port_id:
-
             try:
                 return cls.objects.get(net=network, ref_id=member.ref_id)
             except cls.DoesNotExist:
@@ -1212,10 +1210,12 @@ class PortInfo(sot.ReferenceMixin, Base):
                     port_info.port = port_id
                 except ValueError:
                     return port_info
-                
+
         except cls.DoesNotExist:
-            port_info = cls.objects.create(net=network, ref_id=member.ref_id, port=port_id)
-            
+            port_info = cls.objects.create(
+                net=network, ref_id=member.ref_id, port=port_id
+            )
+
         port_info.ix
 
         return port_info
@@ -1234,7 +1234,7 @@ class PortInfo(sot.ReferenceMixin, Base):
         # from_port can either be id or port object
         if isinstance(from_port, Port):
             from_port = from_port.id
-        
+
         # to_port can either be id or port object
         if isinstance(to_port, Port):
             to_port = to_port.id
