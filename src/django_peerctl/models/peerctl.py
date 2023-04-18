@@ -113,6 +113,8 @@ class ref_fallback:
                     return value(*args)
                 return value
 
+        wrapped.__name__ = fn.__name__
+
         return wrapped
 
 
