@@ -113,6 +113,8 @@ class ref_fallback:
                     return value(*args)
                 return value
 
+        wrapped.__name__ = fn.__name__
+
         return wrapped
 
 
@@ -1173,38 +1175,83 @@ class PortInfo(sot.ReferenceMixin, Base):
         verbose_name_plural = "Port Information"
 
     @classmethod
-    def require_for_pdb_netixlan(cls, network, port, member):
-        if not port:
+    def require_for_pdb_netixlan(cls, network, port_id, member):
+        """
+        makes sure a portinfo instance exists for a peeringdb networkixlan
+        or fullctl ixctl member object.
+
+        this expects a devicectl port id reference to be passed in
+
+        if the portinfo instance already exists, but the port id is different,
+        it will migrate the port info to the new port id
+
+        if the portinfo instance already exists, but the port id is the same,
+        it will return the existing port info instance
+
+        if the portinfo instance does not exist, it will create it
+
+        Arguments:
+
+            network (Network): network object
+            port_id (int): devicectl port id
+            member (pdbctl.InternetExchangeMember or ixctl.InternetExchangeMember): member object
+        """
+
+        if not port_id:
             try:
                 return cls.objects.get(net=network, ref_id=member.ref_id)
             except cls.DoesNotExist:
                 pass
 
-        port_info, _ = cls.objects.get_or_create(
-            net=network, port=port, ref_id=member.ref_id
-        )
+        try:
+            port_info = cls.objects.get(net=network, ref_id=member.ref_id)
+
+            if int(port_info.port) != int(port_id):
+                try:
+                    cls.migrate_ports(port_info.port, port_id, reassign=True)
+                    port_info.port = port_id
+                except ValueError:
+                    return port_info
+
+        except cls.DoesNotExist:
+            port_info = cls.objects.create(
+                net=network, ref_id=member.ref_id, port=port_id
+            )
 
         port_info.ix
 
         return port_info
 
     @classmethod
-    def migrate_ports(cls, from_port, to_port):
+    def migrate_ports(cls, from_port, to_port, reassign=False):
         """
         Moves all PortInfo instances referenced to Port `from_port` to Port `to_port`
+
+        Arguments:
+            from_port (Port): Port object or id to migrate from
+            to_port (Port): Port object or id to migrate to
+            reassign (bool): If True, will reassign PortInfo instances to `to_port` even if it is already assigned
         """
 
-        if not from_port or not from_port.id:
+        # from_port can either be id or port object
+        if isinstance(from_port, Port):
+            from_port = from_port.id
+
+        # to_port can either be id or port object
+        if isinstance(to_port, Port):
+            to_port = to_port.id
+
+        if not from_port:
             raise ValueError("Need to specify port to migrate from")
 
-        if not to_port or not to_port.id:
+        if not to_port:
             raise ValueError("Need to specify port to migrate to")
 
-        if cls.objects.filter(port=to_port.id).exists():
+        if not reassign and cls.objects.filter(port=to_port).exists():
             raise ValueError("Port is already assigned")
 
-        cls.objects.filter(port=from_port.id).update(port=to_port.id)
-        PeerSession.objects.filter(port=from_port.id).update(port=to_port.id)
+        cls.objects.filter(port=from_port).update(port=to_port)
+        PeerSession.objects.filter(port=from_port).update(port=to_port)
 
     @property
     @ref_fallback(0)
