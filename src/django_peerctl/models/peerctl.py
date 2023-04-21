@@ -1017,8 +1017,8 @@ class Port(devicectl.Port):
 
             org: org object
             asn: asn
-            port_ids: list of port ids
-            filter_device: device id to filter on
+            port_ids: list of port ids - only include ports with these ids
+            filter_device: device id to filter on, will ignore port_ids if set
 
         Returns:
 
@@ -1030,7 +1030,7 @@ class Port(devicectl.Port):
         instances = [
             port
             for port in Port().objects(org=org.remote_id, join="device", status="ok")
-            if port.id in port_ids
+            if (filter_device or port.id in port_ids)
             and (not filter_device or port.device_id == int(filter_device))
             and (port.ip_address_4 or port.ip_address_6)
             # and (not port.name or not port.name.startswith("peerctl:"))
@@ -1040,6 +1040,12 @@ class Port(devicectl.Port):
 
         for member in sot.InternetExchangeMember().objects(asn=asn):
             for port in instances:
+
+                # PNI ports may not have a port_info_object yet and can be skipped
+                
+                if not hasattr(port, "port_info_object") or not port.port_info_object:
+                    continue
+
                 if port.port_info_object.ref_id == member.ref_id:
                     port.port_info_object._ref = member
 
