@@ -173,7 +173,7 @@ class Port(serializers.Serializer):
         if instance.mac_address:
             return f"{instance.mac_address}"
         return None
-    
+
     @models.ref_fallback(False)
     def get_is_route_server_peer(self, instance):
         return instance.is_route_server_peer

@@ -1040,9 +1040,8 @@ class Port(devicectl.Port):
 
         for member in sot.InternetExchangeMember().objects(asn=asn):
             for port in instances:
-
                 # PNI ports may not have a port_info_object yet and can be skipped
-                
+
                 if not hasattr(port, "port_info_object") or not port.port_info_object:
                     continue
 
