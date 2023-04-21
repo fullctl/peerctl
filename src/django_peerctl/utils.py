@@ -111,21 +111,30 @@ def devicectl_create_devices(org, verified_asns):
         )
         required_port_infos[ix_id].append(member)
 
-    ports = devicectl.Port().request_dummy_ports(
+    _ports = devicectl.Port().request_dummy_ports(
         org.slug, required_ports, "peerctl", device_type="junos"
     )
+    ports = {}
 
-    ports = {port["name"]: port for port in ports}
+    # re-arrange ports by ip address, using ip4 if its set and
+    # falling back ip6 if its set. Skipping if neither are set.
+
+    for port in _ports:
+        if port["ip_address_4"]:
+            ports[f"{ipaddress.ip_interface(port['ip_address_4']).ip}"] = port
+        elif port["ip_address_6"]:
+            ports[f"{ipaddress.ip_interface(port['ip_address_6']).ip}"] = port
+
+    # create port info objects for each port (will also re-assign
+    # device-ctl port ids if ip address has moved to a new port.)
 
     for _, members in required_port_infos.items():
         for member in members:
+            ip = member.ipaddr4 if member.ipaddr4 else member.ipaddr6
+            if not ip or ip not in ports:
+                continue
             network = networks[member.asn]
-            PortInfo.require_for_pdb_netixlan(
-                network, ports[f"peerctl:{member.ref_id}"]["id"], member
-            )
-
-    # TODO: handle SoT change from ixctl <-> pdbctl and transfer sessions
-    # to the new SoT device / ports
+            PortInfo.require_for_pdb_netixlan(network, ports[ip]["id"], member)
 
 
 def port_components(member):

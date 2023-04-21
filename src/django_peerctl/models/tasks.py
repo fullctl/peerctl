@@ -89,3 +89,31 @@ class SyncIsRsPeer(Task):
         )
 
         return f"updated {member.id} is_rs_peer to {is_rs_peer}"
+
+
+@register
+class SyncDevicePorts(Task):
+
+    """
+    Sync devices and ports from devicectl to port info objects in peerctl
+
+    This will call utils.devicectl_create_devices for all networks owned by an
+    organziation.
+    """
+
+    class Meta:
+        proxy = True
+
+    class TaskMeta:
+        limit = 1
+
+    class HandleRef:
+        tag = "task_sync_device_ports"
+
+    def run(self, *args, **kwargs):
+        from django_peerctl.utils import devicectl_create_devices
+
+        devicectl_create_devices(self.org, [net.asn for net in self.org.net_set.all()])
+
+    def generate_limit_id(self):
+        return self.org_id
