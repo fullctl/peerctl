@@ -168,11 +168,13 @@ class Port(serializers.Serializer):
     def get_ip6(self, instance):
         return instance.ip_address_6
 
+    @models.ref_fallback(None)
     def get_mac_address(self, instance):
         if instance.mac_address:
             return f"{instance.mac_address}"
         return None
 
+    @models.ref_fallback(False)
     def get_is_route_server_peer(self, instance):
         return instance.is_route_server_peer
 
@@ -207,6 +209,7 @@ class Port(serializers.Serializer):
     def get_ix(self, instance):
         return self.get_ix_object(instance).id
 
+    @models.ref_fallback(None)
     def get_ix_object(self, instance):
         if not hasattr(self, "_ix_obj"):
             self._ix_obj = {}
@@ -222,6 +225,7 @@ class Port(serializers.Serializer):
 
         return self._ix_obj[ref_id]
 
+    @models.ref_fallback(None)
     def get_ref_ix_id(self, instance):
         return instance.port_info_object.ref_ix_id
 
