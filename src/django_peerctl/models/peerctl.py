@@ -1239,11 +1239,11 @@ class PortInfo(sot.ReferenceMixin, Base):
         """
 
         # from_port can either be id or port object
-        if isinstance(from_port, Port):
+        if isinstance(from_port, PortObject):
             from_port = from_port.id
 
         # to_port can either be id or port object
-        if isinstance(to_port, Port):
+        if isinstance(to_port, PortObject):
             to_port = to_port.id
 
         if not from_port:
