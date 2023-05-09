@@ -5,6 +5,8 @@ from django.urls import include, path
 import django_peerctl.views as views
 from django_peerctl.legacy.views import device_template_base, email_template_base
 
+import django_peerctl.autocomplete.devicectl
+
 # from fullctl.django.views.template import TemplateFileView
 
 
@@ -48,6 +50,13 @@ proxy.setup(
 
 urlpatterns = proxy.urlpatterns(["aaactl", "devicectl"])
 
+urlpatterns += [
+    path(
+        "autocomplete/device/port",
+        django_peerctl.autocomplete.devicectl.devicectl_port.as_view(),
+        name="devicectl port autocomplete",
+    ),
+]
 
 urlpatterns += [
     path(

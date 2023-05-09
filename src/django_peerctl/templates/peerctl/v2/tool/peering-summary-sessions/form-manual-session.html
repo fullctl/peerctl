@@ -5,58 +5,19 @@
   data-api-method="POST"
   >
   <div class="container-fluid">
+
+
     <div class="row mb-3">
       <div class="col-12" data-api-submit="yes">
-        <label class="form-label" for="description">{% trans "Location" %}</label>
         <span class="modal-control">
-          <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+          <label class="form-label" for="port">{% trans "Port" %}</label>
           <select
             class="form-control"
-            id="facility"
-            name="facility"
-            data-name-field="slug"
-            data-id-field="slug"
-            data-api-base="{% url "proxies-api-devicectl-facility-list" org_tag=request.org.slug %}"
-            >
-          <select>
+            id="port"
+            name="port">
+          </select>
         </span>
       </div>
-    </div>
-
-
-    <div class="row mb-3">
-      <div class="col-12" data-api-submit="yes">
-        <label class="form-label" for="description">{% trans "Device" %}</label>
-        <span class="modal-control">
-        <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
-        <select
-          class="form-control"
-          id="device"
-          name="device"
-          data-name-field="display_name"
-          data-api-base="{% url "proxies-api-devicectl-facility-devices" org_tag=request.org.slug fac_tag="fac_tag" %}"
-          >
-        <select>
-        </span>
-      </div>
-    </div>
-
-    <div class="row mb-3">
-      <div class="col-12" data-api-submit="yes">
-        <label class="form-label" for="description">{% trans "Port" %}</label>
-        <span class="modal-control">
-        <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
-        <select
-          class="form-control"
-          id="port"
-          name="port"
-          data-name-field="display_name"
-          data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
-          >
-        <select>
-        </span>
-      </div>
-
     </div>
 
     <div class="row mb-3">

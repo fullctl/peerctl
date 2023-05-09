@@ -8,6 +8,8 @@ from rest_framework.exceptions import ValidationError  # noqa
 import django_peerctl.models as models
 from django_peerctl.helpers import get_best_policy
 
+import ipaddress
+
 Serializers, register = serializer_registry()
 
 
@@ -703,7 +705,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
         help_text=_("Interface name of the peer port"),
     )
     peer_session_type = serializers.CharField(default="peer", required=False)
-    port = serializers.IntegerField(help_text=_("deviceCtl Port reference"))
+    port = serializers.CharField(help_text=_("deviceCtl Port reference id or IP address"), required=False, allow_null=True)
 
     ref_tag = "create_floating_peer_session"
 
@@ -731,6 +733,33 @@ class CreateFloatingPeerSession(serializers.Serializer):
         if value < 0:
             raise serializers.ValidationError("Cannot be negative")
         return value
+
+    def validate(self, data):
+
+        port = data.get("port")
+        ip = None
+       
+        try:
+            ip = ipaddress.ip_address(port)
+        except ValueError:
+            try:
+                port = int(port)   
+            except (ValueError, TypeError):
+                raise serializers.ValidationError("Invalid port ID or IP address")
+
+        
+        if ip:
+            # no port specified, find by ip
+            asn = self.context.get("asn")
+            net = models.Network.objects.get(asn=asn)
+            port = models.Port().first(org_slug=net.org.slug, ip=ip)
+            if not port:
+                # TODO: create dummy port?
+                raise serializers.ValidationError(f"Could not find port by IP: {ip}")
+            
+            data["port"] = port.id
+        
+        return data
 
     def save(self):
         data = self.validated_data
@@ -763,8 +792,18 @@ class CreateFloatingPeerSession(serializers.Serializer):
         peer_port.interface_name = data["peer_interface"]
         peer_port.save()
 
+        port = models.Port().first(id=data["port"])
+
+        if port and not port.port_info_object:
+            port_info = models.PortInfo.objects.create(
+                port=port.id,
+                net=net
+            )
+            port._port_info = port_info
+
+        
         return models.PeerSession.objects.create(
-            port=data["port"],
+            port=port.id,
             peer_port=peer_port,
             policy4_id=data["policy_4"] or None,
             policy6_id=data["policy_6"] or None,
@@ -819,7 +858,8 @@ class UpdatePeerSession(CreateFloatingPeerSession):
         session.peer_port.interface_name = data["peer_interface"]
         session.peer_port.save()
 
-        session.port = data["port"]
+        if data["port"]:
+            session.port = data["port"]
         session.policy4_id = data["policy_4"] or None
         session.policy6_id = data["policy_6"] or None
         session.peer_session_type = data["peer_session_type"] or "peer"

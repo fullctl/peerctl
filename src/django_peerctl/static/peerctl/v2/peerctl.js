@@ -1320,17 +1320,74 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
 
       this.session = session;
 
-      this.select_facility = new twentyc.rest.Select(this.form.element.find('#facility'));
-      this.select_device = new twentyc.rest.Select(this.form.element.find('#device'));
-      this.select_port = new twentyc.rest.Select(this.form.element.find('#port'));
+      this.select_port = this.form.element.find('#port');
       this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
       this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
 
-      if(facility == "all")
-        facility = null;
+      form.element.find("#port").select2({
+        dropdownParent : this.form.element,
+        ajax: {
+          url: "/autocomplete/device/port",
+          dataType: 'json',
+          processResults : function(data, params) {
 
-      if(device == "all")
-        device = null;
+            var term = params.term;
+
+            if(fullctl.util.is_valid_ip4(term)) {
+              var exact_found = data.results.find((obj) => { 
+                return obj.text.display_name && obj.text.display_name.split("/")[0] == term
+              });
+
+              if(!exact_found) {
+                data.results.unshift({
+                  id: term,
+                  text: {display_name: term, virtual_port_name:"Ip not assigned", device_name:""},
+                  selected_text: {display_name: term, virtual_port_name:"Ip not assigned", device_name:""}
+                });
+              }
+            }
+  
+            return {
+              results: data.results
+            }
+          },
+        },
+        width: '20em',
+        placeholder: "Search IP, device, port or location names.",
+      
+        templateResult: function(state) {
+
+          if(!state.id) {
+            return state.text;
+          }
+
+          return $('<div>').addClass('autocomplete-item').append(
+            $('<div>').addClass('autocomplete-primary').text(state.text.display_name)
+          ).append(
+            $('<div>').addClass('autocomplete-secondary').text(state.text.virtual_port_name)
+          ).append(
+            $('<div>').addClass('autocomplete-extra').text(state.text.device_name)
+          )
+        },
+        templateSelection: function(state) {
+
+          if(!state.id) {
+            return state.text;
+          }
+
+          return $('<div>').addClass('autocomplete-item').append(
+            $('<div>').addClass('autocomplete-primary').text(state.selected_text.display_name)
+          ).append(
+            $('<div>').addClass('autocomplete-secondary').text(state.selected_text.virtual_port_name)
+          ).append(
+            $('<div>').addClass('autocomplete-extra').text(state.selected_text.device_name)
+          )
+        }
+      });
+      $(document).on('select2:open', () => {
+        document.querySelector('.select2-search__field').focus();
+      });
+
 
       if(port == "all")
         port = null;
@@ -1345,8 +1402,6 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
         form.method = "PUT";
         form.form_action = session.id;
         form.fill(session);
-        device = session.device_id;
-        facility = session.facility_slug;
         port = session.port_id;
       } else {
         form.form_action = "create_floating"
@@ -1354,43 +1409,6 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
 
       this.preselect_port = port;
 
-      $(this.select_facility).one("load:after", () => {
-        if(facility)
-          this.select_facility.element.val(facility);
-        this.select_device.load();
-      });
-
-      $(this.select_device).one("load:after", () => {
-        if(device)
-          this.select_device.element.val(device);
-        this.select_port.load();
-      });
-
-      $(this.select_port).one("load:after", () => {
-        if(port)
-          this.select_port.element.val(port);
-      });
-
-      this.select_device.format_request_url = (url) => {
-        return url.replace("fac_tag", this.select_facility.element.val() || facility);
-      };
-
-      this.select_port.format_request_url = (url) => {
-        return url + "?device="+(this.select_device.element.val() || device || 0);
-      };
-
-      this.select_facility.element.on("change", () => {
-        this.select_device.element.empty();
-        this.select_port.element.empty();
-        this.select_device.load().then(() => {
-          this.select_port.load();
-        });
-      });
-      this.select_device.element.on("change", () => {
-        this.select_port.load();
-      });
-
-      this.select_facility.load();
       this.select_policy_4.load(session ? session.policy4_id : null);
       this.select_policy_6.load(session ? session.policy6_id : null);
 

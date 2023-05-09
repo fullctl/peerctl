@@ -518,6 +518,8 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
         instances = net.peer_session_set.filter(status="ok")
         instances = list(self._filter_peer(instances, request.GET.get("peer")))
 
+        print([instance.id for instance in instances])
+
         self.prefetch_relations(instances)
 
         serializer = self.serializer_class(instances, many=True)
@@ -1002,6 +1004,16 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         peer_session = serializer.save()
 
         return Response(self.serializer_class(peer_session).data)
+
+    @action(
+        detail=False,
+        methods=["post"],
+        serializer_class=Serializers.create_floating_peer_session,
+    )
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def create_partial(self, request, asn, net, port_pk, *args, **kwargs):
+        return self.create_floating(request, asn, net, port_pk, *args, **kwargs)
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")

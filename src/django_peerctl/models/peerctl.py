@@ -787,7 +787,8 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
     def port_info_object(self):
         if not hasattr(self, "_port_info"):
             self._port_info = PortInfo.objects.filter(port=self.id).first()
-            self._port_info.port._object = self
+            if self._port_info:
+                self._port_info.port._object = self
         return self._port_info
 
     @property
