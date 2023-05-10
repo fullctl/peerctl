@@ -2,7 +2,6 @@ import fullctl.django.rest.urls.service_bridge_proxy as proxy
 from django.conf import settings
 from django.urls import include, path
 
-import django_peerctl.autocomplete.devicectl
 import django_peerctl.views as views
 from django_peerctl.legacy.views import device_template_base, email_template_base
 
@@ -48,14 +47,6 @@ proxy.setup(
 )
 
 urlpatterns = proxy.urlpatterns(["aaactl", "devicectl"])
-
-urlpatterns += [
-    path(
-        "autocomplete/device/port",
-        django_peerctl.autocomplete.devicectl.devicectl_port.as_view(),
-        name="devicectl port autocomplete",
-    ),
-]
 
 urlpatterns += [
     path(
