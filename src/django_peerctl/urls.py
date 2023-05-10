@@ -48,7 +48,6 @@ proxy.setup(
 
 urlpatterns = proxy.urlpatterns(["aaactl", "devicectl"])
 
-
 urlpatterns += [
     path(
         "api/",

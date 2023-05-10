@@ -1,5 +1,6 @@
 import collections
 import datetime
+import ipaddress
 import json
 import logging
 import os.path
@@ -787,7 +788,8 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
     def port_info_object(self):
         if not hasattr(self, "_port_info"):
             self._port_info = PortInfo.objects.filter(port=self.id).first()
-            self._port_info.port._object = self
+            if self._port_info:
+                self._port_info.port._object = self
         return self._port_info
 
     @property
@@ -1521,7 +1523,9 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     """
 
     port = ReferencedObjectField(bridge=Port)
-    peer_port = models.ForeignKey(PeerPort, on_delete=models.CASCADE, related_name="+")
+    peer_port = models.ForeignKey(
+        PeerPort, on_delete=models.CASCADE, related_name="peer_sessions"
+    )
     peer_session_type = models.CharField(
         max_length=255,
         choices=(
@@ -1565,6 +1569,80 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
         return obj
 
+    @classmethod
+    def get_unique(cls, asn, port, peer_asn, peer_ip):
+        """
+        Returns a unique PeerSession instance for the given
+        port, peer_asn and peer_port
+
+        port can be a devicectl port reference object, referece id or an ip address
+
+        Arguments:
+
+            - asn <int> AS number of the owner network
+            - port <PortObject> or <int> or <ipaddress> port object, reference id or ip address
+            - peer_asn <int> AS number of the peer network
+            - peer_ip <ipaddress> IP address of the peer network
+
+        Returns:
+
+            - tuple(PeerSession, PortObject)
+
+        """
+
+        # load session related objects, if they dont exist
+        # no session exists and we can return None
+
+        try:
+            net = Network.objects.get(asn=asn)
+            peer = Network.objects.get(asn=peer_asn)
+            peer_net = PeerNetwork.objects.get(net=net, peer=peer)
+        except (Network.DoesNotExist, PeerNetwork.DoesNotExist):
+            return None, None
+
+        # Resolve the port to a PortObject instance
+
+        port_value = port
+
+        if not isinstance(port, PortObject):
+            try:
+                port = ipaddress.ip_address(port)
+                port = Port().first(org_slug=net.org.slug, ip=str(port))
+            except ValueError:
+                port = Port().first(id=port)
+
+        if not port:
+            raise ValueError(f"Invalid port: {port_value}")
+
+        peer_ports = PeerPort.objects.filter(
+            peer_net=peer_net, peer_sessions__port=port.id
+        )
+
+        # loop through the peer ports to look for an ip match
+
+        peer_port = None
+
+        peer_ip = ipaddress.ip_interface(peer_ip)
+
+        for _peer_port in peer_ports:
+            if not _peer_port.port_info.ipaddr4:
+                continue
+
+            if ipaddress.ip_interface(_peer_port.port_info.ipaddr4).ip == peer_ip.ip:
+                peer_port = _peer_port
+                break
+
+        if not peer_port:
+            # no session with peer ip found
+            return None, None
+
+        # we got all pieces now to query the session
+
+        try:
+            return cls.objects.get(port=port.id, peer_port=peer_port), port
+        except cls.DoesNotExist:
+            return None, None
+
     @property
     def ip4(self):
         return ip_address_string(self.port.object.ip_address_4)
@@ -1580,6 +1658,10 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     @property
     def peer_ip6(self):
         return self.peer_port.port_info.ipaddr6
+
+    @property
+    def peer_asn(self):
+        return self.peer_port.peer_net.peer.asn
 
     @property
     def peer_is_managed(self):
