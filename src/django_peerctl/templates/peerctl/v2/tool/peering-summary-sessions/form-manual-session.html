@@ -1,7 +1,7 @@
 
 {% load static i18n %}
 <form data-template="form_floating_session"
-  data-api-base="{% url "peerctl_api:peer_session-list" asn=selected_asn port_pk=0 %}"
+  data-api-base="{% url "peerctl_api:update_peer_session-list" asn=selected_asn %}"
   data-api-method="POST"
   >
   <div class="container-fluid">

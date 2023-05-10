@@ -648,14 +648,35 @@ class PeerDetails(serializers.Serializer):
 
         return mutual_locs
 
+class PeerSessionMeta(serializers.Serializer):
+    # TODO: pydantic model
+
+    last_updown = serializers.CharField()
+    session_state = serializers.CharField()
+
+    active = serializers.IntegerField()
+    received = serializers.IntegerField()
+    accepted = serializers.IntegerField()
+    damped = serializers.IntegerField()
+
+    class Meta:
+        fields = [
+            "last_updown",
+            "session_state",
+            "active",
+            "received",
+            "accepted",
+            "damped",
+        ]
 
 @register
-class CreateFloatingPeerSession(serializers.Serializer):
+class UpdatePeerSession(serializers.Serializer):
+    peer_asn = serializers.IntegerField(
+        help_text=_("ASN of the peer")
+    )
     peer_ip4 = serializers.CharField(
-        allow_null=True,
-        allow_blank=True,
-        required=False,
         help_text=_("Peer IPv4 address"),
+        # TODO: make optional if peer_ip6 is specified and vice versa?
     )
     peer_ip6 = serializers.CharField(
         allow_null=True,
@@ -663,6 +684,13 @@ class CreateFloatingPeerSession(serializers.Serializer):
         required=False,
         help_text=_("Peer IPv6 address"),
     )
+    peer_interface = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text=_("Interface name of the peer port"),
+    )
+    peer_session_type = serializers.CharField(default="peer", required=False)
     policy_4 = serializers.IntegerField(
         required=False,
         help_text=_(
@@ -695,28 +723,25 @@ class CreateFloatingPeerSession(serializers.Serializer):
         allow_blank=True,
         help_text=_("Session MD5 password"),
     )
-    peer_asn = serializers.IntegerField(
-        required=False, allow_null=True, help_text=_("ASN of the peer")
+    port = serializers.CharField(
+        help_text=_("deviceCtl Port reference id or IP address"), 
+        required=False, 
+        allow_null=True
     )
-    peer_interface = serializers.CharField(
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-        help_text=_("Interface name of the peer port"),
-    )
-    peer_session_type = serializers.CharField(default="peer", required=False)
-    port = serializers.CharField(help_text=_("deviceCtl Port reference id or IP address"), required=False, allow_null=True)
 
-    ref_tag = "create_floating_peer_session"
+    meta4 = PeerSessionMeta(required=False, allow_null=True)
+    meta6 = PeerSessionMeta(required=False, allow_null=True)
+
+    ref_tag = "update_peer_session"
 
     class Meta:
         fields = [
-            "peer_ip4",
-            "peer_ip6",
             "policy_4",
             "policy_6",
             "md5",
             "peer_asn",
+            "peer_ip4",
+            "peer_ip6",
             "peer_interface",
             "peer_maxprefix4",
             "peer_maxprefix6",
@@ -752,16 +777,21 @@ class CreateFloatingPeerSession(serializers.Serializer):
             # no port specified, find by ip
             asn = self.context.get("asn")
             net = models.Network.objects.get(asn=asn)
-            port = models.Port().first(org_slug=net.org.slug, ip=ip)
+            port = models.Port().first(org_slug=net.org.slug, ip=str(ip))
             if not port:
                 # TODO: create dummy port?
                 raise serializers.ValidationError(f"Could not find port by IP: {ip}")
             
             data["port"] = port.id
-        
+
         return data
 
     def save(self):
+        if self.instance and self.instance.id:
+            return self.update()
+        return self.create()
+
+    def create(self):
         data = self.validated_data
         asn = self.context.get("asn")
 
@@ -771,7 +801,7 @@ class CreateFloatingPeerSession(serializers.Serializer):
             port=0,
             net=net,
             ip_address_4=data["peer_ip4"],
-            ip_address_6=data["peer_ip6"],
+            ip_address_6=data.get("peer_ip6"),
         )
 
         peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
@@ -780,16 +810,25 @@ class CreateFloatingPeerSession(serializers.Serializer):
 
         old_md5 = peer_net.md5
 
-        peer_net.md5 = data["md5"]
-        peer_net.info_prefixes4 = data["peer_maxprefix4"]
-        peer_net.info_prefixes6 = data["peer_maxprefix6"]
+        if "md5" in data:
+            peer_net.md5 = data["md5"]
+
+        if "peer_maxprefix4" in data:
+            peer_net.info_prefixes4 = data["peer_maxprefix4"]
+
+        if "peer_maxprefix6" in data:
+            peer_net.info_prefixes6 = data["peer_maxprefix6"]
+
         peer_net.save()
 
         if old_md5 != peer_net.md5:
             peer_net.sync_route_server_md5()
 
         peer_port = models.PeerPort.get_or_create(port_info, peer_net)
-        peer_port.interface_name = data["peer_interface"]
+
+        if "peer_interface" in data:
+            peer_port.interface_name = data["peer_interface"]
+            
         peer_port.save()
 
         port = models.Port().first(id=data["port"])
@@ -801,35 +840,28 @@ class CreateFloatingPeerSession(serializers.Serializer):
             )
             port._port_info = port_info
 
+        # TODO
+        # port is not specified, create dummy port?
+        # 
+        # For now raise error
+
+        if not port:
+            raise serializers.ValidationError("Port not specified")
+
         
         return models.PeerSession.objects.create(
             port=port.id,
             peer_port=peer_port,
-            policy4_id=data["policy_4"] or None,
-            policy6_id=data["policy_6"] or None,
+            policy4_id=data.get("policy_4") or None,
+            policy6_id=data.get("policy_6") or None,
             status="ok",
             peer_session_type=data["peer_session_type"] or "peer",
+            meta4=data.get("meta4") or None,
+            meta6=data.get("meta6") or None,
         )
 
 
-@register
-class CreatePartialPeerSession(CreateFloatingPeerSession):
-    port = serializers.IntegerField(
-        required=False, help_text=_("deviceCtl Port reference")
-    )
-    ref_tag = "create_partial_peer_session"
-
-
-@register
-class UpdatePeerSession(CreateFloatingPeerSession):
-
-    """
-    Used for updating PeerSession objects
-    """
-
-    ref_tag = "update_peer_session"
-
-    def save(self):
+    def update(self):
         session = self.instance
         data = self.validated_data
         asn = self.context.get("asn")
@@ -841,9 +873,15 @@ class UpdatePeerSession(CreateFloatingPeerSession):
 
         old_md5 = peer_net.md5
 
-        peer_net.md5 = data["md5"]
-        peer_net.info_prefixes4 = data["peer_maxprefix4"]
-        peer_net.info_prefixes6 = data["peer_maxprefix6"]
+        if "md5" in data:
+            peer_net.md5 = data["md5"]
+
+        if "peer_maxprefix4" in data:
+            peer_net.info_prefixes4 = data["peer_maxprefix4"]
+        
+        if "peer_maxprefix6" in data:
+            peer_net.info_prefixes6 = data["peer_maxprefix6"]
+
         peer_net.save()
 
         if old_md5 != peer_net.md5:
@@ -851,50 +889,55 @@ class UpdatePeerSession(CreateFloatingPeerSession):
 
         session.peer_port.port_info.net = net
         session.peer_port.port_info.ip_address_4 = data["peer_ip4"]
-        session.peer_port.port_info.ip_address_6 = data["peer_ip6"]
+
+        if "peer_ip6" in data:
+            session.peer_port.port_info.ip_address_6 = data["peer_ip6"]
+
         session.peer_port.port_info.save()
 
         session.peer_port.peer_net = peer_net
-        session.peer_port.interface_name = data["peer_interface"]
+
+        if "peer_interface" in data:
+            session.peer_port.interface_name = data["peer_interface"]
+
         session.peer_port.save()
 
-        if data["port"]:
+        if "port" in data:
             session.port = data["port"]
-        session.policy4_id = data["policy_4"] or None
-        session.policy6_id = data["policy_6"] or None
-        session.peer_session_type = data["peer_session_type"] or "peer"
+        
+        if "policy_4" in data:
+            session.policy4_id = data["policy_4"]
+        
+        if "policy_6" in data:
+            session.policy6_id = data["policy_6"]
+
+        if "peer_session_type" in data:
+            session.peer_session_type = data["peer_session_type"]
+
+        session.meta4 = data.get("meta4") or None
+        session.meta6 = data.get("meta6") or None
+        
         session.save()
 
         return session
 
+@register
+class CreatePartialPeerSession(UpdatePeerSession):
+    """ DEPRECATED """
+    port = serializers.IntegerField(
+        required=False, help_text=_("deviceCtl Port reference")
+    )
+    ref_tag = "create_partial_peer_session"
+
+
 
 @register
 class UpdatePartialPeerSession(UpdatePeerSession):
+    """ DEPRECATED """
     port = serializers.IntegerField(
         required=False, help_text=_("deviceCtl Port reference")
     )
     ref_tag = "update_partial_peer_session"
-
-
-class PeerSessionMeta(serializers.Serializer):
-    # TODO: gen rest seralizer from confu schema
-
-    last_updown = serializers.CharField()
-    session_state = serializers.CharField()
-
-    active = serializers.IntegerField()
-    received = serializers.IntegerField()
-    accepted = serializers.IntegerField()
-    damped = serializers.IntegerField()
-
-    class Meta:
-        fields = [
-            "last_updown",
-            "session_state",
-            "active",
-            "received" "accepted",
-            "damped",
-        ]
 
 
 @register

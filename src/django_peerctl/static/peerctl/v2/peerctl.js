@@ -1375,6 +1375,9 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
             return state.text;
           }
 
+          if(!state.selected_text)
+            state.selected_text = $(state.element).data('selection_data')
+
           return $('<div>').addClass('autocomplete-item').append(
             $('<div>').addClass('autocomplete-primary').text(state.selected_text.display_name)
           ).append(
@@ -1395,16 +1398,19 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
       // edit existing session
 
       if(session) {
+        console.log("SESSION", session)
         title = "Edit Session ["+session.id+"]";
-        form.format_request_url = (url) => {
-          return url.replace("/12345/", session.id);
-        };
-        form.method = "PUT";
-        form.form_action = session.id;
         form.fill(session);
+        let opt = $(new Option(session.ip4, session.port_id, true, true))
+        opt.data("selection_data", {
+          display_name : session.ip4,
+          virtual_port_name : session.port_interface,
+          device_name : session.device_name
+        })
+        form.element.find("#port").append(
+          opt.get(0)
+        ).trigger("change")
         port = session.port_id;
-      } else {
-        form.form_action = "create_floating"
       }
 
       this.preselect_port = port;
