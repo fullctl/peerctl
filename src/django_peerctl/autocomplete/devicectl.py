@@ -1,13 +1,16 @@
+import fullctl.service_bridge.devicectl as devicectl
 from dal import autocomplete
 from django.utils import html
 
-import fullctl.service_bridge.devicectl as devicectl
 
 class devicectl_port(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if not self.q:
             return []
-        qs = [o for o in devicectl.Port().objects(org_slug=self.request.org.slug, q=self.q)]
+        qs = [
+            o
+            for o in devicectl.Port().objects(org_slug=self.request.org.slug, q=self.q)
+        ]
         return qs
 
     def get_result_label(self, port):
@@ -22,6 +25,6 @@ class devicectl_port(autocomplete.Select2QuerySetView):
 
         return {
             "display_name": display_name,
-             "virtual_port_name": virtual_port_name, 
-             "device_name": device_name,
+            "virtual_port_name": virtual_port_name,
+            "device_name": device_name,
         }

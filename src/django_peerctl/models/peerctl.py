@@ -1,9 +1,9 @@
 import collections
 import datetime
+import ipaddress
 import json
 import logging
 import os.path
-import ipaddress
 
 import fullctl.service_bridge.devicectl as devicectl
 import fullctl.service_bridge.ixctl as ixctl
@@ -1523,7 +1523,9 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     """
 
     port = ReferencedObjectField(bridge=Port)
-    peer_port = models.ForeignKey(PeerPort, on_delete=models.CASCADE, related_name="peer_sessions")
+    peer_port = models.ForeignKey(
+        PeerPort, on_delete=models.CASCADE, related_name="peer_sessions"
+    )
     peer_session_type = models.CharField(
         max_length=255,
         choices=(
@@ -1570,9 +1572,9 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     @classmethod
     def get_unique(cls, asn, port, peer_asn, peer_ip):
         """
-        Returns a unique PeerSession instance for the given 
+        Returns a unique PeerSession instance for the given
         port, peer_asn and peer_port
-        
+
         port can be a devicectl port reference object, referece id or an ip address
 
         Arguments:
@@ -1597,7 +1599,7 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
             peer_net = PeerNetwork.objects.get(net=net, peer=peer)
         except (Network.DoesNotExist, PeerNetwork.DoesNotExist):
             return None, None
-        
+
         # Resolve the port to a PortObject instance
 
         port_value = port
@@ -1612,7 +1614,9 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         if not port:
             raise ValueError(f"Invalid port: {port_value}")
 
-        peer_ports = PeerPort.objects.filter(peer_net=peer_net, peer_sessions__port=port.id)
+        peer_ports = PeerPort.objects.filter(
+            peer_net=peer_net, peer_sessions__port=port.id
+        )
 
         # loop through the peer ports to look for an ip match
 
@@ -1621,7 +1625,6 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         peer_ip = ipaddress.ip_interface(peer_ip)
 
         for _peer_port in peer_ports:
-
             if not _peer_port.port_info.ipaddr4:
                 continue
 
@@ -1636,10 +1639,7 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         # we got all pieces now to query the session
 
         try:
-            return cls.objects.get(
-                port = port.id,
-                peer_port = peer_port
-            ), port
+            return cls.objects.get(port=port.id, peer_port=peer_port), port
         except cls.DoesNotExist:
             return None, None
 

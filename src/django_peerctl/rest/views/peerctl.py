@@ -995,9 +995,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if not data.get("peer_maxprefix6"):
             data["peer_maxprefix6"] = 0
 
-        serializer = Serializers.update_peer_session(
-            data=data, context={"asn": asn}
-        )
+        serializer = Serializers.update_peer_session(data=data, context={"asn": asn})
 
         serializer.is_valid(raise_exception=True)
 
@@ -1087,14 +1085,12 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         if method == "POST":
             return Serializers.update_peer_session()
-        
+
         return Serializers.peer_session()
-    
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
-
         """
         Handles saving of peer session data (both creation an update)
 
@@ -1106,9 +1102,9 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         data = request.data
 
-        Serializers.update_peer_session(
-            data=data, context={"asn": asn}
-        ).is_valid(raise_exception=True)
+        Serializers.update_peer_session(data=data, context={"asn": asn}).is_valid(
+            raise_exception=True
+        )
 
         session, port = models.PeerSession.get_unique(
             asn,
@@ -1116,9 +1112,8 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
             data["peer_asn"],
             data["peer_ip4"],
         )
-        
-        if session:
 
+        if session:
             print(data)
 
             serializer = Serializers.update_peer_session(
@@ -1132,7 +1127,7 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         serializer.is_valid(raise_exception=True)
 
-        peer_session = serializer.save()
+        serializer.save()
 
         return Response(serializer.data)
 
@@ -1142,6 +1137,7 @@ class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     """
     DEPRECATED - use UpdatePeerSession instead
     """
+
     serializer_class = Serializers.peer_session
     queryset = models.PeerSession.objects.all()
     require_asn = True
@@ -1178,10 +1174,7 @@ class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if not data.get("port"):
             data["port"] = 0
 
-
-        serializer = Serializers.update_peer_session(
-            data=data, context={"asn": asn}
-        )
+        serializer = Serializers.update_peer_session(data=data, context={"asn": asn})
 
         serializer.is_valid(raise_exception=True)
 
