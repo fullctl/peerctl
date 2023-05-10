@@ -1102,6 +1102,15 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         data = request.data
 
+        # the form will send blank strings for these fields, in which case they should
+        # just be removed
+
+        if "peer_maxprefix4" in data and not data["peer_maxprefix4"]:
+            data.pop("peer_maxprefix4")
+
+        if "peer_maxprefix6" in data and not data["peer_maxprefix6"]:
+            data.pop("peer_maxprefix6")
+
         Serializers.update_peer_session(data=data, context={"asn": asn}).is_valid(
             raise_exception=True
         )

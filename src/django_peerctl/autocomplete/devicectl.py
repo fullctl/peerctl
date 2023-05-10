@@ -24,7 +24,7 @@ class devicectl_port(autocomplete.Select2QuerySetView):
         device_name = html.escape(port.device_name)
 
         return {
-            "display_name": display_name,
-            "virtual_port_name": virtual_port_name,
-            "device_name": device_name,
+            "primary": display_name,
+            "secondary": virtual_port_name,
+            "extra": device_name,
         }

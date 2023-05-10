@@ -1324,92 +1324,71 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
       this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
       this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
 
-      form.element.find("#port").select2({
-        dropdownParent : this.form.element,
-        ajax: {
-          url: "/autocomplete/device/port",
-          dataType: 'json',
-          processResults : function(data, params) {
-
-            var term = params.term;
-
-            if(fullctl.util.is_valid_ip4(term)) {
-              var exact_found = data.results.find((obj) => { 
-                return obj.text.display_name && obj.text.display_name.split("/")[0] == term
-              });
-
-              if(!exact_found) {
-                data.results.unshift({
-                  id: term,
-                  text: {display_name: term, virtual_port_name:"Ip not assigned", device_name:""},
-                  selected_text: {display_name: term, virtual_port_name:"Ip not assigned", device_name:""}
-                });
-              }
-            }
-  
-            return {
-              results: data.results
-            }
-          },
-        },
-        width: '20em',
-        placeholder: "Search IP, device, port or location names.",
-      
-        templateResult: function(state) {
-
-          if(!state.id) {
-            return state.text;
-          }
-
-          return $('<div>').addClass('autocomplete-item').append(
-            $('<div>').addClass('autocomplete-primary').text(state.text.display_name)
-          ).append(
-            $('<div>').addClass('autocomplete-secondary').text(state.text.virtual_port_name)
-          ).append(
-            $('<div>').addClass('autocomplete-extra').text(state.text.device_name)
-          )
-        },
-        templateSelection: function(state) {
-
-          if(!state.id) {
-            return state.text;
-          }
-
-          if(!state.selected_text)
-            state.selected_text = $(state.element).data('selection_data')
-
-          return $('<div>').addClass('autocomplete-item').append(
-            $('<div>').addClass('autocomplete-primary').text(state.selected_text.display_name)
-          ).append(
-            $('<div>').addClass('autocomplete-secondary').text(state.selected_text.virtual_port_name)
-          ).append(
-            $('<div>').addClass('autocomplete-extra').text(state.selected_text.device_name)
-          )
-        }
-      });
-      $(document).on('select2:open', () => {
-        document.querySelector('.select2-search__field').focus();
-      });
-
-
       if(port == "all")
         port = null;
 
+      // setup port auto complete
+
+      fullctl.ext.select2.init_autocomplete(
+
+        // bind to port <select> element
+        form.element.find("#port"),
+
+        // parent dropdown to form element
+        form.element,
+
+        // options
+        {
+
+          // autocomplete url
+          url: "/autocomplete/device/port",
+
+          // process results, allowing us to add entries for
+          // ips that are not assigned to a port
+          process: (data, term, params) => {
+            if(fullctl.util.is_valid_ip4(term)) {
+
+              // check if we have an exact match for the ip in the results
+              var exact_found = data.results.find((obj) => { 
+                return obj.text.primary && obj.text.primary.split("/")[0] == term
+              });
+    
+              if(!exact_found) {
+
+                // if no exact match was found, add an entry for the ip that
+                // can be selected as a choice.
+
+                data.results.unshift({
+                  id: term,
+                  text: {primary: term, secondary:"Ip not assigned", extra:""},
+                  selected_text: {primary: term, secondary:"Ip not assigned", extra:""}
+                });
+              }
+            }   
+          },
+
+          // place holder text for the search field
+          placeholder: "Search IP, device, port or location names.",
+
+          // if session is specifed, preselect it's port
+          initial: (
+            session ? 
+            {
+              id: session.port_id,
+              primary: session.ip4, 
+              secondary: session.port_interface, 
+              extra: session.device_name
+            } 
+            : null
+          )
+        }
+      );
+    
       // edit existing session
 
       if(session) {
-        console.log("SESSION", session)
         title = "Edit Session ["+session.id+"]";
         form.fill(session);
-        let opt = $(new Option(session.ip4, session.port_id, true, true))
-        opt.data("selection_data", {
-          display_name : session.ip4,
-          virtual_port_name : session.port_interface,
-          device_name : session.device_name
-        })
-        form.element.find("#port").append(
-          opt.get(0)
-        ).trigger("change")
         port = session.port_id;
       }
 
