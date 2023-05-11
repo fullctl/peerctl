@@ -1341,7 +1341,7 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
         {
 
           // autocomplete url
-          url: "/autocomplete/device/port",
+          url: "/autocomplete/device/port?org="+fullctl.org.slug,
 
           // process results, allowing us to add entries for
           // ips that are not assigned to a port
