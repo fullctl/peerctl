@@ -169,6 +169,8 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
         "status",
         "created",
         "updated",
+        "port",
+        "device",
     )
     list_filter = ("status",)
     form = status_form(
@@ -185,14 +187,26 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
 
     @ref_fallback(0)
     def ix_id(self, obj):
+
+        if not obj.port:
+            return None
+
         return self._ports.get(int(obj.port)).port_info_object.ix.id
 
     @ref_fallback(None)
     def ix_name(self, obj):
+
+        if not obj.port:
+            return None
+
         return self._ports.get(int(obj.port)).port_info_object.ix.name
 
     @ref_fallback(None)
     def ip4(self, obj):
+
+        if not obj.port:
+            return None
+
         try:
             return self._ports.get(int(obj.port)).ip_address_4
         except (KeyError, AttributeError):
@@ -202,6 +216,10 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
 
     @ref_fallback(None)
     def ip6(self, obj):
+
+        if not obj.port:
+            return None
+    
         try:
             return self._ports.get(int(obj.port)).ip_address_6
         except (KeyError, AttributeError):

@@ -505,6 +505,10 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
             peer_nets = {}
 
         for i in instances:
+
+            if not i.port:
+                continue
+
             port = ports.get(int(i.port))
             if port:
                 i.port._object = port
@@ -516,6 +520,9 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
         instances = net.peer_session_set.filter(status="ok")
+
+        print([instance.id for instance in instances])
+
         instances = list(self._filter_peer(instances, request.GET.get("peer")))
 
         print([instance.id for instance in instances])
@@ -1111,13 +1118,18 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if "peer_maxprefix6" in data and not data["peer_maxprefix6"]:
             data.pop("peer_maxprefix6")
 
-        Serializers.update_peer_session(data=data, context={"asn": asn}).is_valid(
+        valid_slz = Serializers.update_peer_session(data=data, context={"asn": asn})
+        valid_slz.is_valid(
             raise_exception=True
         )
 
-        session, port = models.PeerSession.get_unique(
+        data = valid_slz.validated_data
+
+        print(data)
+
+        session = models.PeerSession.get_unique(
             asn,
-            data["port"],
+            data["device"],
             data["peer_asn"],
             data["peer_ip4"],
         )
