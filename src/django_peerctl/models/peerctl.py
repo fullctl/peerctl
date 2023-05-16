@@ -661,6 +661,10 @@ class PeerNetwork(PolicyHolderMixin, Base):
         for session in self.peer_sessions.select_related(
             "peer_port", "peer_port__port_info"
         ):
+
+            if not session.port:
+                continue
+
             port_info = session.port.object.port_info_object
 
             if not port_info.is_rs_peer:
@@ -1980,7 +1984,7 @@ class EmailTemplate(Base, TemplateBase):
                             "prefix_length4": session.port.object.port_info_object.info_prefixes4,
                             "prefix_length6": session.port.object.port_info_object.info_prefixes6,
                         }
-                        for session in ctx.get("sessions")
+                        for session in ctx.get("sessions") if session.port
                     ]
                 }
             )

@@ -964,7 +964,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         port = models.Port().object(port_pk)
         peer_session = models.PeerSession.objects.get(id=pk)
 
-        if int(peer_session.port.id) == int(port_pk):
+        if peer_session.port and int(peer_session.port.id) == int(port_pk):
             super().destroy(request, asn, port, pk)
         return Response(self.serializer_class(peer_session).data)
 
