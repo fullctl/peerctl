@@ -1,6 +1,7 @@
+from fullctl.django.management.commands.base import CommandInterface
+
 from django_peerctl.models.peerctl import PeerSession
 
-from fullctl.django.management.commands.base import CommandInterface
 
 class Command(CommandInterface):
     """
@@ -10,8 +11,9 @@ class Command(CommandInterface):
     """
 
     def run(self, *args, **kwargs):
-
-        qset = PeerSession.objects.filter(device__isnull=True).exclude(port__isnull=True)
+        qset = PeerSession.objects.filter(device__isnull=True).exclude(
+            port__isnull=True
+        )
 
         if not qset:
             self.log_info("No PeerSessions without device")
@@ -20,4 +22,3 @@ class Command(CommandInterface):
             session.save()
             assert session.device
             self.log_info(f"Set device on {session}: {session.device}")
-        

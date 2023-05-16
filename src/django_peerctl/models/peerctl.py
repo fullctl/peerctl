@@ -1011,7 +1011,6 @@ class Port(devicectl.Port):
 
     @classmethod
     def in_same_subnet(cls, org, device, ip):
-
         """
         Will return all ports on the device that are in the same subnet as the given ip
         """
@@ -1023,7 +1022,6 @@ class Port(devicectl.Port):
         candidates = []
 
         for port in ports:
-
             if not port.ip_address_4:
                 continue
 
@@ -1036,8 +1034,6 @@ class Port(devicectl.Port):
                 candidates.append(port)
 
         return candidates
-
-
 
     @classmethod
     def preload(cls, org, asn, port_ids, filter_device=None):
@@ -1383,10 +1379,9 @@ class DeviceObject(devicectl.DeviceCtlEntity):
     @property
     def peer_session_qs(self):
         return PeerSession.objects.filter(
-            models.Q(port__in=[p.id for p in self.ports]) |
-            models.Q(device=self.id)
+            models.Q(port__in=[p.id for p in self.ports]) | models.Q(device=self.id)
         )
-    
+
     @property
     def ports(self):
         return Port().objects(device=self.id)
@@ -1572,7 +1567,12 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     meta4 = models.JSONField(null=True)
     meta6 = models.JSONField(null=True)
 
-    device = ReferencedObjectField(bridge=devicectl.Device, null=True, blank=True, help_text=_("Session is running on this device"))
+    device = ReferencedObjectField(
+        bridge=devicectl.Device,
+        null=True,
+        blank=True,
+        help_text=_("Session is running on this device"),
+    )
 
     class Meta:
         unique_together = ("port", "peer_port")
@@ -1699,7 +1699,6 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
     @property
     def devices(self):
-
         """
         TODO: this is deprecated by the device property, but
         references need to be set on all existing sessions first
@@ -1710,7 +1709,6 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         if self.device:
             # device reference is set return it
             return [self.device.object]
-
 
         # otherwise get it from port
         devices = []
@@ -1731,7 +1729,6 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         return "Session ({}): AS{} -> AS{}".format(
             self.id, self.peer_port.peer_net.net.asn, self.peer_port.peer_net.peer.asn
         )
-
 
 
 @grainy_model(namespace="peerctl.user.{user.id}.wish")

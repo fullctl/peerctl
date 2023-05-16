@@ -1,8 +1,8 @@
 from django.contrib.auth.signals import user_logged_in, user_logged_out
-from django.dispatch import receiver
 from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
-from django_peerctl.models import UserSession, PeerSession
+from django_peerctl.models import PeerSession, UserSession
 
 
 @receiver(user_logged_in)
@@ -47,11 +47,10 @@ def set_session_device(sender, **kwargs):
     try:
         if session.device == session.port.object.device_id:
             # device already set, nothing to do
-         return
+            return
     except AttributeError:
         # port reference does not exist, nothing to do
         # TODO: raise?
         return
 
     session.device = session.port.object.device_id
-    

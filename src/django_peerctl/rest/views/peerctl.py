@@ -505,7 +505,6 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
             peer_nets = {}
 
         for i in instances:
-
             if not i.port:
                 continue
 
@@ -1119,9 +1118,7 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
             data.pop("peer_maxprefix6")
 
         valid_slz = Serializers.update_peer_session(data=data, context={"asn": asn})
-        valid_slz.is_valid(
-            raise_exception=True
-        )
+        valid_slz.is_valid(raise_exception=True)
 
         data = valid_slz.validated_data
 

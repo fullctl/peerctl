@@ -752,7 +752,7 @@ class UpdatePeerSession(serializers.Serializer):
             "peer_maxprefix6",
             "peer_session_type",
             "port",
-            "device"
+            "device",
         ]
 
     def validate_peer_maxprefix4(self, value):
@@ -857,7 +857,9 @@ class UpdatePeerSession(serializers.Serializer):
         # find port based on peer subnet and device
 
         if not port and device_id:
-            candidate_ports = models.Port.in_same_subnet(net.org, device_id, data["peer_ip4"])
+            candidate_ports = models.Port.in_same_subnet(
+                net.org, device_id, data["peer_ip4"]
+            )
             if candidate_ports and len(candidate_ports) == 1:
                 port = candidate_ports[0]
 
@@ -868,13 +870,14 @@ class UpdatePeerSession(serializers.Serializer):
 
         if port and port.device_id and device and int(port.device_id) != int(device):
             # TODO port can be multiple devices through logical port
-            raise serializers.ValidationError("The device you provided does not match the device for the port specifierd")
+            raise serializers.ValidationError(
+                "The device you provided does not match the device for the port specifierd"
+            )
 
         if port:
             port_id = port.id
         else:
             port_id = None
-
 
         return models.PeerSession.objects.create(
             port=port_id,

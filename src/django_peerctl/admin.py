@@ -187,7 +187,6 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
 
     @ref_fallback(0)
     def ix_id(self, obj):
-
         if not obj.port:
             return None
 
@@ -195,7 +194,6 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
 
     @ref_fallback(None)
     def ix_name(self, obj):
-
         if not obj.port:
             return None
 
@@ -203,7 +201,6 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
 
     @ref_fallback(None)
     def ip4(self, obj):
-
         if not obj.port:
             return None
 
@@ -216,10 +213,9 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
 
     @ref_fallback(None)
     def ip6(self, obj):
-
         if not obj.port:
             return None
-    
+
         try:
             return self._ports.get(int(obj.port)).ip_address_6
         except (KeyError, AttributeError):
