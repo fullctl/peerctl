@@ -673,11 +673,12 @@ class PeerSessionMeta(serializers.Serializer):
 
 @register
 class UpdatePeerSession(serializers.Serializer):
-
     id = serializers.IntegerField(
         required=False,
         allow_null=True,
-        help_text=_("Peer session id, if specified, this session will be updated, regardless of any other fields specified")
+        help_text=_(
+            "Peer session id, if specified, this session will be updated, regardless of any other fields specified"
+        ),
     )
 
     peer_asn = serializers.IntegerField(help_text=_("ASN of the peer"))

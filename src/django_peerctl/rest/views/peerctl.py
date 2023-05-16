@@ -1119,7 +1119,7 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         if "policy_4" in data and not data["policy_4"]:
             data.pop("policy_4")
-        
+
         if "policy_6" in data and not data["policy_6"]:
             data.pop("policy_6")
 
@@ -1133,7 +1133,9 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         if data.get("id"):
             # id is specified, so thats the session to update
-            session = models.PeerSession.objects.get(pk=data["id"], peer_port__peer_net__net=net)
+            session = models.PeerSession.objects.get(
+                pk=data["id"], peer_port__peer_net__net=net
+            )
         else:
             # other wise we use the unique fields to find the session
             session = models.PeerSession.get_unique(
