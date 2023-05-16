@@ -1117,19 +1117,31 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if "peer_maxprefix6" in data and not data["peer_maxprefix6"]:
             data.pop("peer_maxprefix6")
 
+        if "policy_4" in data and not data["policy_4"]:
+            data.pop("policy_4")
+        
+        if "policy_6" in data and not data["policy_6"]:
+            data.pop("policy_6")
+
+        if "id" in data and not data["id"]:
+            data.pop("id")
+
         valid_slz = Serializers.update_peer_session(data=data, context={"asn": asn})
         valid_slz.is_valid(raise_exception=True)
 
         data = valid_slz.validated_data
 
-        print(data)
-
-        session = models.PeerSession.get_unique(
-            asn,
-            data["device"],
-            data["peer_asn"],
-            data["peer_ip4"],
-        )
+        if data.get("id"):
+            # id is specified, so thats the session to update
+            session = models.PeerSession.objects.get(pk=data["id"], peer_port__peer_net__net=net)
+        else:
+            # other wise we use the unique fields to find the session
+            session = models.PeerSession.get_unique(
+                asn,
+                data["device"],
+                data["peer_asn"],
+                data["peer_ip4"],
+            )
 
         if session:
             print(data)

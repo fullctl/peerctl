@@ -673,6 +673,13 @@ class PeerSessionMeta(serializers.Serializer):
 
 @register
 class UpdatePeerSession(serializers.Serializer):
+
+    id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text=_("Peer session id, if specified, this session will be updated, regardless of any other fields specified")
+    )
+
     peer_asn = serializers.IntegerField(help_text=_("ASN of the peer"))
     peer_ip4 = serializers.CharField(
         help_text=_("Peer IPv4 address"),
@@ -693,12 +700,14 @@ class UpdatePeerSession(serializers.Serializer):
     peer_session_type = serializers.CharField(default="peer", required=False)
     policy_4 = serializers.IntegerField(
         required=False,
+        allow_null=True,
         help_text=_(
             "IPv4 Policy - session will use this peering policy, should be policy id"
         ),
     )
     policy_6 = serializers.IntegerField(
         required=False,
+        allow_null=True,
         help_text=_(
             "IPv6 Policy - session will use this peering policy, should be policy id"
         ),
@@ -741,6 +750,7 @@ class UpdatePeerSession(serializers.Serializer):
 
     class Meta:
         fields = [
+            "id",
             "policy_4",
             "policy_6",
             "md5",
