@@ -6,6 +6,9 @@
   >
   <div class="container-fluid">
 
+    <div style="display:none" data-api-submit="yes">
+      <input type="hidden" name="id" data-field="id" />
+    </div>
 
     <div class="row mb-3">
       <div class="col-12" data-api-submit="yes">
@@ -60,7 +63,7 @@
           name="policy_4"
           data-api-load="yes"
           data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
-          data-null-option="0;{% trans "Inherit Policy" %}">
+          data-null-option=";{% trans "Inherit Policy" %}">
         </select>
         </span>
       </div>
@@ -83,7 +86,7 @@
           name="policy_6"
           data-api-load="yes"
           data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
-          data-null-option="0;{% trans "Inherit Policy" %}">
+          data-null-option=";{% trans "Inherit Policy" %}">
         </select>
         </span>
       </div>

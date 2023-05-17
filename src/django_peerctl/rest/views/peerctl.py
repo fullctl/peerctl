@@ -505,6 +505,9 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
             peer_nets = {}
 
         for i in instances:
+            if not i.port:
+                continue
+
             port = ports.get(int(i.port))
             if port:
                 i.port._object = port
@@ -516,6 +519,9 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
         instances = net.peer_session_set.filter(status="ok")
+
+        print([instance.id for instance in instances])
+
         instances = list(self._filter_peer(instances, request.GET.get("peer")))
 
         print([instance.id for instance in instances])
@@ -958,7 +964,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         port = models.Port().object(port_pk)
         peer_session = models.PeerSession.objects.get(id=pk)
 
-        if int(peer_session.port.id) == int(port_pk):
+        if peer_session.port and int(peer_session.port.id) == int(port_pk):
             super().destroy(request, asn, port, pk)
         return Response(self.serializer_class(peer_session).data)
 
@@ -1111,16 +1117,33 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if "peer_maxprefix6" in data and not data["peer_maxprefix6"]:
             data.pop("peer_maxprefix6")
 
-        Serializers.update_peer_session(data=data, context={"asn": asn}).is_valid(
-            raise_exception=True
-        )
+        if "policy_4" in data and not data["policy_4"]:
+            data.pop("policy_4")
 
-        session, port = models.PeerSession.get_unique(
-            asn,
-            data["port"],
-            data["peer_asn"],
-            data["peer_ip4"],
-        )
+        if "policy_6" in data and not data["policy_6"]:
+            data.pop("policy_6")
+
+        if "id" in data and not data["id"]:
+            data.pop("id")
+
+        valid_slz = Serializers.update_peer_session(data=data, context={"asn": asn})
+        valid_slz.is_valid(raise_exception=True)
+
+        data = valid_slz.validated_data
+
+        if data.get("id"):
+            # id is specified, so thats the session to update
+            session = models.PeerSession.objects.get(
+                pk=data["id"], peer_port__peer_net__net=net
+            )
+        else:
+            # other wise we use the unique fields to find the session
+            session = models.PeerSession.get_unique(
+                asn,
+                data["device"],
+                data["peer_asn"],
+                data["peer_ip4"],
+            )
 
         if session:
             print(data)

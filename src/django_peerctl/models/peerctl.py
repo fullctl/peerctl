@@ -461,8 +461,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         """
         returns all peer sessions owned by this network
         """
-        ports = [port_info.port for port_info in PortInfo.objects.filter(net=self)]
-        return PeerSession.objects.filter(port__in=ports)
+        return PeerSession.objects.filter(peer_port__peer_net__net=self)
 
     @property
     def peer_net_set(self):
@@ -662,6 +661,9 @@ class PeerNetwork(PolicyHolderMixin, Base):
         for session in self.peer_sessions.select_related(
             "peer_port", "peer_port__port_info"
         ):
+            if not session.port:
+                continue
+
             port_info = session.port.object.port_info_object
 
             if not port_info.is_rs_peer:
@@ -1011,6 +1013,32 @@ class Port(devicectl.Port):
         data_object_cls = PortObject
 
     @classmethod
+    def in_same_subnet(cls, org, device, ip):
+        """
+        Will return all ports on the device that are in the same subnet as the given ip
+        """
+
+        ports = cls().objects(device=device, org_slug=org.slug)
+
+        ip = ip.split("/")[0]
+
+        candidates = []
+
+        for port in ports:
+            if not port.ip_address_4:
+                continue
+
+            port_ip = ipaddress.ip_interface(port.ip_address_4)
+            peer_ip = ipaddress.ip_interface(f"{ip}/{port_ip.network.prefixlen}")
+
+            # check if peer_ip and port_ip4 are in the same subnet
+            # with prefix length specified in prefixlen
+            if peer_ip.network.network_address == port_ip.network.network_address:
+                candidates.append(port)
+
+        return candidates
+
+    @classmethod
     def preload(cls, org, asn, port_ids, filter_device=None):
         """
         Preloads ixctl and pdbctl member reference (port_info ref)
@@ -1353,7 +1381,9 @@ class DeviceObject(devicectl.DeviceCtlEntity):
 
     @property
     def peer_session_qs(self):
-        return PeerSession.objects.filter(port__in=[p.id for p in self.ports])
+        return PeerSession.objects.filter(
+            models.Q(port__in=[p.id for p in self.ports]) | models.Q(device=self.id)
+        )
 
     @property
     def ports(self):
@@ -1522,7 +1552,7 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     port going to a Peer with 2 physical ports (with different IPs)
     """
 
-    port = ReferencedObjectField(bridge=Port)
+    port = ReferencedObjectField(bridge=Port, null=True, blank=True)
     peer_port = models.ForeignKey(
         PeerPort, on_delete=models.CASCADE, related_name="peer_sessions"
     )
@@ -1539,6 +1569,13 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
     meta4 = models.JSONField(null=True)
     meta6 = models.JSONField(null=True)
+
+    device = ReferencedObjectField(
+        bridge=devicectl.Device,
+        null=True,
+        blank=True,
+        help_text=_("Session is running on this device"),
+    )
 
     class Meta:
         unique_together = ("port", "peer_port")
@@ -1570,7 +1607,7 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         return obj
 
     @classmethod
-    def get_unique(cls, asn, port, peer_asn, peer_ip):
+    def get_unique(cls, asn, device, peer_asn, peer_ip):
         """
         Returns a unique PeerSession instance for the given
         port, peer_asn and peer_port
@@ -1580,14 +1617,13 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         Arguments:
 
             - asn <int> AS number of the owner network
-            - port <PortObject> or <int> or <ipaddress> port object, reference id or ip address
+            - device <int> devicectl device id
             - peer_asn <int> AS number of the peer network
             - peer_ip <ipaddress> IP address of the peer network
 
         Returns:
 
-            - tuple(PeerSession, PortObject)
-
+            - PeerSession
         """
 
         # load session related objects, if they dont exist
@@ -1598,24 +1634,12 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
             peer = Network.objects.get(asn=peer_asn)
             peer_net = PeerNetwork.objects.get(net=net, peer=peer)
         except (Network.DoesNotExist, PeerNetwork.DoesNotExist):
-            return None, None
+            return None
 
         # Resolve the port to a PortObject instance
 
-        port_value = port
-
-        if not isinstance(port, PortObject):
-            try:
-                port = ipaddress.ip_address(port)
-                port = Port().first(org_slug=net.org.slug, ip=str(port))
-            except ValueError:
-                port = Port().first(id=port)
-
-        if not port:
-            raise ValueError(f"Invalid port: {port_value}")
-
         peer_ports = PeerPort.objects.filter(
-            peer_net=peer_net, peer_sessions__port=port.id
+            peer_net=peer_net, peer_sessions__device=int(device)
         )
 
         # loop through the peer ports to look for an ip match
@@ -1634,14 +1658,11 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
         if not peer_port:
             # no session with peer ip found
-            return None, None
+            return None
 
         # we got all pieces now to query the session
 
-        try:
-            return cls.objects.get(port=port.id, peer_port=peer_port), port
-        except cls.DoesNotExist:
-            return None, None
+        return cls.objects.filter(device=int(device), peer_port=peer_port).first()
 
     @property
     def ip4(self):
@@ -1681,6 +1702,18 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
     @property
     def devices(self):
+        """
+        TODO: this is deprecated by the device property, but
+        references need to be set on all existing sessions first
+
+        TODO: multiple devices / ports for same session?
+        """
+
+        if self.device:
+            # device reference is set return it
+            return [self.device.object]
+
+        # otherwise get it from port
         devices = []
         if self.port:
             if self.port.object.device:
@@ -1691,7 +1724,9 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
     @property
     def policy_parents(self):
-        return [self.peer_port.peer_net, self.port.object]
+        if self.port:
+            return [self.peer_port.peer_net, self.port.object]
+        return [self.peer_port.peer_net]
 
     def __str__(self):
         return "Session ({}): AS{} -> AS{}".format(
@@ -1949,6 +1984,7 @@ class EmailTemplate(Base, TemplateBase):
                             "prefix_length6": session.port.object.port_info_object.info_prefixes6,
                         }
                         for session in ctx.get("sessions")
+                        if session.port
                     ]
                 }
             )

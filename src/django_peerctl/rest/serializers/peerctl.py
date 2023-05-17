@@ -673,6 +673,14 @@ class PeerSessionMeta(serializers.Serializer):
 
 @register
 class UpdatePeerSession(serializers.Serializer):
+    id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text=_(
+            "Peer session id, if specified, this session will be updated, regardless of any other fields specified"
+        ),
+    )
+
     peer_asn = serializers.IntegerField(help_text=_("ASN of the peer"))
     peer_ip4 = serializers.CharField(
         help_text=_("Peer IPv4 address"),
@@ -693,12 +701,14 @@ class UpdatePeerSession(serializers.Serializer):
     peer_session_type = serializers.CharField(default="peer", required=False)
     policy_4 = serializers.IntegerField(
         required=False,
+        allow_null=True,
         help_text=_(
             "IPv4 Policy - session will use this peering policy, should be policy id"
         ),
     )
     policy_6 = serializers.IntegerField(
         required=False,
+        allow_null=True,
         help_text=_(
             "IPv6 Policy - session will use this peering policy, should be policy id"
         ),
@@ -728,6 +738,11 @@ class UpdatePeerSession(serializers.Serializer):
         required=False,
         allow_null=True,
     )
+    device = serializers.CharField(
+        help_text=_("deviceCtl Device reference id"),
+        required=False,
+        allow_null=True,
+    )
 
     meta4 = PeerSessionMeta(required=False, allow_null=True)
     meta6 = PeerSessionMeta(required=False, allow_null=True)
@@ -736,6 +751,7 @@ class UpdatePeerSession(serializers.Serializer):
 
     class Meta:
         fields = [
+            "id",
             "policy_4",
             "policy_6",
             "md5",
@@ -747,6 +763,7 @@ class UpdatePeerSession(serializers.Serializer):
             "peer_maxprefix6",
             "peer_session_type",
             "port",
+            "device",
         ]
 
     def validate_peer_maxprefix4(self, value):
@@ -762,6 +779,8 @@ class UpdatePeerSession(serializers.Serializer):
     def validate(self, data):
         port = data.get("port")
         ip = None
+        asn = self.context.get("asn")
+        net = models.Network.objects.get(asn=asn)
 
         try:
             ip = ipaddress.ip_address(port)
@@ -769,18 +788,23 @@ class UpdatePeerSession(serializers.Serializer):
             try:
                 port = int(port)
             except (ValueError, TypeError):
-                raise serializers.ValidationError("Invalid port ID or IP address")
+                data["port"] = port = None
 
         if ip:
             # no port specified, find by ip
-            asn = self.context.get("asn")
-            net = models.Network.objects.get(asn=asn)
             port = models.Port().first(org_slug=net.org.slug, ip=str(ip))
             if not port:
                 # TODO: create dummy port?
                 raise serializers.ValidationError(f"Could not find port by IP: {ip}")
 
             data["port"] = port.id
+
+        if not data.get("port") and not data.get("device"):
+            raise serializers.ValidationError("Must provide port or device")
+
+        if not data.get("device"):
+            port = models.Port().first(id=data["port"], org_slug=net.org.slug)
+            data["device"] = port.device_id
 
         return data
 
@@ -808,6 +832,8 @@ class UpdatePeerSession(serializers.Serializer):
 
         old_md5 = peer_net.md5
 
+        device = data.get("device")
+
         if "md5" in data:
             peer_net.md5 = data["md5"]
 
@@ -829,22 +855,44 @@ class UpdatePeerSession(serializers.Serializer):
 
         peer_port.save()
 
-        port = models.Port().first(id=data["port"])
+        port = data.get("port")
+        device_id = data.get("device")
+
+        if port and not isinstance(port, models.PortObject):
+            port = models.Port().first(id=port)
 
         if port and not port.port_info_object:
             port_info = models.PortInfo.objects.create(port=port.id, net=net)
             port._port_info = port_info
 
-        # TODO
-        # port is not specified, create dummy port?
-        #
-        # For now raise error
+        # find port based on peer subnet and device
 
-        if not port:
-            raise serializers.ValidationError("Port not specified")
+        if not port and device_id:
+            candidate_ports = models.Port.in_same_subnet(
+                net.org, device_id, data["peer_ip4"]
+            )
+            if candidate_ports and len(candidate_ports) == 1:
+                port = candidate_ports[0]
+
+        if not port and not device_id:
+            raise serializers.ValidationError("Must provide port or device")
+
+        # sanity check for device and port
+
+        if port and port.device_id and device and int(port.device_id) != int(device):
+            # TODO port can be multiple devices through logical port
+            raise serializers.ValidationError(
+                "The device you provided does not match the device for the port specifierd"
+            )
+
+        if port:
+            port_id = port.id
+        else:
+            port_id = None
 
         return models.PeerSession.objects.create(
-            port=port.id,
+            port=port_id,
+            device=device_id,
             peer_port=peer_port,
             policy4_id=data.get("policy_4") or None,
             policy6_id=data.get("policy_6") or None,
@@ -877,7 +925,7 @@ class UpdatePeerSession(serializers.Serializer):
 
         peer_net.save()
 
-        if old_md5 != peer_net.md5:
+        if old_md5 != peer_net.md5 and session.port:
             peer_net.sync_route_server_md5()
 
         session.peer_port.port_info.net = net
@@ -910,6 +958,7 @@ class UpdatePeerSession(serializers.Serializer):
         session.meta4 = data.get("meta4") or None
         session.meta6 = data.get("meta6") or None
 
+        session.status = "ok"
         session.save()
 
         return session
@@ -1086,7 +1135,7 @@ class PeerSession(ModelSerializer):
         return "ok"
 
     def get_policy(self, obj, version):
-        if obj and obj.status == "ok":
+        if obj and obj.status in ["ok"]:
             if hasattr(obj, f"_policy{version}"):
                 policy = getattr(obj, f"_policy{version}")
             else:
@@ -1166,25 +1215,25 @@ class PeerSession(ModelSerializer):
         return obj.peer_port.peer_net.info_prefixes(6)
 
     def get_device_name(self, obj):
-        if not obj.port.object:
+        if (not obj.port or not obj.port.object) and not obj.device:
             return None
 
         return obj.devices[0].display_name
 
     def get_device_id(self, obj):
-        if not obj.port.object:
+        if (not obj.port or not obj.port.object) and not obj.device:
             return None
 
         return obj.devices[0].id
 
     def get_facility_slug(self, obj):
-        if not obj.port.object:
+        if not obj.port or not obj.port.object:
             return None
 
         return obj.devices[0].facility_slug
 
     def get_port_is_ix(self, obj):
-        if not obj.port.object:
+        if not obj.port or not obj.port.object:
             return False
 
         ix_id = obj.port.object.port_info_object.ref_ix_id
@@ -1196,8 +1245,8 @@ class PeerSession(ModelSerializer):
         return None
 
     def get_port_display_name(self, obj):
-        if not obj.port.object:
-            return ""
+        if not obj.port or not obj.port.object:
+            return "No port assigned"
 
         parts = []
 
