@@ -722,39 +722,101 @@ class InternetExchange(sot.ReferenceMixin, Base):
 
 
 class MutualLocation:
+
+    """
+    Reperesents a mutual location between two networks
+    """
+
     def __init__(self, ix, net, peer_net):
+        """
+        Arguments:
+
+            ix (InternetExchange): InternetExchange object
+            net (Network): Network object
+            peer_net (PeerNetwork): PeerNetwork object
+        """
+
         self.ix = ix
         self.net = net
         self.peer_net = peer_net
 
     @property
     def name(self):
+        """
+        Internet exchange name
+        """
+
         return self.ix.name
 
     @property
     def name_long(self):
+        """
+        Internet exchange name (long)
+        """
+
         return self.ix.name_long
 
     @property
     def country(self):
+        """
+        Internet exchange country code
+        """
+
         return self.ix.country
 
     @property
     def ip4(self):
-        return self.port_info.ipaddr4
+        """
+        String of IPv4 addresses for this mutual location, delimited by ','
+        """
+
+        return ", ".join([str(ip) for ip in self.ip4s])
 
     @property
     def ip6(self):
-        return self.port_info.ipaddr6
+        """
+        String of IPv6 addresses for this mutual location, delimited by ','
+        """
+
+        return ", ".join([str(ip) for ip in self.ip6s])
 
     @property
-    def port_info(self):
-        if hasattr(self, "_portinfo"):
-            return self._portinfo
+    def ip4s(self):
+        """
+        List of IPv4 addresses for this mutual location
+        """
+
+        return [info.ipaddr4 for info in self.port_infos if info.ipaddr4]
+
+    @property
+    def ip6s(self):
+        """
+        List of IPv6 addresses for this mutual location
+        """
+
+        return [info.ipaddr6 for info in self.port_infos if info.ipaddr6]
+
+    @property
+    def port_infos(self):
+        """
+        Caches and returns a list of PortInfo objects for this mutual location that
+        have an IPv4 or IPv6 address
+        """
+
+        if hasattr(self, "_portinfos"):
+            return self._portinfos
+
+        self._portinfos = []
+
         for port_info in self.net.port_info_qs.all():
+            if not port_info.ipaddr4 and not port_info.ipaddr6:
+                continue
+
             if port_info.ref_ix_id and port_info.ref_ix_id == self.ix.ref_id:
                 self._portinfo = port_info
-                return port_info
+                self._portinfos.append(port_info)
+
+        return self._portinfos
 
 
 class PortPolicy(PolicyHolderMixin, Base):

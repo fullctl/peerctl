@@ -114,7 +114,7 @@ class PeerPortAdmin(admin.ModelAdmin):
 @admin.register(PortInfo)
 class PortInfoAdmin(CachedPortMixin, admin.ModelAdmin):
     list_display = ("net", "asn", "ref_id", "ip4", "ip6", "port")
-    readonly_fields = ("asn", "ix", "ip4", "ip6")
+    readonly_fields = ("asn", "ix", "ip4", "ip6", "ref_ix_id")
     search_fields = ("net__asn",)
     form = status_form()
 
