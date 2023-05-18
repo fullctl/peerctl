@@ -1131,6 +1131,8 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         data = valid_slz.validated_data
 
+        print(data)
+
         if data.get("id"):
             # id is specified, so thats the session to update
             session = models.PeerSession.objects.get(
@@ -1142,7 +1144,7 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
                 asn,
                 data["device"],
                 data["peer_asn"],
-                data["peer_ip4"],
+                data.get("peer_ip4") or data.get("peer_ip6"),
             )
 
         if session:

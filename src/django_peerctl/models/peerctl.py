@@ -722,39 +722,101 @@ class InternetExchange(sot.ReferenceMixin, Base):
 
 
 class MutualLocation:
+
+    """
+    Reperesents a mutual location between two networks
+    """
+
     def __init__(self, ix, net, peer_net):
+        """
+        Arguments:
+
+            ix (InternetExchange): InternetExchange object
+            net (Network): Network object
+            peer_net (PeerNetwork): PeerNetwork object
+        """
+
         self.ix = ix
         self.net = net
         self.peer_net = peer_net
 
     @property
     def name(self):
+        """
+        Internet exchange name
+        """
+
         return self.ix.name
 
     @property
     def name_long(self):
+        """
+        Internet exchange name (long)
+        """
+
         return self.ix.name_long
 
     @property
     def country(self):
+        """
+        Internet exchange country code
+        """
+
         return self.ix.country
 
     @property
     def ip4(self):
-        return self.port_info.ipaddr4
+        """
+        String of IPv4 addresses for this mutual location, delimited by ','
+        """
+
+        return ", ".join([str(ip) for ip in self.ip4s])
 
     @property
     def ip6(self):
-        return self.port_info.ipaddr6
+        """
+        String of IPv6 addresses for this mutual location, delimited by ','
+        """
+
+        return ", ".join([str(ip) for ip in self.ip6s])
 
     @property
-    def port_info(self):
-        if hasattr(self, "_portinfo"):
-            return self._portinfo
+    def ip4s(self):
+        """
+        List of IPv4 addresses for this mutual location
+        """
+
+        return [info.ipaddr4 for info in self.port_infos if info.ipaddr4]
+
+    @property
+    def ip6s(self):
+        """
+        List of IPv6 addresses for this mutual location
+        """
+
+        return [info.ipaddr6 for info in self.port_infos if info.ipaddr6]
+
+    @property
+    def port_infos(self):
+        """
+        Caches and returns a list of PortInfo objects for this mutual location that
+        have an IPv4 or IPv6 address
+        """
+
+        if hasattr(self, "_portinfos"):
+            return self._portinfos
+
+        self._portinfos = []
+
         for port_info in self.net.port_info_qs.all():
+            if not port_info.ipaddr4 and not port_info.ipaddr6:
+                continue
+
             if port_info.ref_ix_id and port_info.ref_ix_id == self.ix.ref_id:
                 self._portinfo = port_info
-                return port_info
+                self._portinfos.append(port_info)
+
+        return self._portinfos
 
 
 class PortPolicy(PolicyHolderMixin, Base):
@@ -1567,8 +1629,8 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         default="peer",
     )
 
-    meta4 = models.JSONField(null=True)
-    meta6 = models.JSONField(null=True)
+    meta4 = models.JSONField(null=True, blank=True)
+    meta6 = models.JSONField(null=True, blank=True)
 
     device = ReferencedObjectField(
         bridge=devicectl.Device,
@@ -1645,22 +1707,61 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         # loop through the peer ports to look for an ip match
 
         peer_port = None
-
+        session = None
         peer_ip = ipaddress.ip_interface(peer_ip)
 
         for _peer_port in peer_ports:
-            if not _peer_port.port_info.ipaddr4:
+            if peer_ip.version == 4 and not _peer_port.port_info.ipaddr4:
                 continue
 
-            if ipaddress.ip_interface(_peer_port.port_info.ipaddr4).ip == peer_ip.ip:
+            if peer_ip.version == 6 and not _peer_port.port_info.ipaddr6:
+                continue
+
+            if (
+                peer_ip.version == 4
+                and ipaddress.ip_interface(_peer_port.port_info.ipaddr4).ip
+                == peer_ip.ip
+            ):
+                peer_port = _peer_port
+                break
+            elif (
+                peer_ip.version == 6
+                and ipaddress.ip_interface(_peer_port.port_info.ipaddr6).ip
+                == peer_ip.ip
+            ):
                 peer_port = _peer_port
                 break
 
-        if not peer_port:
-            # no session with peer ip found
-            return None
-
         # we got all pieces now to query the session
+
+        if peer_port:
+            session = cls.objects.filter(
+                device=int(device), peer_port=peer_port
+            ).first()
+
+        if session:
+            return session
+
+        # no session found, see if there any group candidates
+
+        peer_port = None
+
+        for _peer_port in peer_ports:
+            if (
+                peer_ip.version == 4
+                and _peer_port.port_info.ipaddr6
+                and not _peer_port.port_info.ipaddr4
+            ):
+                peer_port = _peer_port
+                break
+
+            if (
+                peer_ip.version == 6
+                and _peer_port.port_info.ipaddr4
+                and not _peer_port.port_info.ipaddr6
+            ):
+                peer_port = _peer_port
+                break
 
         return cls.objects.filter(device=int(device), peer_port=peer_port).first()
 
