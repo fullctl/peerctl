@@ -652,13 +652,17 @@ class PeerDetails(serializers.Serializer):
 class PeerSessionMeta(serializers.Serializer):
     # TODO: pydantic model
 
-    last_updown = serializers.CharField()
-    session_state = serializers.CharField()
+    last_updown = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True
+    )
+    session_state = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True
+    )
 
-    active = serializers.IntegerField()
-    received = serializers.IntegerField()
-    accepted = serializers.IntegerField()
-    damped = serializers.IntegerField()
+    active = serializers.IntegerField(required=False, allow_null=True)
+    received = serializers.IntegerField(required=False, allow_null=True)
+    accepted = serializers.IntegerField(required=False, allow_null=True)
+    damped = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         fields = [
@@ -684,7 +688,9 @@ class UpdatePeerSession(serializers.Serializer):
     peer_asn = serializers.IntegerField(help_text=_("ASN of the peer"))
     peer_ip4 = serializers.CharField(
         help_text=_("Peer IPv4 address"),
-        # TODO: make optional if peer_ip6 is specified and vice versa?
+        allow_null=True,
+        allow_blank=True,
+        required=False,
     )
     peer_ip6 = serializers.CharField(
         allow_null=True,
@@ -782,6 +788,16 @@ class UpdatePeerSession(serializers.Serializer):
         asn = self.context.get("asn")
         net = models.Network.objects.get(asn=asn)
 
+        peer_ip4 = data.get("peer_ip4")
+        peer_ip6 = data.get("peer_ip6")
+
+        # make sure either peer_ip4 or peer_ip6 is specified
+
+        if not peer_ip4 and not peer_ip6:
+            raise serializers.ValidationError(
+                "Must specify either peer_ip4 or peer_ip6"
+            )
+
         try:
             ip = ipaddress.ip_address(port)
         except ValueError:
@@ -806,6 +822,17 @@ class UpdatePeerSession(serializers.Serializer):
             port = models.Port().first(id=data["port"], org_slug=net.org.slug)
             data["device"] = port.device_id
 
+        # if updating session and port is not specified, use the port from the session
+
+        if (
+            self.instance
+            and data.get("port") is None
+            and self.instance.port
+            and data.get("device")
+        ):
+            if self.instance.port.object.device_id == int(data.get("device")):
+                data["port"] = int(self.instance.port)
+
         return data
 
     def save(self):
@@ -822,7 +849,7 @@ class UpdatePeerSession(serializers.Serializer):
         port_info = models.PortInfo.objects.create(
             port=0,
             net=net,
-            ip_address_4=data["peer_ip4"],
+            ip_address_4=data.get("peer_ip4"),
             ip_address_6=data.get("peer_ip6"),
         )
 
@@ -869,7 +896,7 @@ class UpdatePeerSession(serializers.Serializer):
 
         if not port and device_id:
             candidate_ports = models.Port.in_same_subnet(
-                net.org, device_id, data["peer_ip4"]
+                net.org, device_id, data.get("peer_ip4") or data.get("peer_ip6")
             )
             if candidate_ports and len(candidate_ports) == 1:
                 port = candidate_ports[0]
@@ -929,7 +956,9 @@ class UpdatePeerSession(serializers.Serializer):
             peer_net.sync_route_server_md5()
 
         session.peer_port.port_info.net = net
-        session.peer_port.port_info.ip_address_4 = data["peer_ip4"]
+
+        if "peer_ip4" in data:
+            session.peer_port.port_info.ip_address_4 = data["peer_ip4"]
 
         if "peer_ip6" in data:
             session.peer_port.port_info.ip_address_6 = data["peer_ip6"]
@@ -955,8 +984,11 @@ class UpdatePeerSession(serializers.Serializer):
         if "peer_session_type" in data:
             session.peer_session_type = data["peer_session_type"]
 
-        session.meta4 = data.get("meta4") or None
-        session.meta6 = data.get("meta6") or None
+        if "meta4" in data:
+            session.meta4 = data.get("meta4") or None
+
+        if "meta6" in data:
+            session.meta6 = data.get("meta6") or None
 
         session.status = "ok"
         session.save()

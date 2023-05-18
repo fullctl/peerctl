@@ -1629,8 +1629,8 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         default="peer",
     )
 
-    meta4 = models.JSONField(null=True)
-    meta6 = models.JSONField(null=True)
+    meta4 = models.JSONField(null=True, blank=True)
+    meta6 = models.JSONField(null=True, blank=True)
 
     device = ReferencedObjectField(
         bridge=devicectl.Device,
@@ -1707,22 +1707,61 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         # loop through the peer ports to look for an ip match
 
         peer_port = None
-
+        session = None
         peer_ip = ipaddress.ip_interface(peer_ip)
 
         for _peer_port in peer_ports:
-            if not _peer_port.port_info.ipaddr4:
+            if peer_ip.version == 4 and not _peer_port.port_info.ipaddr4:
                 continue
 
-            if ipaddress.ip_interface(_peer_port.port_info.ipaddr4).ip == peer_ip.ip:
+            if peer_ip.version == 6 and not _peer_port.port_info.ipaddr6:
+                continue
+
+            if (
+                peer_ip.version == 4
+                and ipaddress.ip_interface(_peer_port.port_info.ipaddr4).ip
+                == peer_ip.ip
+            ):
+                peer_port = _peer_port
+                break
+            elif (
+                peer_ip.version == 6
+                and ipaddress.ip_interface(_peer_port.port_info.ipaddr6).ip
+                == peer_ip.ip
+            ):
                 peer_port = _peer_port
                 break
 
-        if not peer_port:
-            # no session with peer ip found
-            return None
-
         # we got all pieces now to query the session
+
+        if peer_port:
+            session = cls.objects.filter(
+                device=int(device), peer_port=peer_port
+            ).first()
+
+        if session:
+            return session
+
+        # no session found, see if there any group candidates
+
+        peer_port = None
+
+        for _peer_port in peer_ports:
+            if (
+                peer_ip.version == 4
+                and _peer_port.port_info.ipaddr6
+                and not _peer_port.port_info.ipaddr4
+            ):
+                peer_port = _peer_port
+                break
+
+            if (
+                peer_ip.version == 6
+                and _peer_port.port_info.ipaddr4
+                and not _peer_port.port_info.ipaddr6
+            ):
+                peer_port = _peer_port
+                break
 
         return cls.objects.filter(device=int(device), peer_port=peer_port).first()
 
