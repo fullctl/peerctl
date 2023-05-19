@@ -705,14 +705,14 @@ class UpdatePeerSession(serializers.Serializer):
         help_text=_("Interface name of the peer port"),
     )
     peer_session_type = serializers.CharField(default="peer", required=False)
-    policy_4 = serializers.IntegerField(
+    policy4 = serializers.IntegerField(
         required=False,
         allow_null=True,
         help_text=_(
             "IPv4 Policy - session will use this peering policy, should be policy id"
         ),
     )
-    policy_6 = serializers.IntegerField(
+    policy6 = serializers.IntegerField(
         required=False,
         allow_null=True,
         help_text=_(
@@ -758,8 +758,8 @@ class UpdatePeerSession(serializers.Serializer):
     class Meta:
         fields = [
             "id",
-            "policy_4",
-            "policy_6",
+            "policy4",
+            "policy6",
             "md5",
             "peer_asn",
             "peer_ip4",
@@ -921,8 +921,8 @@ class UpdatePeerSession(serializers.Serializer):
             port=port_id,
             device=device_id,
             peer_port=peer_port,
-            policy4_id=data.get("policy_4") or None,
-            policy6_id=data.get("policy_6") or None,
+            policy4_id=data.get("policy4") or None,
+            policy6_id=data.get("policy6") or None,
             status="ok",
             peer_session_type=data["peer_session_type"] or "peer",
             meta4=data.get("meta4") or None,
@@ -975,11 +975,11 @@ class UpdatePeerSession(serializers.Serializer):
         if "port" in data:
             session.port = data["port"]
 
-        if "policy_4" in data:
-            session.policy4_id = data["policy_4"]
+        if "policy4" in data:
+            session.policy4_id = data["policy4"]
 
-        if "policy_6" in data:
-            session.policy6_id = data["policy_6"]
+        if "policy6" in data:
+            session.policy6_id = data["policy6"]
 
         if "peer_session_type" in data:
             session.peer_session_type = data["peer_session_type"]
