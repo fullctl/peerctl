@@ -1012,11 +1012,11 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if "peer_maxprefix6" in data and not data["peer_maxprefix6"]:
             data.pop("peer_maxprefix6")
 
-        if "policy4" in data and not data["policy4"]:
-            data.pop("policy4")
+        if "policy4" in data and (not data["policy4"] or data["policy4"] == "0"):
+            data["policy4"] = None
 
-        if "policy6" in data and not data["policy6"]:
-            data.pop("policy6")
+        if "policy6" in data and (not data["policy6"] or data["policy6"] == "0"):
+            data["policy6"] = None
 
         if "id" in data and not data["id"]:
             data.pop("id")
