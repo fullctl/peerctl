@@ -130,7 +130,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       var i, app = this;
       for(i in this.$t) {
         if(this.$t[i].active && this.$t[i] != tool) {
-          this.$t[i].sync(app);
+          this.$t[i].sync();
         }
       }
     },
@@ -689,7 +689,8 @@ $peerctl.Networks = $tc.extend(
     },
 
     sync : function() {
-      this.$w.list.load();
+      if(this.select_network_search.val())
+        this.$w.list.load();
     },
 
     get_number_of_selected_networks() {
@@ -775,7 +776,8 @@ $peerctl.PeeringLists = $tc.extend(
         else
           select.val(select.find('option').first().val());
         this.$w.devicectl_port.device_id = select.val();
-        this.$w.devicectl_port.load();
+        if(this.$w.devicectl_port.device_id)
+          this.$w.devicectl_port.load();
       });
 
       $(this.$w.select_port.element).on("change", () => {
@@ -930,6 +932,7 @@ $peerctl.PeeringLists = $tc.extend(
 
       $(this.$w.devicectl_device.element).on("change", function() {
         devicectl_port.device_id = $(this).val();
+        debugger;
         devicectl_port.load();
         //this.$w.port_device_template.load();
       });
@@ -1883,7 +1886,14 @@ $peerctl.PeerSessionList = $tc.extend(
           if(peer_row)
             peer_row.addClass("border-active").removeClass("border-inactive");
           list.fill_policy_selects(port_row, data);
-          button_live.element.data("peer_session-id", response.first().peer_session);
+
+          $(response.first().ipaddr).each(function() {
+            if(this.ipaddr4 == data.ipaddr4 && this.ipaddr6 == data.ipaddr6) {
+              button_live.element.data("peer_session-id", this.peer_session);
+            }
+          });
+
+          
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
           fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
         });
@@ -1899,6 +1909,7 @@ $peerctl.PeerSessionList = $tc.extend(
 
 
         if(data.peer_session_status == "ok") {
+          debugger;
           button_live.element.data("peer_session-id", data.peer_session);
           port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
           if(peer_row)

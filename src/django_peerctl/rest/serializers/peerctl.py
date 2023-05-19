@@ -853,6 +853,8 @@ class UpdatePeerSession(serializers.Serializer):
             ip_address_6=data.get("peer_ip6"),
         )
 
+        
+
         peer = models.Network.get_or_create(asn=data["peer_asn"], org=None)
 
         peer_net = models.PeerNetwork.get_or_create(net, peer)
