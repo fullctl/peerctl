@@ -675,6 +675,17 @@ class PeerSessionMeta(serializers.Serializer):
         ]
 
 
+class SoftModelReferenceField(serializers.IntegerField):
+    """
+    Super fancy serializer field that can handle both integer and model instance
+    since PrimaryKeyRelatedField does not work outside of ModelSerializers (apparently)
+    """
+
+    def to_representation(self, value):
+        if hasattr(value, "id"):
+            return value.id
+
+
 @register
 class UpdatePeerSession(serializers.Serializer):
     id = serializers.IntegerField(
@@ -705,14 +716,14 @@ class UpdatePeerSession(serializers.Serializer):
         help_text=_("Interface name of the peer port"),
     )
     peer_session_type = serializers.CharField(default="peer", required=False)
-    policy4 = serializers.IntegerField(
+    policy4 = SoftModelReferenceField(
         required=False,
         allow_null=True,
         help_text=_(
             "IPv4 Policy - session will use this peering policy, should be policy id"
         ),
     )
-    policy6 = serializers.IntegerField(
+    policy6 = SoftModelReferenceField(
         required=False,
         allow_null=True,
         help_text=_(
@@ -832,6 +843,20 @@ class UpdatePeerSession(serializers.Serializer):
         ):
             if self.instance.port.object.device_id == int(data.get("device")):
                 data["port"] = int(self.instance.port)
+
+        # validate policies exist
+
+        if data.get("policy4"):
+            try:
+                policy4 = models.Policy.objects.get(id=data["policy4"], net=net)
+            except models.Policy.DoesNotExist:
+                raise serializers.ValidationError({"policy4": "Invalid policy4"})
+
+        if data.get("policy6"):
+            try:
+                policy6 = models.Policy.objects.get(id=data["policy6"], net=net)
+            except models.Policy.DoesNotExist:
+                raise serializers.ValidationError({"policy6": "Invalid policy6"})
 
         return data
 
