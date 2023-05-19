@@ -971,8 +971,17 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         """
         try:
             for peer_session in self.peer_session_qs_prefetched:
-                if peer_session.peer_port.port_info.ref_id == member.ref_id:
-                    return peer_session
+                try:
+                    if ipaddress.ip_interface(member.ipaddr4).ip == ipaddress.ip_interface(peer_session.peer_port.port_info.ipaddr4).ip:
+                        return peer_session
+                except ValueError:
+                    pass
+
+                try:
+                    if ipaddress.ip_interface(member.ipaddr6).ip == ipaddress.ip_interface(peer_session.peer_port.port_info.ipaddr6).ip:
+                        return peer_session
+                except ValueError:
+                    pass
         except PeerSession.DoesNotExist:
             return None
         return None
