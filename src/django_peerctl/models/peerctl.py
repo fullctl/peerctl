@@ -19,10 +19,9 @@ from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
 from django_countries.fields import CountryField
 from django_grainy.decorators import grainy_model
-from django_handleref.models import HandleRefModel
 from django_inet.models import ASNField
 from fullctl.django.fields.service_bridge import ReferencedObjectField
-from fullctl.django.models.abstract import meta
+from fullctl.django.models.abstract import HandleRefModel, meta
 from fullctl.django.models.concrete import Instance, Organization  # noqa
 from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
@@ -916,7 +915,7 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
             peer_sessions = PeerSession.objects.filter(port=self.pk)
             self._peer_session_qs_prefetched = peer_sessions.select_related(
                 "peer_port", "peer_port__port_info", "peer_port__peer_net"
-            ).all()
+            ).exclude(status="deleted")
         return self._peer_session_qs_prefetched
 
     def set_policy(self, *args, **kwargs):
@@ -971,8 +970,28 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         """
         try:
             for peer_session in self.peer_session_qs_prefetched:
-                if peer_session.peer_port.port_info.ref_id == member.ref_id:
-                    return peer_session
+                try:
+                    if (
+                        ipaddress.ip_interface(member.ipaddr4).ip
+                        == ipaddress.ip_interface(
+                            peer_session.peer_port.port_info.ipaddr4
+                        ).ip
+                    ):
+                        return peer_session
+                except ValueError:
+                    pass
+
+                try:
+                    if (
+                        ipaddress.ip_interface(member.ipaddr6).ip
+                        == ipaddress.ip_interface(
+                            peer_session.peer_port.port_info.ipaddr6
+                        ).ip
+                    ):
+                        return peer_session
+                except ValueError:
+                    pass
+
         except PeerSession.DoesNotExist:
             return None
         return None

@@ -26,6 +26,11 @@ button.peer_session-live {
   margin-left: -15px;
 }
 
+button.peer_session-add:disabled,
+button.peer_session-live:disabled {
+  opacity: 0.5;
+}
+
 .peers-row {
   border-right: 1px solid var(--clr-border-400);
   border-top: 1px solid var(--clr-border-400);
@@ -60,6 +65,13 @@ div.peers-row.border-inactive .border-show {
 
 div.peers-row.border-active .border-show {
   border-color: var(--clr-accent-400);
+}
+
+div.peers-row div.loading-indicator-container {
+  height:20px;
+  width:20px;
+  vertical-align: middle;
+  display:inline-block;
 }
 
 .secondary .property .field [data-field="peeringdb"] .icon {

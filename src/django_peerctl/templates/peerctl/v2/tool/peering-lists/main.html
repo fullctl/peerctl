@@ -165,7 +165,7 @@
       <div class="list-no-data">No entries found</div>
       <div class="templates">
         <div data-template="row" class="row secondary">
-          <div class="col-xs-12 col-3 indent-toggled">
+          <div class="col-xs-12 col-3 indent-toggled" style="position:relative">
             <button
               class="peer_session-add peer_session-inactive-toggled solid-inactive"
               data-api-base="{% url "peerctl_api:peer_session-list" asn=selected_asn port_pk="port_id" %}"
@@ -176,7 +176,9 @@
               data-api-base="{% url "peerctl_api:peer_session-detail" asn=selected_asn port_pk="port_id"  pk="peer_session_id" %}"
               data-confirm="{% trans "Remove this peering session?" %}"
               data-api-method="delete">{% trans "Live" %}</button>
-
+            <div class="loading-indicator-container" style="display:none;">
+              <div class="loading-indicator"></div>
+            </div>
             <span data-field="ix_name"></span>
           </div>
           <div class="col-xs-12 col-3">

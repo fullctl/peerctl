@@ -603,8 +603,9 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
         peer_session = models.PeerSession.objects.get(
             id=pk, peer_port__peer_net__net=net
         )
+        response = Response(self.serializer_class(peer_session).data)
         peer_session.delete()
-        return Response(self.serializer_class(peer_session).data)
+        return response
 
 
 @route
@@ -658,18 +659,18 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         )
 
     @load_object("net", models.Network, asn="asn")
-    @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def retrieve(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
+    def retrieve(self, request, asn, net, port_pk, pk, *args, **kwargs):
+        port = models.Port().object(port_pk)
         peer = get_member(pk)
         serializer = self.serializer_class(peer, context={"port": port, "net": net})
         return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
     @load_object("net", models.Network, asn="asn")
-    @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def details(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
+    def details(self, request, asn, net, port_pk, pk, *args, **kwargs):
+        port = models.Port().object(port_pk)
         peer = get_member(pk)
         serializer = Serializers.peerdetail(peer, context={"port": port, "net": net})
         return Response(serializer.data)
@@ -879,27 +880,15 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     require_asn = True
     require_port = True
 
-    def get_serializer_dynamic(self, path, method, direction):
-        """
-        Retrieve correct serializer class for openapi schema
-        generation
-        """
-
-        if path == "/api/peer_session/{asn}/{port_pk}/create_floating/":
-            return Serializers.update_peer_session()
-        elif path == "/api/peer_session/{asn}/{port_pk}/{id}/update_meta/":
-            return Serializers.update_peer_session_meta()
-        elif method == "PUT":
-            return Serializers.update_peer_session()
-
-        return Serializers.peer_session()
-
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, port_pk, *args, **kwargs):
         data = request.data
 
-        port = models.Port().first(id=port_pk)
+        port = models.Port().first(id=port_pk, org_slug=net.org.slug)
+
+        if not port:
+            return Response({}, status=404)
 
         member = get_member(data.get("member"), join="ix")
 
@@ -911,23 +900,25 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if not data.get("peer_asn"):
             data["peer_asn"] = 0
 
-        peer_port = models.PeerPort.get_or_create_from_members(
-            port.port_info_object.ref, member
+        # check if session exists
+
+        session_exists = models.PeerSession.get_unique(
+            asn,
+            port.device_id,
+            member.asn,
+            member.ipaddr4 or member.ipaddr6,
         )
 
-        # XXX aaactl metered limiting
-        # try:
-        #    port.port_info.net.validate_limits()
-        # except UsageLimitError as exc:
-        #    raise ValidationError(
-        #        {"non_field_errors": [["usage_limit", "{}".format(exc)]]}
-        #    )
+        if not session_exists:
+            peer_port = models.PeerPort.get_or_create_from_members(
+                port.port_info_object.ref, member
+            )
 
-        instance = models.PeerSession.get_or_create(port, peer_port)
-        instance.status = "ok"
-        instance.save()
+            instance = models.PeerSession.get_or_create(port, peer_port)
+            instance.status = "ok"
+            instance.save()
 
-        models.AuditLog.log_peer_session_add(instance, request.user)
+            models.AuditLog.log_peer_session_add(instance, request.user)
 
         serializer = Serializers.peer(
             through_member, context={"port": port, "net": net}
@@ -964,107 +955,11 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         port = models.Port().object(port_pk)
         peer_session = models.PeerSession.objects.get(id=pk)
 
+        response = Response(self.serializer_class(peer_session).data)
+
         if peer_session.port and int(peer_session.port.id) == int(port_pk):
             super().destroy(request, asn, port, pk)
-        return Response(self.serializer_class(peer_session).data)
-
-    @action(
-        detail=False,
-        methods=["post"],
-        serializer_class=Serializers.update_peer_session,
-    )
-    @load_object("net", models.Network, asn="asn")
-    @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def create_floating(self, request, asn, net, port_pk, *args, **kwargs):
-        """
-        Creates a new peering session.
-
-        Note that unless you set at minimum the following:
-
-        - peer ipv4 or ipv6 address
-        - peer type
-        - peer asn
-        - ipv4 or ipv6 policy
-        - port
-
-        the session will come back with status `partial`
-
-        You may update / finish configuration of partial sessions using the PUT request
-        the peer session API
-        """
-
-        data = request.data.copy()
-
-        if not data.get("peer_maxprefix4"):
-            data["peer_maxprefix4"] = 0
-
-        if not data.get("peer_maxprefix6"):
-            data["peer_maxprefix6"] = 0
-
-        serializer = Serializers.update_peer_session(data=data, context={"asn": asn})
-
-        serializer.is_valid(raise_exception=True)
-
-        peer_session = serializer.save()
-
-        return Response(self.serializer_class(peer_session).data)
-
-    @action(
-        detail=False,
-        methods=["post"],
-        serializer_class=Serializers.update_peer_session,
-    )
-    @load_object("net", models.Network, asn="asn")
-    @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def create_partial(self, request, asn, net, port_pk, *args, **kwargs):
-        return self.create_floating(request, asn, net, port_pk, *args, **kwargs)
-
-    @load_object("net", models.Network, asn="asn")
-    @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def update(self, request, asn, net, port_pk, pk, *args, **kwargs):
-        data = request.data.copy()
-        session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
-
-        if not data.get("peer_maxprefix4"):
-            data["peer_maxprefix4"] = 0
-
-        if not data.get("peer_maxprefix6"):
-            data["peer_maxprefix6"] = 0
-
-        serializer = Serializers.update_peer_session(
-            session, data=data, context={"asn": asn}
-        )
-
-        serializer.is_valid(raise_exception=True)
-
-        peer_session = serializer.save()
-
-        return Response(self.serializer_class(peer_session).data)
-
-    @action(
-        detail=True,
-        methods=["put"],
-        serializer_class=Serializers.update_peer_session_meta,
-    )
-    @load_object("net", models.Network, asn="asn")
-    @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def update_meta(self, request, asn, net, port_pk, pk, *args, **kwargs):
-        data = request.data.copy()
-        session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
-
-        serializer = Serializers.update_peer_session_meta(
-            session, data=data, context={}
-        )
-
-        if "meta4" not in data:
-            data["meta4"] = session.meta4 or None
-
-        if "meta6" not in data:
-            data["meta6"] = session.meta6 or None
-
-        serializer.is_valid(raise_exception=True)
-        peer_session = serializer.save()
-        return Response(self.serializer_class(peer_session).data)
+        return response
 
 
 @route
@@ -1100,7 +995,7 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         """
         Handles saving of peer session data (both creation an update)
 
-        Unique sessions are identified by port (ip) + peer asn + peer ip
+        Unique sessions are identified by device or port (ip) + peer asn + peer ip
 
         If a peer session already exists, it is updated, otherwise a new
         session is created.
@@ -1117,11 +1012,11 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if "peer_maxprefix6" in data and not data["peer_maxprefix6"]:
             data.pop("peer_maxprefix6")
 
-        if "policy_4" in data and not data["policy_4"]:
-            data.pop("policy_4")
+        if "policy4" in data and not data["policy4"]:
+            data.pop("policy4")
 
-        if "policy_6" in data and not data["policy_6"]:
-            data.pop("policy_6")
+        if "policy6" in data and not data["policy6"]:
+            data.pop("policy6")
 
         if "id" in data and not data["id"]:
             data.pop("id")
@@ -1130,8 +1025,6 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         valid_slz.is_valid(raise_exception=True)
 
         data = valid_slz.validated_data
-
-        print(data)
 
         if data.get("id"):
             # id is specified, so thats the session to update
@@ -1164,6 +1057,48 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         serializer.save()
 
         return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def destroy(self, request, asn, net, *args, **kwargs):
+        """
+        Handles deletion of a peer session
+
+        Unique sessions are identified by port (ip) + peer asn + peer ip
+        """
+
+        data = request.data
+
+        if "id" in data and not data["id"]:
+            data.pop("id")
+
+        valid_slz = Serializers.update_peer_session(data=data, context={"asn": asn})
+        valid_slz.is_valid(raise_exception=True)
+
+        data = valid_slz.validated_data
+
+        if data.get("id"):
+            # id is specified, so thats the session to update
+            session = models.PeerSession.objects.get(
+                pk=data["id"], peer_port__peer_net__net=net
+            )
+        else:
+            # other wise we use the unique fields to find the session
+            session = models.PeerSession.get_unique(
+                asn,
+                data["device"],
+                data["peer_asn"],
+                data.get("peer_ip4") or data.get("peer_ip6"),
+            )
+
+        if not session:
+            return Response({}, status=404)
+
+        response = Response(valid_slz.data)
+
+        session.delete()
+
+        return response
 
 
 @route
