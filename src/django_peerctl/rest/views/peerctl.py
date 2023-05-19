@@ -902,16 +902,12 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         # check if session exists
 
-        print("IP4", member.ipaddr4)
-
         session_exists = models.PeerSession.get_unique(
             asn,
             port.device_id,
             member.asn,
             member.ipaddr4 or member.ipaddr6,
         )
-
-        print("SESSION EXISTS", session_exists)
 
         if not session_exists:
             peer_port = models.PeerPort.get_or_create_from_members(
