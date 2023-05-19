@@ -665,7 +665,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         peer = get_member(pk)
         serializer = self.serializer_class(peer, context={"port": port, "net": net})
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=["get"])
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
@@ -890,7 +890,6 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if not port:
             return Response({}, status=404)
 
-
         member = get_member(data.get("member"), join="ix")
 
         if data.get("through"):
@@ -1104,8 +1103,6 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         session.delete()
 
         return response
-
-
 
 
 @route

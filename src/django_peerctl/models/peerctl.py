@@ -21,7 +21,7 @@ from django_countries.fields import CountryField
 from django_grainy.decorators import grainy_model
 from django_inet.models import ASNField
 from fullctl.django.fields.service_bridge import ReferencedObjectField
-from fullctl.django.models.abstract import meta, HandleRefModel
+from fullctl.django.models.abstract import HandleRefModel, meta
 from fullctl.django.models.concrete import Instance, Organization  # noqa
 from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
@@ -971,13 +971,23 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         try:
             for peer_session in self.peer_session_qs_prefetched:
                 try:
-                    if ipaddress.ip_interface(member.ipaddr4).ip == ipaddress.ip_interface(peer_session.peer_port.port_info.ipaddr4).ip:
+                    if (
+                        ipaddress.ip_interface(member.ipaddr4).ip
+                        == ipaddress.ip_interface(
+                            peer_session.peer_port.port_info.ipaddr4
+                        ).ip
+                    ):
                         return peer_session
                 except ValueError:
                     pass
 
                 try:
-                    if ipaddress.ip_interface(member.ipaddr6).ip == ipaddress.ip_interface(peer_session.peer_port.port_info.ipaddr6).ip:
+                    if (
+                        ipaddress.ip_interface(member.ipaddr6).ip
+                        == ipaddress.ip_interface(
+                            peer_session.peer_port.port_info.ipaddr6
+                        ).ip
+                    ):
                         return peer_session
                 except ValueError:
                     pass
