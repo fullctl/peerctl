@@ -848,13 +848,13 @@ class UpdatePeerSession(serializers.Serializer):
 
         if data.get("policy4"):
             try:
-                policy4 = models.Policy.objects.get(id=data["policy4"], net=net)
+                models.Policy.objects.get(id=data["policy4"], net=net)
             except models.Policy.DoesNotExist:
                 raise serializers.ValidationError({"policy4": "Invalid policy4"})
 
         if data.get("policy6"):
             try:
-                policy6 = models.Policy.objects.get(id=data["policy6"], net=net)
+                models.Policy.objects.get(id=data["policy6"], net=net)
             except models.Policy.DoesNotExist:
                 raise serializers.ValidationError({"policy6": "Invalid policy6"})
 
