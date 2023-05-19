@@ -932,7 +932,6 @@ $peerctl.PeeringLists = $tc.extend(
 
       $(this.$w.devicectl_device.element).on("change", function() {
         devicectl_port.device_id = $(this).val();
-        debugger;
         devicectl_port.load();
         //this.$w.port_device_template.load();
       });
@@ -1909,7 +1908,6 @@ $peerctl.PeerSessionList = $tc.extend(
 
 
         if(data.peer_session_status == "ok") {
-          debugger;
           button_live.element.data("peer_session-id", data.peer_session);
           port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
           if(peer_row)
