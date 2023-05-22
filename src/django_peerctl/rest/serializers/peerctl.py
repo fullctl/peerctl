@@ -1015,6 +1015,12 @@ class UpdatePeerSession(serializers.Serializer):
         if "meta6" in data:
             session.meta6 = data.get("meta6") or None
 
+        if session.port and not session.port.object.port_info_object:
+            port_info = models.PortInfo.objects.create(
+                port=session.port.object.id, net=net
+            )
+            session.port.object._port_info = port_info
+
         session.status = "ok"
         session.save()
 
