@@ -1031,6 +1031,22 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
             session = models.PeerSession.objects.get(
                 pk=data["id"], peer_port__peer_net__net=net
             )
+
+            collision = models.PeerSession.get_unique(
+                asn,
+                data["device"],
+                data["peer_asn"],
+                data.get("peer_ip4") or data.get("peer_ip6"),
+            )
+
+            if collision and collision.id != session.id:
+                return BadRequest(
+                    {
+                        "non_field_errors": [
+                            "A session with the same device, peer asn, and peer ip already exists"
+                        ]
+                    }
+                )
         else:
             # other wise we use the unique fields to find the session
             session = models.PeerSession.get_unique(
