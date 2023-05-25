@@ -26,7 +26,7 @@ from fullctl.django.models.concrete import Instance, Organization  # noqa
 from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
-from netfields import InetAddressField, MACAddressField
+from netfields import InetAddressField, MACAddressField, NetManager
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
@@ -1281,6 +1281,8 @@ class PortInfo(sot.ReferenceMixin, Base):
     is_route_server_peer = models.BooleanField(null=True)
 
     mac_address = MACAddressField(null=True, blank=True)
+
+    objects = NetManager()
 
     class HandleRef:
         tag = "port_info"
