@@ -42,6 +42,7 @@ INSTALLED_APPS += (
     "reversion",
     "fullctl.django.apps.DjangoFullctlConfig",
     "django_peerctl.apps.DjangoPeerctlConfig",
+    "netfields",
 )
 
 TEMPLATES[0]["OPTIONS"]["context_processors"] += [
