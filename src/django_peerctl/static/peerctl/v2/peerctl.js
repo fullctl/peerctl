@@ -1055,8 +1055,15 @@ $peerctl.SessionsSummary = $tc.extend(
           $(this.delete_selected_button)
         );
 
-        // handle policy editor widgets for each row
         w.formatters.row = (row, data) => {
+          // add network tooltip to asn
+          const asn_field = row.find('[data-field="peer_asn"]');
+          asn_field.attr("data-bs-toggle", "tooltip")
+            .attr("data-bs-placement", "top")
+            .attr("data-bs-title", data.peer_network_name);
+          new bootstrap.Tooltip(asn_field);
+
+          // handle policy editor widgets for each row
           row.find("[data-action=edit_session]").click(() => {
             new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
           });
