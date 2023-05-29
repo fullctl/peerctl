@@ -441,7 +441,7 @@ class NetworkSearch(viewsets.GenericViewSet):
                     source = port_info.ref_source
                 except sot.ReferenceNotSetError:
                     source = None
-                
+
                 if source == "pdbctl" and port_info.ref.ix_id == f"pdbctl:{ix_id}":
                     loc_data["session"] = True
                     break
@@ -453,12 +453,12 @@ class NetworkSearch(viewsets.GenericViewSet):
                         loc_data["session"] = True
                         break
                 elif session.port:
-                    # the peer port does not have a direct reference to a 
+                    # the peer port does not have a direct reference to a
                     # pdbctl networkixlan or ixctl internet exchange member
                     # so we check by ip-address match instead.
 
                     ses_port_info = session.port.object.port_info_object
-                    
+
                     loc_data["session"] = ses_port_info.in_same_subnet(port_info)
 
         result["their_locations"] = sorted(

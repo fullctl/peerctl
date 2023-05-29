@@ -1465,26 +1465,26 @@ class PortInfo(sot.ReferenceMixin, Base):
         ip4 = ipaddress.ip_interface(self.ipaddr4) if self.ipaddr4 else None
         ip6 = ipaddress.ip_interface(self.ipaddr6) if self.ipaddr6 else None
 
-        other_ip4 = ipaddress.ip_interface(port_info.ipaddr4) if port_info.ipaddr4 else None
-        other_ip6 = ipaddress.ip_interface(port_info.ipaddr6) if port_info.ipaddr6 else None
+        other_ip4 = (
+            ipaddress.ip_interface(port_info.ipaddr4) if port_info.ipaddr4 else None
+        )
+        other_ip6 = (
+            ipaddress.ip_interface(port_info.ipaddr6) if port_info.ipaddr6 else None
+        )
 
         if ip4 and other_ip4:
             network4 = ip4.network if ip4.network.prefixlen < 32 else other_ip4.network
-        
+
         if ip6 and other_ip6:
             network6 = ip6.network if ip6.network.prefixlen < 128 else other_ip6.network
 
         if ip4 and other_ip4:
-            return (other_ip4.ip in network4 and ip4.ip in network4)
+            return other_ip4.ip in network4 and ip4.ip in network4
 
         if ip6 and other_ip6:
-            return (other_ip6.ip in network6 and ip6.ip in network6)
-    
+            return other_ip6.ip in network6 and ip6.ip in network6
+
         return False
-
-        
-
-
 
 
 class DeviceObject(devicectl.DeviceCtlEntity):
