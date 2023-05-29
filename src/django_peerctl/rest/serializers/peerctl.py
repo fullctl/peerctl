@@ -1156,6 +1156,7 @@ class PeerSession(ModelSerializer):
     )
     peer_asn = serializers.SerializerMethodField()
     peer_name = serializers.SerializerMethodField()
+    peer_network_name = serializers.SerializerMethodField()
     peer_type = serializers.SerializerMethodField()
     peer_interface = serializers.SerializerMethodField()
     peer_maxprefix4 = serializers.SerializerMethodField()
@@ -1199,6 +1200,7 @@ class PeerSession(ModelSerializer):
             "peer_maxprefix4",
             "peer_maxprefix6",
             "peer_name",
+            "peer_network_name",
             "peer_type",
             "peer_session_type",
             "policy4_id",
@@ -1330,6 +1332,9 @@ class PeerSession(ModelSerializer):
 
     def get_peer_name(self, obj):
         return obj.peer_port.peer_net.peer.name
+
+    def get_peer_network_name(self, obj):
+        return obj.peer_port.peer_net.net.name
 
     def get_peer_asn(self, obj):
         return obj.peer_port.peer_net.peer.asn
