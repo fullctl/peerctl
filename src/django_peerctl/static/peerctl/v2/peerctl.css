@@ -6,6 +6,7 @@
   --peer-row-light: var(--clr-bg-210);
 }
 
+
 div.peer_session-inactive .peer_session-active-toggled {
   display: none;
 }
@@ -20,23 +21,6 @@ div.hide-active-peers .peers-row.border-active {
 
 div.hide-available-peers .peers-row.border-inactive {
   display: none;
-}
-
-button.peer_session-add,
-button.peer_session-live {
-	text-transform: uppercase;
-	height: 42px;
-  font-family: "Archivo Narrow";
-  font-size: 16px;
-  font-weight: bold;
-  letter-spacing: 0;
-  line-height: 20px;
-  margin-left: -15px;
-}
-
-button.peer_session-add:disabled,
-button.peer_session-live:disabled {
-  opacity: 0.5;
 }
 
 .btn[data-element="md5"] {
