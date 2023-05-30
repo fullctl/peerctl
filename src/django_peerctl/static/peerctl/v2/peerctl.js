@@ -1321,11 +1321,11 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
   "ModalFloatingSession",
   {
     ModalFloatingSession : function(facility, device, port, session) {
-      var modal = this;
-      var title = "Add peer session"
-      var form = this.form = new twentyc.rest.Form(
+      const modal = this;
+      const form = this.form = new twentyc.rest.Form(
         $ctl.template("form_floating_session")
       );
+      var title = "Add peer session"
 
       this.session = session;
 
@@ -1410,6 +1410,15 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
         modal.hide();
         fullctl.peerctl.$t.sessions_summary.$w.list_peer_sessions.load();
       });
+
+      // scroll to errors becaues form is long
+      const post_failure_orig = form.post_failure.bind(form);
+      form.post_failure = (response) => {
+        post_failure_orig(response);
+        $(form.element).find(".validation-error").first().each(function() {
+          this.scrollIntoView({behavior: "smooth"});
+        })
+      }
 
       this.Modal("save_right", title, form.element);
       form.wire_submit(this.$e.button_submit);
