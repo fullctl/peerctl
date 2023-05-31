@@ -1474,7 +1474,7 @@ class UserPreferences(ModelSerializer):
 
 @register
 class NetworkLocation(serializers.Serializer):
-    ix_id = serializers.IntegerField()
+    ix_id = serializers.CharField()
     ix_name = serializers.CharField()
     session = serializers.BooleanField(required=False)
 

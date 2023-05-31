@@ -393,14 +393,19 @@ class NetworkSearch(viewsets.GenericViewSet):
 
         locations_them = {}
         locations_us = {}
+        ports_them = {}
 
         # get their exchanges, our exchanges, and also summarize mutual exchanges
 
-        for netixlan in pdbctl.NetworkIXLan().objects(asns=[asn, other_asn], join="ix"):
+        for netixlan in sot.InternetExchangeMember().objects(
+            asns=[asn, other_asn], join="ix"
+        ):
+            ix_id = f"{netixlan.source}:{netixlan.ix.id}"
             if netixlan.asn == int(asn):
-                locations_us[netixlan.ix.id] = netixlan.ix.name
+                locations_us[ix_id] = netixlan.ix.name
             elif netixlan.asn == int(other_asn):
-                locations_them[netixlan.ix.id] = netixlan.ix.name
+                locations_them[ix_id] = netixlan.ix.name
+                ports_them.setdefault(ix_id, []).append(netixlan)
 
         for ix_id, ix_name in locations_them.items():
             result["their_locations"][ix_id] = {"ix_name": ix_name, "ix_id": ix_id}
@@ -430,36 +435,40 @@ class NetworkSearch(viewsets.GenericViewSet):
 
         for ix_id, loc_data in result["mutual_locations"].items():
             # loop through all peering sessions for this net and asn
+
             for session in peer_sessions:
-                # check if the session is for this ix
-                # for pdbctl this a straight forward ix id comparison
-                # for ixctl we need to get the ix object and compare the pdb id
+                # check if the session is for this ix, we do this by
+                # comparing ip addresses of active sessions against the
+                # ports (netixlans) pdb has for the ix
 
                 port_info = session.peer_port.port_info
+                peer_ip4 = (
+                    ipaddress.ip_interface(port_info.ipaddr4)
+                    if port_info.ipaddr4
+                    else None
+                )
+                peer_ip6 = (
+                    ipaddress.ip_interface(port_info.ipaddr6)
+                    if port_info.ipaddr6
+                    else None
+                )
 
-                try:
-                    source = port_info.ref_source
-                except sot.ReferenceNotSetError:
-                    source = None
-
-                if source == "pdbctl" and port_info.ref.ix_id == f"pdbctl:{ix_id}":
-                    loc_data["session"] = True
-                    break
-                elif source == "ixctl":
-                    ixctl_ix_id = port_info.ref_ix_id.split(":")[1]
-                    ixctl_ix = ixctl.InternetExchange().object(ixctl_ix_id)
-
-                    if ixctl_ix.pdb_id == ix_id:
+                for other_port in ports_them.get(ix_id, []):
+                    if (
+                        peer_ip4
+                        and other_port.ipaddr4
+                        and peer_ip4.ip == ipaddress.ip_address(other_port.ipaddr4)
+                    ):
                         loc_data["session"] = True
                         break
-                elif session.port:
-                    # the peer port does not have a direct reference to a
-                    # pdbctl networkixlan or ixctl internet exchange member
-                    # so we check by ip-address match instead.
 
-                    ses_port_info = session.port.object.port_info_object
-
-                    loc_data["session"] = ses_port_info.in_same_subnet(port_info)
+                    if (
+                        peer_ip6
+                        and other_port.ipaddr6
+                        and peer_ip6.ip == ipaddress.ip_address(other_port.ipaddr6)
+                    ):
+                        loc_data["session"] = True
+                        break
 
         result["their_locations"] = sorted(
             list(result["their_locations"].values()), key=lambda x: x["ix_name"]
@@ -1303,9 +1312,31 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             email_template.context["peer"] = sot.InternetExchangeMember().first(asn=asn)
 
         if request.data.get("ix_ids"):
+            # exchanges have been selected
+            # these will come in a list as strings in the form of "ixctl:1" or "pdbctl:1"
+            # we need to split them and get the ids and then selectively load them from
+            # the service bridge.
+
+            exchanges = []
+            ixctl_ix_ids = [
+                int(ix_id.split(":")[1])
+                for ix_id in request.data["ix_ids"]
+                if ix_id.startswith("ixctl:")
+            ]
+            pdbctl_ix_ids = [
+                int(ix_id.split(":")[1])
+                for ix_id in request.data["ix_ids"]
+                if ix_id.startswith("pdbctl:")
+            ]
+
+            if ixctl_ix_ids:
+                exchanges.extend(ixctl.InternetExchange().objects(ids=ixctl_ix_ids))
+
+            if pdbctl_ix_ids:
+                exchanges.extend(pdbctl.InternetExchange().objects(ids=pdbctl_ix_ids))
+
             email_template.context["selected_exchanges"] = list(
-                models.MutualLocation(ix, net, None)
-                for ix in pdbctl.InternetExchange().objects(ids=request.data["ix_ids"])
+                models.MutualLocation(ix, net, None) for ix in exchanges
             )
 
         if "peer_session" in request.data:
