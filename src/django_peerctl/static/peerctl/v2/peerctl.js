@@ -1068,8 +1068,8 @@ $peerctl.SessionsSummary = $tc.extend(
             new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
           });
 
-          if(data.status == "partial") {
-            row.addClass("partial");
+          if(data.status != "ok") {
+            row.addClass("session-down");
           }
         }
 
