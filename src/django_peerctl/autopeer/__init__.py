@@ -4,6 +4,7 @@ __all__ = [
     "autopeer_url",
 ]
 
+
 def autopeer_url(asn):
     """
     checks if the target network is autopeer enabled and returns its autopeer
@@ -13,4 +14,4 @@ def autopeer_url(asn):
     """
 
     # TODO: this should query autopeer-registry once it exsts
-    return settings.AUTOPEER_ENABLED_NETWORKS.get(asn,{}).get("url")
+    return settings.AUTOPEER_ENABLED_NETWORKS.get(asn, {}).get("url")

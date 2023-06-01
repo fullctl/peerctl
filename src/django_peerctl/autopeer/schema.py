@@ -1,10 +1,12 @@
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
 
 
 class Location(BaseModel):
     id: str
     type: str
+
 
 class Locations(BaseModel):
     items: list[Location]
@@ -25,7 +27,7 @@ class Session(BaseModel):
 
     # allowed values?
     peer_type: Optional[str] = "peer"
-    md5: Optional[str] = ""    
+    md5: Optional[str] = ""
     local_asn: Optional[int] = 0
     local_ip: Optional[str] = ""
 

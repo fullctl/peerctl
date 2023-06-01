@@ -1,19 +1,19 @@
 import ipaddress
+import json
 
 import fullctl.service_bridge.pdbctl as pdbctl
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
+from fullctl.django.models.concrete.tasks import TaskLimitError
 from fullctl.django.rest.decorators import serializer_registry
 from fullctl.django.rest.serializers import ModelSerializer
-from fullctl.django.models.concrete.tasks import TaskLimitError
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError  # noqa
 
-import django_peerctl.models as models
-from django_peerctl.helpers import get_best_policy
 import django_peerctl.autopeer.tasks as autopeer_tasks
+import django_peerctl.models as models
 from django_peerctl.autopeer import autopeer_url
-import json
+from django_peerctl.helpers import get_best_policy
 
 Serializers, register = serializer_registry()
 
@@ -1557,13 +1557,10 @@ class AutopeerRequest(serializers.Serializer):
     class Meta:
         fields = ["asn", "status", "location", "date"]
 
-
     @classmethod
     def get_requests(cls, asn, org):
-
         _requests = autopeer_tasks.AutopeerRequest.objects.filter(
-            op="task_autopeer_request",
-            org=org
+            op="task_autopeer_request", org=org
         ).order_by("-created")
 
         filtered_requests = []
@@ -1581,15 +1578,19 @@ class AutopeerRequest(serializers.Serializer):
 
             ix_ids.extend(locations)
 
-            filtered_requests.append({
-                "asn": request.asn,
-                "date": request.updated,
-                "status": request.status,
-                "location": locations,
-            })
+            filtered_requests.append(
+                {
+                    "asn": request.asn,
+                    "date": request.updated,
+                    "status": request.status,
+                    "location": locations,
+                }
+            )
 
         if ix_ids:
-            exchanges = {ix.id: ix for ix in pdbctl.InternetExchange().objects(ids=ix_ids)}
+            exchanges = {
+                ix.id: ix for ix in pdbctl.InternetExchange().objects(ids=ix_ids)
+            }
 
             for request in filtered_requests:
                 request["location"] = [
@@ -1598,14 +1599,12 @@ class AutopeerRequest(serializers.Serializer):
                     if ix_id in exchanges
                 ]
 
-
         return filtered_requests
 
     def get_location(self, obj):
         return obj.get("location", [])
 
     def validate(self, data):
-
         asn = data["asn"]
 
         if not autopeer_url(asn):
@@ -1620,12 +1619,13 @@ class AutopeerRequest(serializers.Serializer):
             return autopeer_tasks.AutopeerRequest.create_task(
                 self.context["asn"],
                 self.validated_data["asn"],
-                org=self.context.get("org")
+                org=self.context.get("org"),
             )
         except TaskLimitError:
             raise serializers.ValidationError(
                 "You already have a pending autopeer request towards this ASN."
             )
+
 
 @register
 class AutopeerEnabled(serializers.Serializer):

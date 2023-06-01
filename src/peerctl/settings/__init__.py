@@ -137,13 +137,8 @@ settings_manager.set_option("PEER_REQUEST_FROM_EMAIL", NO_REPLY_EMAIL)
 # AUTOPEER SETTINGS
 
 AUTOPEER_ENABLED_NETWORKS = {
-    
     # Cloudflare
-    
-    13335: {
-        "url": "https://autopeer.as13335.net/v0"
-    }
-    
+    13335: {"url": "https://autopeer.as13335.net/v0"}
 }
 
 # FINALIZE

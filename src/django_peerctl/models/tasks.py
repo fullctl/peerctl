@@ -117,4 +117,3 @@ class SyncDevicePorts(Task):
 
     def generate_limit_id(self):
         return self.org_id
-
