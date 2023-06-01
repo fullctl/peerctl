@@ -912,7 +912,7 @@ class UpdatePeerSession(serializers.Serializer):
         elif peer_ip4:
             filters.append(Q(ip_address_4__host=peer_ip4.ip))
         elif peer_ip6:
-            filters.append(Q(ip_address_6__host=peer_ip4.ip))
+            filters.append(Q(ip_address_6__host=peer_ip6.ip))
 
         # filter arguments for PortInfo object
 
@@ -1057,11 +1057,12 @@ class UpdatePeerSession(serializers.Serializer):
         if old_md5 != peer_net.md5 and session.port:
             peer_net.sync_route_server_md5()
 
-        self.ensure_peer_portinfo(
+        peer_port_info = self.ensure_peer_portinfo(
             net, data.get("peer_ip4"), data.get("peer_ip6"), data.get("port")
         )
 
         session.peer_port.peer_net = peer_net
+        session.peer_port.port_info = peer_port_info
 
         if "peer_interface" in data:
             session.peer_port.interface_name = data["peer_interface"]
@@ -1478,7 +1479,7 @@ class UserPreferences(ModelSerializer):
 
 @register
 class NetworkLocation(serializers.Serializer):
-    ix_id = serializers.IntegerField()
+    ix_id = serializers.CharField()
     ix_name = serializers.CharField()
     session = serializers.BooleanField(required=False)
 
