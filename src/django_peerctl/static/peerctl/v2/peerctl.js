@@ -2027,6 +2027,25 @@ $peerctl.PeerList = $tc.extend(
         new $peerctl.modals.RequestPeering(data);
       });
 
+      row.find('[data-element="request_autopeering"]').click(()=>{
+        let url = `/api/autopeer/${fullctl.peerctl.network.asn}/`
+        let payload = {
+          asn: data.asn,
+        }
+
+        $.ajax({
+          url: url,
+          method: "POST",
+          data: JSON.stringify(payload),
+          headers : {
+            "Content-Type" : "application/json",
+            "X-CSRFToken" : twentyc.rest.config.csrf
+          },
+        }).then((data)=>{
+          console.log(data);
+        });
+      });
+
       return row;
     },
 

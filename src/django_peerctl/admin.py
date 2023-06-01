@@ -125,7 +125,7 @@ class PortInfoAdmin(CachedPortMixin, admin.ModelAdmin):
     def ip4(self, obj):
         try:
             return self._ports.get(int(obj.port)).ip_address_4
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             pass
 
         return obj.ip_address_4 or obj.ref.ipaddr4
@@ -134,7 +134,7 @@ class PortInfoAdmin(CachedPortMixin, admin.ModelAdmin):
     def ip6(self, obj):
         try:
             return self._ports.get(int(obj.port)).ip_address_6
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             pass
 
         return obj.ip_address_6 or obj.ref.ipaddr6

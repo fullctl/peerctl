@@ -891,6 +891,50 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
         return Response({})
 
 
+
+@route
+class AutopeerRequest(viewsets.GenericViewSet):
+    serializer_class = Serializers.autopeer
+    require_asn = True
+    require_port = False
+    require_member = False
+
+    http_method_names = ["get", "post"]
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def create(self, request, asn, net, *args, **kwargs):
+        serializer = self.get_serializer_class()(
+            data=request.data, context={"asn": asn, "org": net.org}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list(self, request, asn, net, *args, **kwargs):
+
+        tasks = self.get_serializer_class().get_requests(asn, net.org)
+
+        print(tasks)
+
+        serializer = self.get_serializer_class()(
+            instance=tasks, context={"asn": asn}, many=True
+        )
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="enabled/(?P<their_asn>[0-9]+)")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def enabled(self, request, asn, net, their_asn, *args, **kwargs):
+        serializer = Serializers.autopeer_enabled(
+            data={"asn": their_asn}, context={"asn": asn}
+        )
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
 # peer session view
 # create
 

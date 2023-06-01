@@ -5,11 +5,15 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from fullctl.django.rest.decorators import serializer_registry
 from fullctl.django.rest.serializers import ModelSerializer
+from fullctl.django.models.concrete.tasks import TaskLimitError
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError  # noqa
 
 import django_peerctl.models as models
 from django_peerctl.helpers import get_best_policy
+import django_peerctl.autopeer.tasks as autopeer_tasks
+from django_peerctl.autopeer import autopeer_url
+import json
 
 Serializers, register = serializer_registry()
 
@@ -1535,3 +1539,107 @@ class PeeringDBRelationship(serializers.Serializer):
 
     def get_url(self, obj):
         return f"https://www.peeringdb.com/{obj.ref_tag}/{obj.id}"
+
+
+@register
+class AutopeerRequest(serializers.Serializer):
+    """
+    Initiates an autopeering request
+    """
+
+    asn = serializers.IntegerField()
+    date = serializers.DateTimeField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    location = serializers.SerializerMethodField()
+
+    ref_tag = "autopeer"
+
+    class Meta:
+        fields = ["asn", "status", "location", "date"]
+
+
+    @classmethod
+    def get_requests(cls, asn, org):
+
+        _requests = autopeer_tasks.AutopeerRequest.objects.filter(
+            op="task_autopeer_request",
+            org=org
+        ).order_by("-created")
+
+        filtered_requests = []
+        ix_ids = []
+
+        for request in _requests:
+            print(request.param)
+            if request.asn != asn:
+                continue
+
+            if request.output:
+                locations = json.loads(request.output).get("locations")
+            else:
+                locations = []
+
+            ix_ids.extend(locations)
+
+            filtered_requests.append({
+                "asn": request.asn,
+                "date": request.updated,
+                "status": request.status,
+                "location": locations,
+            })
+
+        if ix_ids:
+            exchanges = {ix.id: ix for ix in pdbctl.InternetExchange().objects(ids=ix_ids)}
+
+            for request in filtered_requests:
+                request["location"] = [
+                    exchanges[ix_id].name
+                    for ix_id in request["location"]
+                    if ix_id in exchanges
+                ]
+
+
+        return filtered_requests
+
+    def get_location(self, obj):
+        return obj.get("location", [])
+
+    def validate(self, data):
+
+        asn = data["asn"]
+
+        if not autopeer_url(asn):
+            raise serializers.ValidationError(
+                "This ASN is not enabled for autopeering."
+            )
+
+        return data
+
+    def save(self):
+        try:
+            return autopeer_tasks.AutopeerRequest.create_task(
+                self.context["asn"],
+                self.validated_data["asn"],
+                org=self.context.get("org")
+            )
+        except TaskLimitError:
+            raise serializers.ValidationError(
+                "You already have a pending autopeer request towards this ASN."
+            )
+
+@register
+class AutopeerEnabled(serializers.Serializer):
+    """
+    States whether or not a given asn has autopeer enabled
+    """
+
+    asn = serializers.IntegerField()
+    enabled = serializers.SerializerMethodField()
+
+    ref_tag = "autopeer_enabled"
+
+    class Meta:
+        fields = ["asn", "enabled"]
+
+    def get_enabled(self, obj):
+        return autopeer_url(obj["asn"]) is not None
