@@ -716,7 +716,7 @@ class UpdatePeerSession(serializers.Serializer):
         allow_blank=True,
         help_text=_("Interface name of the peer port"),
     )
-    peer_session_type = serializers.CharField(default="peer", required=False)
+    peer_session_type = serializers.CharField(allow_null=True, allow_blank=True, required=False)
     policy4 = SoftModelReferenceField(
         required=False,
         allow_null=True,
@@ -991,7 +991,9 @@ class UpdatePeerSession(serializers.Serializer):
             candidate_ports = models.Port.in_same_subnet(
                 net.org, device_id, data.get("peer_ip4") or data.get("peer_ip6")
             )
-            if candidate_ports and len(candidate_ports) == 1:
+            if candidate_ports:
+                # TODO: what happens if more than one suitable port is returned? does that
+                # ever happen in the real world? For now just pick the first.
                 port = candidate_ports[0]
 
         if not port and not device_id:
@@ -1025,6 +1027,19 @@ class UpdatePeerSession(serializers.Serializer):
 
         peer_port.save()
 
+
+        # determine default peer session type
+
+        if peer_net.peer.asn == net.asn:
+            default_peer_session_type = "core"
+        elif port and port.is_ixi:
+            default_peer_session_type = "peer"
+        else:
+            default_peer_session_type = "transit"
+
+        if not data.get("peer_session_type"):
+            data["peer_session_type"] = default_peer_session_type
+
         return models.PeerSession.objects.create(
             port=port_id,
             device=device_id,
@@ -1032,7 +1047,7 @@ class UpdatePeerSession(serializers.Serializer):
             policy4_id=data.get("policy4") or None,
             policy6_id=data.get("policy6") or None,
             status="ok",
-            peer_session_type=data["peer_session_type"] or "peer",
+            peer_session_type=data.get("peer_session_type"),
             meta4=data.get("meta4") or None,
             meta6=data.get("meta6") or None,
         )
