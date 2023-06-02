@@ -1016,7 +1016,9 @@ class UpdatePeerSession(serializers.Serializer):
             net, data.get("peer_ip4"), data.get("peer_ip6"), port
         )
 
-        peer_port = models.PeerPort.get_or_create(peer_port_info, peer_net)
+        peer_port = models.PeerPort.objects.filter(port_info=peer_port_info, peer_net=peer_net).first()
+        if not peer_port:
+            peer_port = models.PeerPort.objects.create(port_info=peer_port_info, peer_net=peer_net)
 
         if "peer_interface" in data:
             peer_port.interface_name = data["peer_interface"]
