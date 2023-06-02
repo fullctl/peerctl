@@ -286,3 +286,11 @@ div.peers-row div.loading-indicator-container {
 .session-active {
   color: var(--clr-accent-400);
 }
+
+.up .icon-triangle-fill-up {
+  background-color: green;
+}
+
+.down .icon-triangle-fill-down {
+  background-color: red;
+}

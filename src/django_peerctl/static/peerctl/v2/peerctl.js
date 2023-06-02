@@ -1067,19 +1067,26 @@ $peerctl.SessionsSummary = $tc.extend(
           row.find("[data-action=edit_session]").click(() => {
             new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
           });
-
-          if(data.status != "ok") {
-            row.addClass("session-down");
-          }
         }
 
         w.formatters.meta4 = (value) => {
           if(!value)
             return "-";
 
-          var node = $('<div>');
-          node.append($('<span>').text(value.last_updown));
-          node.append($('<button data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').prop("title", fullctl.formatters.meta_data(value).html()).tooltip().append(
+          const node = $('<div class="text-nowrap">');
+          if (value.session_state && value.session_state == "ESTABLISHED") {
+            node.append($('<span class="icon icon-triangle-fill-up">'))
+            node.addClass("up")
+          } else {
+            node.append($('<span class="icon icon-triangle-fill-down">'))
+            node.addClass("down")
+          }
+
+          value.last_updown = fullctl.formatters.seconds_to_wdhms(value.last_updown);
+          node.append($('<span class="ps-1">').text(
+            fullctl.formatters.shorten_number(value.accepted) + "/" + fullctl.formatters.shorten_number(value.received)
+          ));
+          node.append($('<span data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').prop("title", fullctl.formatters.meta_data(value).html()).tooltip().append(
             $('<span class="icon fullctl icon-list">')
           ));
 
