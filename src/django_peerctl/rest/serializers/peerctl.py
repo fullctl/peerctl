@@ -716,7 +716,9 @@ class UpdatePeerSession(serializers.Serializer):
         allow_blank=True,
         help_text=_("Interface name of the peer port"),
     )
-    peer_session_type = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    peer_session_type = serializers.CharField(
+        allow_null=True, allow_blank=True, required=False
+    )
     policy4 = SoftModelReferenceField(
         required=False,
         allow_null=True,
@@ -906,14 +908,13 @@ class UpdatePeerSession(serializers.Serializer):
                     f"{peer_ip6.ip}/{port_ip6.network.prefixlen}"
                 )
 
-
         # filter arguments for PortInfo object
 
         if not port_info:
-
             if peer_ip4 and peer_ip6:
                 filters.append(
-                    Q(ip_address_4__host=peer_ip4.ip) | Q(ip_address_6__host=peer_ip6.ip)
+                    Q(ip_address_4__host=peer_ip4.ip)
+                    | Q(ip_address_6__host=peer_ip6.ip)
                 )
             elif peer_ip4:
                 filters.append(Q(ip_address_4__host=peer_ip4.ip))
@@ -1018,15 +1019,18 @@ class UpdatePeerSession(serializers.Serializer):
             net, data.get("peer_ip4"), data.get("peer_ip6"), port
         )
 
-        peer_port = models.PeerPort.objects.filter(port_info=peer_port_info, peer_net=peer_net).first()
+        peer_port = models.PeerPort.objects.filter(
+            port_info=peer_port_info, peer_net=peer_net
+        ).first()
         if not peer_port:
-            peer_port = models.PeerPort.objects.create(port_info=peer_port_info, peer_net=peer_net)
+            peer_port = models.PeerPort.objects.create(
+                port_info=peer_port_info, peer_net=peer_net
+            )
 
         if "peer_interface" in data:
             peer_port.interface_name = data["peer_interface"]
 
         peer_port.save()
-
 
         # determine default peer session type
 
@@ -1079,7 +1083,11 @@ class UpdatePeerSession(serializers.Serializer):
             peer_net.sync_route_server_md5()
 
         peer_port_info = self.ensure_peer_portinfo(
-            net, data.get("peer_ip4"), data.get("peer_ip6"), data.get("port"), session.peer_port.port_info
+            net,
+            data.get("peer_ip4"),
+            data.get("peer_ip6"),
+            data.get("port"),
+            session.peer_port.port_info,
         )
 
         session.peer_port.peer_net = peer_net

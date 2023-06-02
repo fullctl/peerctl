@@ -918,7 +918,6 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
             ).exclude(status="deleted")
         return self._peer_session_qs_prefetched
 
-    
     @property
     def is_ixi(self):
         """
