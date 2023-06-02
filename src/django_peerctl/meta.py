@@ -3,7 +3,7 @@ import confu.schema
 
 class PeerSessionSchema(confu.schema.Schema):
     # TODO: need confu date attribute
-    last_updown = confu.schema.Str()
+    last_updown = confu.schema.Int()
 
     # TODO: limit values?
     session_state = confu.schema.Str()
