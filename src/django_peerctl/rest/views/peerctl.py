@@ -1040,6 +1040,22 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if "policy6" in data and (not data["policy6"] or data["policy6"] == "0"):
             data["policy6"] = None
 
+        # handle policy4 sent as name
+
+        if data.get("policy4") and isinstance(data["policy4"], str):
+            # load policy from name and set policy4 to id
+
+            policy = models.Policy.objects.get(net=net, name__iexact=data["policy4"])
+            data["policy4"] = policy.id
+
+        # handle policy6 sent as name
+
+        if data.get("policy6") and isinstance(data["policy6"], str):
+            # load policy from name and set policy6 to id
+
+            policy = models.Policy.objects.get(net=net, name__iexact=data["policy6"])
+            data["policy6"] = policy.id
+
         if "id" in data and not data["id"]:
             data.pop("id")
 
