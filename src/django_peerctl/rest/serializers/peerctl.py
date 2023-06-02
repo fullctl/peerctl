@@ -1580,7 +1580,7 @@ class AutopeerRequest(serializers.Serializer):
 
             filtered_requests.append(
                 {
-                    "asn": request.asn,
+                    "asn": request.to_asn,
                     "date": request.updated,
                     "status": request.status,
                     "location": locations,
