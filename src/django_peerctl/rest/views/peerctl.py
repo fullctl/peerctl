@@ -1095,8 +1095,6 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
             )
 
         if session:
-            print(data)
-
             serializer = Serializers.update_peer_session(
                 instance=session, data=data, context={"asn": asn}
             )
