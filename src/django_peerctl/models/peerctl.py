@@ -918,6 +918,15 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
             ).exclude(status="deleted")
         return self._peer_session_qs_prefetched
 
+    @property
+    def is_ixi(self):
+        """
+        Returns True if the port is an IXI port
+        """
+        if self.port_info_object and self.port_info_object.ref_id:
+            return True
+        return False
+
     def set_policy(self, *args, **kwargs):
         return self.port_policy.set_policy(*args, **kwargs)
 
