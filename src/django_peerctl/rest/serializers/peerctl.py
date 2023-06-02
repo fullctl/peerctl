@@ -861,7 +861,7 @@ class UpdatePeerSession(serializers.Serializer):
 
         return data
 
-    def ensure_peer_portinfo(self, net, peer_ip4, peer_ip6, port=None):
+    def ensure_peer_portinfo(self, net, peer_ip4, peer_ip6, port=None, port_info=None):
         """
         Ensures that a PortInfo object exists for the peer_ip4 and peer_ip6
         ip addresses. If the PortInfo object does not exist, it will be created.
@@ -872,6 +872,7 @@ class UpdatePeerSession(serializers.Serializer):
             peer_ip4 (str): IPv4 address of the peer
             peer_ip6 (str): IPv6 address of the peer
             port (models.Port): Port object - port that the session runs on (this is NOT the peer side port)
+            port_info (models.PortInfo): PortInfo object - port info for the peer side port
         """
 
         if peer_ip4:
@@ -905,22 +906,25 @@ class UpdatePeerSession(serializers.Serializer):
                     f"{peer_ip6.ip}/{port_ip6.network.prefixlen}"
                 )
 
-        if peer_ip4 and peer_ip6:
-            filters.append(
-                Q(ip_address_4__host=peer_ip4.ip) | Q(ip_address_6__host=peer_ip6.ip)
-            )
-        elif peer_ip4:
-            filters.append(Q(ip_address_4__host=peer_ip4.ip))
-        elif peer_ip6:
-            filters.append(Q(ip_address_6__host=peer_ip6.ip))
 
         # filter arguments for PortInfo object
 
-        port_info = models.PortInfo.objects.filter(
-            port=0,
-            net=net,
-            *filters,
-        ).first()
+        if not port_info:
+
+            if peer_ip4 and peer_ip6:
+                filters.append(
+                    Q(ip_address_4__host=peer_ip4.ip) | Q(ip_address_6__host=peer_ip6.ip)
+                )
+            elif peer_ip4:
+                filters.append(Q(ip_address_4__host=peer_ip4.ip))
+            elif peer_ip6:
+                filters.append(Q(ip_address_6__host=peer_ip6.ip))
+
+            port_info = models.PortInfo.objects.filter(
+                port=0,
+                net=net,
+                *filters,
+            ).first()
 
         if not port_info:
             port_info = models.PortInfo.objects.create(
@@ -930,8 +934,8 @@ class UpdatePeerSession(serializers.Serializer):
                 ip_address_6=peer_ip6,
             )
         else:
-            port_info.ip_address_4 = peer_ip4
-            port_info.ip_address_6 = peer_ip6
+            port_info.ip_address_4 = peer_ip4 or port_info.ip_address_4
+            port_info.ip_address_6 = peer_ip6 or port_info.ip_address_6
             port_info.save()
 
         return port_info
@@ -1058,7 +1062,7 @@ class UpdatePeerSession(serializers.Serializer):
             peer_net.sync_route_server_md5()
 
         peer_port_info = self.ensure_peer_portinfo(
-            net, data.get("peer_ip4"), data.get("peer_ip6"), data.get("port")
+            net, data.get("peer_ip4"), data.get("peer_ip6"), data.get("port"), session.peer_port.port_info
         )
 
         session.peer_port.peer_net = peer_net
