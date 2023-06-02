@@ -1055,24 +1055,40 @@ $peerctl.SessionsSummary = $tc.extend(
           $(this.delete_selected_button)
         );
 
-        // handle policy editor widgets for each row
         w.formatters.row = (row, data) => {
+          // add network tooltip to asn
+          const asn_field = row.find('[data-field="peer_asn"]');
+          asn_field.attr("data-bs-toggle", "tooltip")
+            .attr("data-bs-placement", "top")
+            .attr("data-bs-title", data.peer_network_name);
+          new bootstrap.Tooltip(asn_field);
+
+          // handle policy editor widgets for each row
           row.find("[data-action=edit_session]").click(() => {
             new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
           });
-
-          if(data.status == "partial") {
-            row.addClass("partial");
-          }
         }
 
         w.formatters.meta4 = (value) => {
           if(!value)
             return "-";
 
-          var node = $('<div>');
-          node.append($('<span>').text(value.last_updown));
-          node.append($('<button data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').prop("title", fullctl.formatters.meta_data(value).html()).tooltip().append(
+          const node = $('<div class="d-flex align-items-center">');
+          if (value.session_state && value.session_state == "ESTABLISHED") {
+            node.append($('<span class="icon icon-triangle-fill-up me-auto">'))
+            node.addClass("up")
+          } else {
+            node.append($('<span class="icon icon-triangle-fill-down me-auto">'))
+            node.addClass("down")
+          }
+
+          value.last_updown = value.last_updown ? fullctl.formatters.seconds_to_wdhms(value.last_updown) : '-';
+          node.append($('<span class="ps-1">').text(
+            (value.accepted ? fullctl.formatters.shorten_number(value.accepted) : '-') +
+            "/" +
+            (value.received ? fullctl.formatters.shorten_number(value.received) : '-')
+          ));
+          node.append($('<span data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').prop("title", fullctl.formatters.meta_data(value).html()).tooltip().append(
             $('<span class="icon fullctl icon-list">')
           ));
 
@@ -1314,11 +1330,11 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
   "ModalFloatingSession",
   {
     ModalFloatingSession : function(facility, device, port, session) {
-      var modal = this;
-      var title = "Add peer session"
-      var form = this.form = new twentyc.rest.Form(
+      const modal = this;
+      const form = this.form = new twentyc.rest.Form(
         $ctl.template("form_floating_session")
       );
+      var title = "Add peer session"
 
       this.session = session;
 
@@ -1403,6 +1419,15 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
         modal.hide();
         fullctl.peerctl.$t.sessions_summary.$w.list_peer_sessions.load();
       });
+
+      // scroll to errors becaues form is long
+      const post_failure_orig = form.post_failure.bind(form);
+      form.post_failure = (response) => {
+        post_failure_orig(response);
+        $(form.element).find(".validation-error").first().each(function() {
+          this.scrollIntoView({behavior: "smooth"});
+        })
+      }
 
       this.Modal("save_right", title, form.element);
       form.wire_submit(this.$e.button_submit);
@@ -1723,32 +1748,49 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
   $peerctl.PortPolicySelect
 )
 
-$peerctl.PeerSessionButton = $tc.extend(
-  "PeerSessionButton",
+
+$peerctl.PeerSessionToggle = $tc.extend(
+  "PeerSessionToggle",
   {
-    PeerSessionButton: function(jq, peer_id, through_id, port_id) {
-      this.Button(jq);
+    PeerSessionToggle: function(jq, peer_id, through_id, port_id, init_method) {
+      this.Checkbox(jq);
       this.peer_id = peer_id;
       this.through_id = through_id;
       this.port_id = port_id;
+      this.method = init_method;
 
+      if (this.method.toUpperCase() == "DELETE") {
+        jq.prop("checked", true);
+        this.base_url = jq.data("api-base-togl");
+      }
+
+      $(this).on("api-write:success", ()=>{
+        if (this.method.toUpperCase() == "POST") {
+          this.method = "DELETE";
+          this.base_url = jq.data("api-base-togl");
+        } else {
+          this.method = "POST";
+          this.base_url = jq.data("api-base");
+        }
+      })
     },
+
     format_request_url: function(url, method) {
       var peer_session_id = this.element.data("peer_session-id")
       var port = (this.port_id || fullctl.peerctl.port())
       return url.replace("port_id", port).replace("peer_session_id", peer_session_id);
     },
+
     payload: function() {
       return {
         member: this.peer_id,
         through: this.through_id
       };
 
-    }
+    },
   },
-  twentyc.rest.Button
+  twentyc.rest.Checkbox
 );
-
 
 
 $peerctl.DeviceSelect = $tc.extend(
@@ -1853,73 +1895,60 @@ $peerctl.PeerSessionList = $tc.extend(
   "PeerSessionList",
   {
     insert: function(data) {
-      var list =this;
-      var port_row = this.List_insert(data);
-      var peer_row = this.peer_row;
+      const list = this;
+      const port_row = this.List_insert(data);
+      const peer_row = this.peer_row;
 
-        var button_add = new $peerctl.PeerSessionButton(
-          port_row.find("button.peer_session-add"),
-          data.id,
-          data.origin_id,
-          data.port_id
-        );
+      const init_method = data.peer_session_status == "ok" ? "delete" : "post";
+      const switch_add = new $peerctl.PeerSessionToggle(
+        port_row.find("input.peer_session-add"),
+        data.id,
+        data.origin_id,
+        data.port_id,
+        init_method
+      );
 
+      const button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
 
-        var button_live = new $peerctl.PeerSessionButton(
-          port_row.find("button.peer_session-live"),
-          data.id,
-          data.origin_id,
-          data.port_id
-        );
-
-        let button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
-
-        button_show_config.click(()=>{
-          console.log(data);
-          new $peerctl.modals.DeviceConfig(data);
-        });
+      button_show_config.click(()=>{
+        new $peerctl.modals.DeviceConfig(data);
+      });
 
 
-        $(button_add).on("api-post:success", (ev, endpoint, sent_data, response)=>{
-          port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
-          if(peer_row)
-            peer_row.addClass("border-active").removeClass("border-inactive");
-          list.fill_policy_selects(port_row, data);
+      $(switch_add).on("api-post:success", (ev, endpoint, sent_data, response)=>{
+        port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
+        if(peer_row)
+          peer_row.addClass("border-active").removeClass("border-inactive");
+        list.fill_policy_selects(port_row, data);
+        switch_add.element.data("peer_session-id", response.first().peer_session);
+        fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
+        fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
+      });
 
-          $(response.first().ipaddr).each(function() {
-            if(this.ipaddr4 == data.ipaddr4 && this.ipaddr6 == data.ipaddr6) {
-              button_live.element.data("peer_session-id", this.peer_session);
-            }
-          });
-
-          
-          fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
-          fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
-        });
-
-        $(button_live).on("api-delete:success", ()=>{
-          port_row.addClass("peer_session-inactive").removeClass("peer_session-active");
-          if(peer_row)
-            peer_row.addClass("border-inactive").removeClass("border-active");
-          fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
-          fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
-        });
+      $(switch_add).on("api-delete:success", ()=>{
+        port_row.addClass("peer_session-inactive").removeClass("peer_session-active");
+        if(peer_row)
+          peer_row.addClass("border-inactive").removeClass("border-active");
+        fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
+        fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
+      });
 
 
+      switch_add.element.data("peer_session-id", data.peer_session);
 
-        if(data.peer_session_status == "ok") {
-          button_live.element.data("peer_session-id", data.peer_session);
-          port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
-          if(peer_row)
-            peer_row.addClass("border-active").removeClass("border-inactive");
-          list.fill_policy_selects(port_row, data);
-        } else {
-          port_row.addClass("peer_session-inactive").removeClass("peer_session-active");
-          if(peer_row)
-            peer_row.addClass("border-inactive").removeClass("border-active");
-        }
+      if(data.peer_session_status == "ok") {
+        port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
+        if(peer_row)
+          peer_row.addClass("border-active").removeClass("border-inactive");
+        list.fill_policy_selects(port_row, data);
+      } else {
+        port_row.addClass("peer_session-inactive").removeClass("peer_session-active");
+        if(peer_row)
+          peer_row.addClass("border-inactive").removeClass("border-active");
+      }
 
     },
+
     fill_policy_selects : function(port_row, data) {
       new $peerctl.PeerSessionPolicySelect(
         port_row.find('.peer_session-policy-4'), 4, $ctl.peerctl.port(), data.peer_session
@@ -1958,9 +1987,14 @@ $peerctl.PeerList = $tc.extend(
       this.List(jq);
 
       this.formatters.peeringdb = (value, data) => {
-        var icon = $('<span>').addClass("icon icon-launch icon-right fullctl");
-        var label = $('<span>').text("View on PeeringD");
-        return $('<a>').attr('href', value).append(label).append(icon).addClass("external");
+
+        const icon_col = $('<div>').addClass("col-auto").append(
+          $('<span>').addClass("icon icon-launch icon-right")
+        );
+        const text_col = $('<div>').text("View on PDB").addClass("col label pe-0");
+        const a_container = $('<div>').addClass("row align-items-center").append(text_col).append(icon_col)
+
+        return $('<a>').attr('href', value).addClass("peer_session-active-toggled | secondary btn small ms-auto external").append(a_container);
       };
     },
 
@@ -2043,6 +2077,13 @@ $peerctl.PeerList = $tc.extend(
 
 
       row.find(".port-list").append(list_node)
+      /* styles */
+      const resize_observer = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          row.find(".switch-col").outerWidth(entry.borderBoxSize[0].inlineSize);
+        }
+      });
+      resize_observer.observe(row.find(".prefixes-col")[0])
 
       row.data("ports-widget", ports);
 
