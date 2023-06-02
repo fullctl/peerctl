@@ -653,9 +653,7 @@ class PeerDetails(serializers.Serializer):
 class PeerSessionMeta(serializers.Serializer):
     # TODO: pydantic model
 
-    last_updown = serializers.CharField(
-        required=False, allow_null=True, allow_blank=True
-    )
+    last_updown = serializers.IntegerField(required=False, allow_null=True)
     session_state = serializers.CharField(
         required=False, allow_null=True, allow_blank=True
     )
