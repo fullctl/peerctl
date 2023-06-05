@@ -66,12 +66,18 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return new $peerctl.DeviceTemplates();
       });
 
+      // init peering requests tool
+      this.tool("peering_requests_list", ()=> {
+        return new $peerctl.PeeringRequestsList();
+      });
+
       this.$t.peering_lists.activate();
       this.$t.sessions_summary.activate();
       this.$t.policies.activate();
       this.$t.email_templates.activate();
       this.$t.device_templates.activate();
       this.$t.networks.activate();
+      this.$t.peering_requests_list.activate();
 
       this.port_settings = $('#port-settings');
 
@@ -960,7 +966,6 @@ $peerctl.PeeringLists = $tc.extend(
         fullctl.peerctl.network.as_set = data.as_set;
       });
       */
-
 
 
       return menu;
@@ -2393,6 +2398,34 @@ $peerctl.modals.RequestPeeringFromAsn = $tc.extend(
   },
   $ctl.application.Modal
 );
+
+$peerctl.PeeringRequestsList = $tc.extend(
+  "PeeringRequestsList",
+  {
+    PeeringRequestsList : function() {
+      this.Tool("peering_requests_list");
+
+      this.ports = {};
+
+      // setup session summary widget
+      this.widget("list_peer_sessions", ($e) => {
+        const w = new twentyc.rest.List(
+          this.jquery.find('table'),
+        );
+
+        w.format_request_url = () => {
+          return `/api/autopeer/${fullctl.peerctl.network.asn}/`
+        }
+
+        return w;
+      });
+
+      this.$w.list_peer_sessions.load();
+    },
+  },
+  $ctl.application.Tool
+);
+
 
 
 
