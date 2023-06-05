@@ -914,7 +914,7 @@ class AutopeerRequest(viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
-        tasks = self.get_serializer_class().get_requests(asn, net.org)
+        tasks = self.get_serializer_class().get_requests(net)
 
         print(tasks)
 

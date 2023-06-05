@@ -14,6 +14,8 @@ from django_peerctl.models import (
     Organization,
     PeerNetwork,
     PeerPort,
+    PeerRequest,
+    PeerRequestLocation,
     PeerSession,
     Policy,
     Port,
@@ -149,6 +151,19 @@ class DeviceTemplateAdmin(admin.ModelAdmin):
 class WishAdmin(admin.ModelAdmin):
     list_display = ("user", "path", "text", "ticket", "status", "created")
     form = status_form()
+
+
+class PeerRequestLocationInline(admin.TabularInline):
+    model = PeerRequestLocation
+    extra = 0
+
+
+@admin.register(PeerRequest)
+class PeerRequestAdmin(admin.ModelAdmin):
+    search_fields = ("net__asn", "peer_asn")
+    list_display = ("net", "peer_asn", "type", "status", "created", "updated")
+
+    inlines = (PeerRequestLocationInline,)
 
 
 @admin.register(PeerSession)
