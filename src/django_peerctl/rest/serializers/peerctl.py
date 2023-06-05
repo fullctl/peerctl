@@ -1577,12 +1577,13 @@ class AutopeerRequest(serializers.Serializer):
     asn = serializers.IntegerField()
     date = serializers.DateTimeField(read_only=True)
     status = serializers.CharField(read_only=True)
+    type = serializers.CharField(read_only=True)
     location = serializers.SerializerMethodField()
 
     ref_tag = "autopeer"
 
     class Meta:
-        fields = ["asn", "status", "location", "date"]
+        fields = ["asn", "status", "location", "type", "date"]
 
     @classmethod
     def get_requests(cls, net):
@@ -1631,6 +1632,7 @@ class AutopeerRequest(serializers.Serializer):
                         "location": location.name,
                         "status": location.status,
                         "date": req.created,
+                        "type": req.type,
                     }
                 )
 
