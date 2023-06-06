@@ -45,5 +45,14 @@ class AutopeerRequest(Task):
         return self.param["args"][1]
 
     def run(self, from_asn, to_asn, *args, **kwargs):
-        workflow = AutopeerWorkflow(from_asn, to_asn)
-        return json.dumps(workflow.request())
+        workflow = None
+        try:
+            workflow = AutopeerWorkflow(from_asn, to_asn, self)
+            return json.dumps(workflow.request())
+        except Exception as e:
+            # workflow failed
+            if workflow and workflow.peer_request:
+                workflow.peer_request.status = "failed"
+                workflow.peer_request.notes = str(e)
+                workflow.peer_request.save()
+            raise

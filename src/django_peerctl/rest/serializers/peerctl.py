@@ -1,6 +1,6 @@
 import ipaddress
-import json
 
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
@@ -1582,56 +1582,66 @@ class AutopeerRequest(serializers.Serializer):
     asn = serializers.IntegerField()
     date = serializers.DateTimeField(read_only=True)
     status = serializers.CharField(read_only=True)
+    type = serializers.CharField(read_only=True)
     location = serializers.SerializerMethodField()
 
     ref_tag = "autopeer"
 
     class Meta:
-        fields = ["asn", "status", "location", "date"]
+        fields = ["asn", "status", "location", "type", "date"]
 
     @classmethod
-    def get_requests(cls, asn, org):
-        _requests = autopeer_tasks.AutopeerRequest.objects.filter(
-            op="task_autopeer_request", org=org
-        ).order_by("-created")
+    def get_requests(cls, net):
+        _requests = list(
+            models.PeerRequest.objects.filter(net=net)
+            .prefetch_related("locations")
+            .order_by("-created")
+        )
+        ixctl_ix_ids = []
+        pdbctl_ix_ids = []
+        locations = []
 
-        filtered_requests = []
-        ix_ids = []
+        for req in _requests:
+            for location in req.locations.all():
+                if location.pdb_ix_id:
+                    pdbctl_ix_ids.append(location.pdb_ix_id)
+                elif location.ixctl_ix_id:
+                    ixctl_ix_ids.append(location.ixctl_ix_id)
 
-        for request in _requests:
-            print(request.param)
-            if request.asn != asn:
-                continue
-
-            if request.output:
-                locations = json.loads(request.output).get("locations")
-            else:
-                locations = []
-
-            ix_ids.extend(locations)
-
-            filtered_requests.append(
-                {
-                    "asn": request.to_asn,
-                    "date": request.updated,
-                    "status": request.status,
-                    "location": locations,
-                }
-            )
-
-        if ix_ids:
-            exchanges = {
-                ix.id: ix for ix in pdbctl.InternetExchange().objects(ids=ix_ids)
+        if pdbctl_ix_ids:
+            pdbctl_exchanges = {
+                ix.id: ix for ix in pdbctl.InternetExchange().objects(ids=pdbctl_ix_ids)
             }
 
-            for request in filtered_requests:
-                request["location"] = [
-                    exchanges[ix_id].name
-                    for ix_id in request["location"]
-                    if ix_id in exchanges
-                ]
+        if ixctl_ix_ids:
+            ixctl_exchanges = {
+                ix.id: ix for ix in ixctl.InternetExchange().objects(ids=ixctl_ix_ids)
+            }
 
-        return filtered_requests
+        for req in _requests:
+            for loation in req.locations.all():
+                ix = None
+                if location.pdb_ix_id:
+                    ix = pdbctl_exchanges.get(location.pdb_ix_id)
+                elif location.ixctl_ix_id:
+                    ix = ixctl_exchanges.get(location.ixctl_ix_id)
+
+                if ix:
+                    location._name = ix.name
+                else:
+                    location._name = "Unknown"
+
+                locations.append(
+                    {
+                        "asn": req.peer_asn,
+                        "location": location.name,
+                        "status": location.status,
+                        "date": req.created,
+                        "type": req.type,
+                    }
+                )
+
+        return locations
 
     def get_location(self, obj):
         return obj.get("location", [])

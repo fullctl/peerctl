@@ -7,7 +7,13 @@ import requests
 
 import django_peerctl.autopeer.schema as schema
 from django_peerctl.autopeer import autopeer_url
-from django_peerctl.models.peerctl import Network, PeerPort, PeerSession, PortInfo
+from django_peerctl.models.peerctl import (
+    Network,
+    PeerPort,
+    PeerRequest,
+    PeerSession,
+    PortInfo,
+)
 from django_peerctl.peer_session_workflow import PeerSessionWorkflow
 
 __all__ = [
@@ -24,12 +30,14 @@ class AutopeerWorkflow(PeerSessionWorkflow):
     cc = False
     test_mode = False
 
-    def __init__(self, my_asn, their_asn):
+    def __init__(self, my_asn, their_asn, task):
         self.net = Network.objects.get(asn=my_asn)
         self.other_net = pdbctl.Network().first(asn=their_asn)
         self.to_asn = their_asn
         self.asn = my_asn
         self.locations = []
+        self.task = task
+        self.peer_request = None
 
         if not self.autopeer_url:
             raise ValueError(f"Autopeer is not enabled for this ASN: AS{their_asn}")
@@ -45,10 +53,23 @@ class AutopeerWorkflow(PeerSessionWorkflow):
         return autopeer_url(self.to_asn)
 
     def request(self, *args, **kwargs):
+        self.peer_request = PeerRequest.objects.create(
+            net=self.net, peer_asn=self.to_asn, task=self.task, type="autopeer"
+        )
+
         locations = self.request_list_locations()
+
         peerctl_sessions, autopeer_sessions = self.request_add_sessions(locations)
 
         print("request", peerctl_sessions)
+
+        self.peer_request.status = "completed"
+        self.peer_request.save()
+
+        for location in self.peer_request.locations.all():
+            # TODO: mockup for now just assume session for location completed successfully
+            location.status = "completed"
+            location.save()
 
         return {
             "autopeer_sessions": [
@@ -192,10 +213,7 @@ class AutopeerWorkflow(PeerSessionWorkflow):
 
             time.sleep(1)
             loops += 1
-            # XXX increase loops
-            if loops > 2:
-                break
-                # XXX actually raise this once get_status works
+            if loops > 300:
                 raise Exception("never got session status")
 
         return sessions, autopeer_sessions
@@ -205,7 +223,7 @@ class AutopeerWorkflow(PeerSessionWorkflow):
         Autopeer request get status
         """
 
-        # XXX mockup for now, just assume configured and return
+        # TODO: mockup for now, just assume configured and return
 
         url = f"{self.autopeer_url}/get_status?request_id={request_id}&asn={self.asn}"
         print("request_get_status", url)
@@ -228,6 +246,7 @@ class AutopeerWorkflow(PeerSessionWorkflow):
 
             _sessions = self._ensure_peerctl_member_sessions(member) or []
             for _session in _sessions:
+                self.peer_request.add_pdb_location(pdb_ix_id)
                 sessions.append((_session, pdb_ix_id))
 
         return sessions
