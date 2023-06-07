@@ -1672,11 +1672,15 @@ class AutopeerEnabled(serializers.Serializer):
 
     asn = serializers.IntegerField()
     enabled = serializers.SerializerMethodField()
+    url = serializers.SerializerMethodField()
 
     ref_tag = "autopeer_enabled"
 
     class Meta:
-        fields = ["asn", "enabled"]
+        fields = ["asn", "enabled", "url"]
 
     def get_enabled(self, obj):
         return autopeer_url(obj["asn"]) is not None
+
+    def get_url(self, obj):
+        return autopeer_url(obj["asn"])
