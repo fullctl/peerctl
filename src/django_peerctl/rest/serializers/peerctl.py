@@ -1614,7 +1614,7 @@ class AutopeerRequest(serializers.Serializer):
             }
 
         for req in _requests:
-            for loation in req.locations.all():
+            for location in req.locations.all():
                 ix = None
                 if location.pdb_ix_id:
                     ix = pdbctl_exchanges.get(location.pdb_ix_id)
@@ -1625,7 +1625,7 @@ class AutopeerRequest(serializers.Serializer):
                     location._name = ix.name
                 else:
                     location._name = "Unknown"
-
+                    
                 locations.append(
                     {
                         "asn": req.peer_asn,
