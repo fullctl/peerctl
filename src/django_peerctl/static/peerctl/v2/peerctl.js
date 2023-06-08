@@ -2411,8 +2411,6 @@ $peerctl.modals.RequestPeering = $tc.extend(
       let current_step = "peer-request";
       var title = "Peering Request";
 
-      debugger;
-
       if(peer.peer_session_status == "requested") {
         title = "Notify Configuration Complete";
         current_step = "peer-config-complete";
