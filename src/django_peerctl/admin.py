@@ -182,6 +182,7 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
         "policy4",
         "policy6",
         "status",
+        "request_status",
         "created",
         "updated",
         "port",
@@ -192,7 +193,7 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
         choices=[("ok", "ok"), ("requested", "requested"), ("configured", "configured")]
     )
 
-    readonly_fields = ("net", "peer", "policy4", "policy6")
+    readonly_fields = ("net", "peer", "policy4", "policy6", "request_status")
 
     def net(self, obj):
         return obj.peer_port.peer_net.net
@@ -243,6 +244,9 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
 
     def peer_ipaddr6(self, obj):
         return obj.peer_port.port_info.ipaddr6
+
+    def request_status(self, obj):
+        return obj.status
 
 
 class OrganizationForm(forms.ModelForm):

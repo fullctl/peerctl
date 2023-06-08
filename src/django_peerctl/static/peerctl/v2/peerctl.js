@@ -2148,6 +2148,14 @@ $peerctl.EmailTemplatePreview = $tc.extend(
       this.TemplatePreview(jq, $peerctl.EmailTemplateSelect, type);
     },
 
+    payload: function() {
+      let payload = this.TemplatePreview_payload();
+      
+      payload.ix_ids = this.ix_ids;
+
+      return payload;
+    },
+
     preview_payload: function() {
       return {
         type: this.type,
@@ -2265,6 +2273,8 @@ $peerctl.modals.RequestPeering = $tc.extend(
 
       var current_step = "peer-request";
       var title = "Peering Request";
+
+      debugger;
 
       if(peer.peer_session_status == "requested") {
         title = "Notify Configuration Complete";

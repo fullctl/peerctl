@@ -22,6 +22,7 @@ from django_peerctl.peer_session_workflow import (
 from django_peerctl.rest.decorators import grainy_endpoint
 from django_peerctl.rest.route.peerctl import route
 from django_peerctl.rest.serializers.peerctl import Serializers, ValidationError
+from django_peerctl.utils import load_exchanges
 
 
 @route
@@ -866,7 +867,7 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
             net.save()
 
         workflow = PeerRequestToAsnWorkflow(
-            asn, request.data.get("asn"), request.data.get("ix_ids")
+            asn, request.data.get("asn"), load_exchanges(request.data.get("ix_ids"))
         )
         workflow.cc = request.data.get("cc_reply_to")
         workflow.test_mode = request.data.get("test_mode")
@@ -1374,31 +1375,24 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             # we need to split them and get the ids and then selectively load them from
             # the service bridge.
 
-            exchanges = []
-            ixctl_ix_ids = [
-                int(ix_id.split(":")[1])
-                for ix_id in request.data["ix_ids"]
-                if ix_id.startswith("ixctl:")
-            ]
-            pdbctl_ix_ids = [
-                int(ix_id.split(":")[1])
-                for ix_id in request.data["ix_ids"]
-                if ix_id.startswith("pdbctl:")
-            ]
-
-            if ixctl_ix_ids:
-                exchanges.extend(ixctl.InternetExchange().objects(ids=ixctl_ix_ids))
-
-            if pdbctl_ix_ids:
-                exchanges.extend(pdbctl.InternetExchange().objects(ids=pdbctl_ix_ids))
-
+            exchanges = load_exchanges(request.data["ix_ids"])
             email_template.context["selected_exchanges"] = list(
                 models.MutualLocation(ix, net, None) for ix in exchanges
             )
 
-        if "peer_session" in request.data:
+        print("email template type", email_template.type)
+
+        if email_template.type == "peer-config-complete":
             email_template.context["sessions"] = models.PeerSession.objects.filter(
-                id=request.data["peer_session"]
+                peer_port__peer_net__net__asn=asn,
+                peer_port__peer_net__peer__asn=email_template.context["asn"],
+                status="requested"            
+            )
+        elif email_template.type == "peer-session-live":
+            email_template.context["sessions"] = models.PeerSession.objects.filter(
+                peer_port__peer_net__net__asn=asn,
+                peer_port__peer_net__peer__asn=email_template.context["asn"],
+                status="configured"            
             )
 
         serializer = Serializers.tmplpreview(instance=email_template)

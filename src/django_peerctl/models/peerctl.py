@@ -328,6 +328,31 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
         return obj
 
+    
+    def get_mutual_locations(self, other_asn, exclude=None):
+        asns = [self.asn, other_asn]
+
+        exchanges = {}
+
+        for member in sot.InternetExchangeMember().objects(asns=asns):
+            source = member.source
+            ix_ref_id = f"{source}:{member.ix_id}"
+
+            if exclude and ix_ref_id in exclude:
+                continue
+
+            if ix_ref_id not in exchanges:
+                exchanges[ix_ref_id] = {self.asn: [], other_asn: []}
+
+            exchanges[ix_ref_id][member.asn].append(member)
+
+        mutual = {}
+
+        for ix_id, members in list(exchanges.items()):
+            if members[self.asn] and members[other_asn]:
+                mutual[ix_id] = members
+        return mutual
+
     @property
     def ref(self):
         if not hasattr(self, "_ref"):
@@ -538,29 +563,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
         return obj
 
-    def get_mutual_locations(self, other_asn, exclude=None):
-        asns = [self.asn, other_asn]
 
-        exchanges = {}
-
-        for member in sot.InternetExchangeMember().objects(asns=asns):
-            source = member.source
-            ix_ref_id = f"{source}:{member.ix_id}"
-
-            if exclude and ix_ref_id in exclude:
-                continue
-
-            if ix_ref_id not in exchanges:
-                exchanges[ix_ref_id] = {self.asn: [], other_asn: []}
-
-            exchanges[ix_ref_id][member.asn].append(member)
-
-        mutual = {}
-
-        for ix_id, members in list(exchanges.items()):
-            if members[self.asn] and members[other_asn]:
-                mutual[ix_id] = members
-        return mutual
 
     def get_peer_contacts(self, ix_id=None, role="policy"):
         peer_session_qset = (
@@ -1957,6 +1960,28 @@ class PeerRequest(HandleRefModel):
             peer_request=self,
             pdb_ix_id=pdb_ix_id,
         )
+
+    def add_ixctl_location(self, ixctl_ix_id, pdb_ix_id=None):
+        """
+        Adds an IXCTL location to this peer request
+        """
+        PeerRequestLocation.objects.get_or_create(
+            peer_request=self,
+            ixctl_ix_id=ixctl_ix_id,
+            pdb_ix_id=pdb_ix_id,
+        )
+
+    def add_location(self, port_info):
+        """
+        Adds a location to this peer request
+        """
+        if not port_info.ref_id or not port_info.ref_ix_id:
+            return
+
+        if port_info.ref_source == "pdbctl":
+            self.add_pdb_location(port_info.ref_ix_id.split(":")[1])
+        elif port_info.ref_source == "ixctl":
+            self.add_ixctl_location(port_info.ref_ix_id.split(":")[1])
 
 
 class PeerRequestLocation(HandleRefModel):
