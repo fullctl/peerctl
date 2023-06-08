@@ -15,20 +15,27 @@
   <tbody>
     <tr data-element="request_peering_tr" style="display: none;">
       <td colspan="3" class="right">
-        <button class="primary btn | small" data-element="request_peering">
-          <div class="row align-items-center">
-            <div class="col label pe-0 ok">
-              {% trans "Request peering" %}
-            </div>
-            <div class="col label pe-0 disabled" style="display:none">
-              {% trans "No point of contact" %}
-            </div>
+        <div class="dropdown-btn">
 
-            <div class="col-auto">
-              <span class="icon fullctl icon-mail"></span>
+          <button
+            class="primary btn | small"
+            data-element="request_peering"
+            data-option-text="E-mail"
+          >
+            <div class="row align-items-center">
+              <div class="col label pe-0">
+                {% trans "Request peering" %}
+              </div>
+              <div class="col-auto">
+                <span class="icon icon-mail"></span>
+              </div>
             </div>
-          </div>
-        </button>
+          </button>
+
+          <details>
+            <summary><span class="visually-hidden">Select peering method</span></summary>
+          </details>
+        </div>
       </td>
     </tr>
   </tbody>
