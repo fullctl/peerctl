@@ -11,6 +11,38 @@
     {% include "peerctl/v2/tool/peering-lists/form-request-peering.html" %}
     {% include "peerctl/v2/tool/peering-lists/device-config.html" %}
 
+    <div data-template="request_autopeer_body">
+      <div class="row">
+        <div class="col-7">
+          <div class="card">
+            <div class="card-header peer-name" data-field="name">
+              Network
+            </div>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item peer-asn" data-field="asn">ASN</li>
+            </ul>
+          </div>
+        </div>
+        <div class="col-5">
+          <div class="card">
+            <div class="card-header">
+            {% trans "Workflow" %}
+            </div>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item peer-request" data-field="step_request">{% trans "Request" %}</li>
+              <li class="list-group-item peer-config-complete" data-field="step_configured">{% trans "Configured" %}</li>
+              <li class="list-group-item peer-session-live" data-field="step_live">{% trans "Session Live" %}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <span>{% trans "URL:" %}</span><a class="autopeer-url" href=""></a>
+        </div>
+      </div>
+    </div>
+
     <!-- PEERS TEMPLATE -->
 
     <div
@@ -46,10 +78,35 @@
                     </div>
                     <div class="col-auto">
                       <button data-element="md5" class="btn | small ms-1"><span class="label">{% trans "MD5 Password" %}</span></button>
-                      <button class="primary btn | small" data-element="request_peering">
-                          <div class="col label pe-0">
-                            {% trans "Request peering" %}
+
+                      <div class="dropdown-btn">
+
+                        <button
+                          class="primary btn | small"
+                          data-element="request_peering"
+                          data-option-text="E-mail"
+                        >
+                          <div class="row align-items-center">
+                            <div class="col label pe-0">
+                              {% trans "Request peering" %}
+                            </div>
+                            <div class="col-auto">
+                              <span class="icon icon-mail"></span>
+                            </div>
                           </div>
+                        </button>
+
+                        <details>
+                          <summary><span class="visually-hidden">Select peering method</span></summary>
+                          <div class="dropdown-btn-menu">
+                          </div>
+                        </details>
+                      </div>
+
+                      <button class="primary btn | small" data-element="request_peering">
+                        <div class="col label pe-0">
+                          {% trans "Request peering" %}
+                        </div>
                       </button>
 
                       <!-- XXX TEMPORARY autopeer button -->
@@ -193,6 +250,7 @@
             </div>
           </div>
         </div>
+
 
       </div>
     </div>
