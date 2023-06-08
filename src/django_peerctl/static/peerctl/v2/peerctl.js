@@ -108,6 +108,10 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         this.$t.ix.sync();
       });
 
+      $('#tab-peering-requests').on('shown.bs.tab', () => {
+        this.$t.peering_requests_list.sync();
+      });
+
       this.autoload_page();
 
     },
@@ -2609,6 +2613,10 @@ $peerctl.PeeringRequestsList = $tc.extend(
 
       this.$w.list_peer_sessions.load();
     },
+
+    sync: function() {
+      this.$w.list_peer_sessions.load();
+    }
   },
   $ctl.application.Tool
 );
