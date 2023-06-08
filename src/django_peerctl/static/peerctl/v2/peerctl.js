@@ -2049,6 +2049,64 @@ $peerctl.PeerList = $tc.extend(
 
         return $('<a>').attr('href', value).addClass("peer_session-active-toggled | secondary btn small ms-auto external").append(a_container);
       };
+
+      $(this).on("load:after", () => {
+        let url = `/api/autopeer/${fullctl.peerctl.network.asn}/enabled/`
+
+        $.ajax({
+          url: url,
+          method: "GET",
+          headers : {
+            "Content-Type" : "application/json",
+            "X-CSRFToken" : twentyc.rest.config.csrf
+          },
+        }).then((response)=>{
+          const autopeer_enabled_asns = {}
+          response.data.forEach((asn)=>{
+            autopeer_enabled_asns[asn.asn] = asn;
+          });
+
+          this.list_body.find(".peers-row").each(function() {
+            const apiobject = $(this).data('apiobject')
+
+            if(autopeer_enabled_asns[apiobject.asn] !== undefined) {
+              const autopeer_data = autopeer_enabled_asns[apiobject.asn];
+              const request_peering_btn = $(this).data('dropdown-peering-btn')
+
+              // load function runs twice due to the strucutre of the List
+              if (request_peering_btn.jq.find('button[data-element="request_peering_autopeering"]').length > 0)
+                return;
+
+              const autopeer_btn = $(`
+                  <button
+                    class="primary btn | small active"
+                    data-option-text="Autopeer"
+                    data-element="request_peering_autopeering"
+                  >
+                    <div class="row align-items-center">
+                      <div class="col label pe-0">
+                        Request peering
+                      </div>
+                      <div class="col-auto">
+                        <span class="icon icon-api"></span>
+                      </div>
+                    </div>
+                  </button>
+              `)
+              request_peering_btn.add_option(autopeer_btn);
+
+              autopeer_btn.click(()=>{
+                new $peerctl.modals.RequestPeering(apiobject, {type: "autopeering", url: autopeer_data.url, autopeer_enabled: true, asn: apiobject.asn});
+              });
+
+              $(this).find('[data-element="request_peering"]').off('click')
+              $(this).find('[data-element="request_peering"]').on('click', ()=>{
+                new $peerctl.modals.RequestPeering(apiobject, {type: "email", url: autopeer_data.url, autopeer_enabled: true, asn: apiobject.asn});
+              });
+            }
+          })
+        })
+      })
     },
 
     toggle_available_peers: function() {
@@ -2136,46 +2194,7 @@ $peerctl.PeerList = $tc.extend(
 
 
       const request_peering_btn = new fullctl.application.DropdownBtn(row.find('.dropdown-btn'));
-
-      // check if autopeer is enabled
-      let url = `/api/autopeer/${fullctl.peerctl.network.asn}/enabled/${data.asn}/`
-
-      $.ajax({
-        url: url,
-        method: "GET",
-        headers : {
-          "Content-Type" : "application/json",
-          "X-CSRFToken" : twentyc.rest.config.csrf
-        },
-      }).then((response)=>{
-        const autopeer_data = response.data[0];
-        if (autopeer_data.enabled) {
-          const autopeer_btn = $(`
-              <button
-                class="primary btn | small active"
-                data-option-text="Autopeer"
-              >
-                <div class="row align-items-center">
-                  <div class="col label pe-0">
-                    Request peering
-                  </div>
-                  <div class="col-auto">
-                    <span class="icon icon-api"></span>
-                  </div>
-                </div>
-              </button>
-          `)
-          request_peering_btn.add_option(autopeer_btn);
-          autopeer_btn.click(()=>{
-            new $peerctl.modals.RequestPeering(data, {type: "autopeering", url: autopeer_data.url, autopeer_enabled: true, asn: data.asn});
-          });
-
-          row.find('[data-element="request_peering"]').off('click')
-          row.find('[data-element="request_peering"]').on('click', ()=>{
-            new $peerctl.modals.RequestPeering(data, {type: "email", url: autopeer_data.url, autopeer_enabled: true, asn: data.asn});
-          });
-        }
-      });
+      row.data('dropdown-peering-btn', request_peering_btn);
 
       return row;
     },
