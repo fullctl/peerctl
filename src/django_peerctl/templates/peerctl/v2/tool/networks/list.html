@@ -15,6 +15,29 @@
   <tbody>
     <tr data-element="request_peering_tr" style="display: none;">
       <td colspan="3" class="right">
+        <div class="dropdown-btn">
+
+          <button
+            class="primary btn | small"
+            data-element="request_peering"
+            data-option-text="E-mail"
+          >
+            <div class="row align-items-center">
+              <div class="col label pe-0">
+                {% trans "Request peering" %}
+              </div>
+              <div class="col-auto">
+                <span class="icon icon-mail"></span>
+              </div>
+            </div>
+          </button>
+
+          <details>
+            <summary><span class="visually-hidden">Select peering method</span></summary>
+            <div class="dropdown-btn-menu">
+            </div>
+          </details>
+        </div>
         <button class="primary btn | small" data-element="request_peering">
           <div class="row align-items-center">
             <div class="col label pe-0 ok">

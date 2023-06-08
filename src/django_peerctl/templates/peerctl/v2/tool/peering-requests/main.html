@@ -1,0 +1,61 @@
+{% load static i18n %}
+<div class="tool" data-component="peering_requests_list">
+  <div data-element="menu" class="row">
+  </div>
+
+  <div class="row">
+  <table
+  class="table list-table table-borderless center"
+  data-api-load="yes"
+  data-api-base="{% url "peerctl_api:sessions_summary-list" asn=selected_asn %}"
+  data-template="list">
+  <thead>
+    <tr>
+      <th>
+        <div>{% trans "ASN" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Location" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Date" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Status" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Type" %}</div>
+      </th>
+    </tr>
+
+  </thead>
+
+  <tbody class="list-body">
+  </tbody>
+
+  <tbody class="templates">
+      <tr data-template="row" class="with-border">
+        <td>
+          <span data-field="asn"></span>
+        </td>
+        <td>
+          <span data-field="location"></span>
+        </td>
+        <td>
+          <span data-field="date"></span>
+        </td>
+        <td>
+          <span data-field="status"></span>
+        </td>
+        <td>
+          <span data-field="type"></span>
+        </td>
+      </tr>
+  </tbody>
+  </table>
+  </div>
+
+  <div class="templates">
+    <div data-template="menu"></div>
+  </div>
+</div>
