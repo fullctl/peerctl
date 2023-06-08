@@ -2608,6 +2608,8 @@ $peerctl.PeeringRequestsList = $tc.extend(
           return `/api/autopeer/${fullctl.peerctl.network.asn}/`
         }
 
+        w.formatters.date = fullctl.formatters.datetime;
+
         return w;
       });
 
