@@ -2096,12 +2096,28 @@ $peerctl.PeerList = $tc.extend(
               request_peering_btn.add_option(autopeer_btn);
 
               autopeer_btn.click(()=>{
-                new $peerctl.modals.RequestPeering(apiobject, {type: "autopeering", url: autopeer_data.url, autopeer_enabled: true, asn: apiobject.asn});
+                new $peerctl.modals.RequestPeering(
+                  apiobject,
+                  {
+                    type: "autopeering",
+                    url: autopeer_data.url,
+                    autopeer_enabled: true,
+                    asn: apiobject.asn
+                  }
+                );
               });
 
               $(this).find('[data-element="request_peering"]').off('click')
               $(this).find('[data-element="request_peering"]').on('click', ()=>{
-                new $peerctl.modals.RequestPeering(apiobject, {type: "email", url: autopeer_data.url, autopeer_enabled: true, asn: apiobject.asn});
+                new $peerctl.modals.RequestPeering(
+                  apiobject,
+                  {
+                    type: "email",
+                    url: autopeer_data.url,
+                    autopeer_enabled: true,
+                    asn: apiobject.asn
+                  }
+                );
               });
             }
           })
