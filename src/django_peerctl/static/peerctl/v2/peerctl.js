@@ -1060,7 +1060,8 @@ $peerctl.SessionsSummary = $tc.extend(
           const asn_field = row.find('[data-field="peer_asn"]');
           asn_field.attr("data-bs-toggle", "tooltip")
             .attr("data-bs-placement", "top")
-            .attr("data-bs-title", data.peer_network_name);
+            .attr("title", data.peer_name)
+            .addClass("dotted-underline");
           new bootstrap.Tooltip(asn_field);
 
           // handle policy editor widgets for each row
