@@ -328,6 +328,30 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
         return obj
 
+    def get_mutual_locations(self, other_asn, exclude=None):
+        asns = [self.asn, other_asn]
+
+        exchanges = {}
+
+        for member in sot.InternetExchangeMember().objects(asns=asns):
+            source = member.source
+            ix_ref_id = f"{source}:{member.ix_id}"
+
+            if exclude and ix_ref_id in exclude:
+                continue
+
+            if ix_ref_id not in exchanges:
+                exchanges[ix_ref_id] = {self.asn: [], other_asn: []}
+
+            exchanges[ix_ref_id][member.asn].append(member)
+
+        mutual = {}
+
+        for ix_id, members in list(exchanges.items()):
+            if members[self.asn] and members[other_asn]:
+                mutual[ix_id] = members
+        return mutual
+
     @property
     def ref(self):
         if not hasattr(self, "_ref"):
@@ -537,30 +561,6 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             )
 
         return obj
-
-    def get_mutual_locations(self, other_asn, exclude=None):
-        asns = [self.asn, other_asn]
-
-        exchanges = {}
-
-        for member in sot.InternetExchangeMember().objects(asns=asns):
-            source = member.source
-            ix_ref_id = f"{source}:{member.ix_id}"
-
-            if exclude and ix_ref_id in exclude:
-                continue
-
-            if ix_ref_id not in exchanges:
-                exchanges[ix_ref_id] = {self.asn: [], other_asn: []}
-
-            exchanges[ix_ref_id][member.asn].append(member)
-
-        mutual = {}
-
-        for ix_id, members in list(exchanges.items()):
-            if members[self.asn] and members[other_asn]:
-                mutual[ix_id] = members
-        return mutual
 
     def get_peer_contacts(self, ix_id=None, role="policy"):
         peer_session_qset = (
@@ -807,17 +807,32 @@ class MutualLocation:
 
         self._portinfos = []
 
-        _portinfos = list(self.net.port_info_qs.all())
+        _portinfos = list(
+            self.net.port_info_qs.exclude(port__isnull=True).exclude(
+                ref_id__isnull=True
+            )
+        )
 
         Port.load_references(_portinfos)
 
+        members = {}
+
+        for member in sot.InternetExchangeMember().objects(asn=self.net.asn):
+            members[f"{member.source}:{member.id}"] = member
+
         for port_info in _portinfos:
+            if not port_info.ref_id:
+                continue
+            port_info._ref = members.get(port_info.ref_id)
+
+        for port_info in _portinfos:
+            if port_info.ref_ix_id != self.ix.ref_id:
+                continue
+
             if not port_info.ipaddr4 and not port_info.ipaddr6:
                 continue
 
-            if port_info.ref_ix_id and port_info.ref_ix_id == self.ix.ref_id:
-                self._portinfo = port_info
-                self._portinfos.append(port_info)
+            self._portinfos.append(port_info)
 
         return self._portinfos
 
@@ -1205,6 +1220,9 @@ class Port(devicectl.Port):
         for obj in objects:
             if obj.port.id:
                 obj.port._object = port_map[obj.port.id]
+
+                if isinstance(obj, PortInfo):
+                    obj.port._object._port_info_object = obj
 
     @classmethod
     def augment_ix(cls, ixi_ports, asn):
