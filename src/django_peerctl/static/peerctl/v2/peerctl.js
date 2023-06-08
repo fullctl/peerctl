@@ -108,6 +108,10 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         this.$t.ix.sync();
       });
 
+      $('#tab-peering-requests').on('shown.bs.tab', () => {
+        this.$t.peering_requests_list.sync();
+      });
+
       this.autoload_page();
 
     },
@@ -761,7 +765,6 @@ $peerctl.Networks = $tc.extend(
         ix_ids.push($(this).data("ix-id"));
       });
 
-      console.log(this.peer_request_data)
       new $peerctl.modals.RequestPeering(
         this.peer, 
         this.peer_request_data,
@@ -2046,6 +2049,80 @@ $peerctl.PeerList = $tc.extend(
 
         return $('<a>').attr('href', value).addClass("peer_session-active-toggled | secondary btn small ms-auto external").append(a_container);
       };
+
+      $(this).on("load:after", () => {
+        let url = `/api/autopeer/${fullctl.peerctl.network.asn}/enabled/`
+
+        $.ajax({
+          url: url,
+          method: "GET",
+          headers : {
+            "Content-Type" : "application/json",
+            "X-CSRFToken" : twentyc.rest.config.csrf
+          },
+        }).then((response)=>{
+          const autopeer_enabled_asns = {}
+          response.data.forEach((asn)=>{
+            autopeer_enabled_asns[asn.asn] = asn;
+          });
+
+          this.list_body.find(".peers-row").each(function() {
+            const apiobject = $(this).data('apiobject')
+
+            if(autopeer_enabled_asns[apiobject.asn] !== undefined) {
+              const autopeer_data = autopeer_enabled_asns[apiobject.asn];
+              const request_peering_btn = $(this).data('dropdown-peering-btn')
+
+              // load function runs twice due to the strucutre of the List
+              if (request_peering_btn.jq.find('button[data-element="request_peering_autopeering"]').length > 0)
+                return;
+
+              const autopeer_btn = $(`
+                  <button
+                    class="primary btn | small active"
+                    data-option-text="Autopeer"
+                    data-element="request_peering_autopeering"
+                  >
+                    <div class="row align-items-center">
+                      <div class="col label pe-0">
+                        Request peering
+                      </div>
+                      <div class="col-auto">
+                        <span class="icon icon-api"></span>
+                      </div>
+                    </div>
+                  </button>
+              `)
+              request_peering_btn.add_option(autopeer_btn);
+
+              autopeer_btn.click(()=>{
+                new $peerctl.modals.RequestPeering(
+                  apiobject,
+                  {
+                    type: "autopeering",
+                    url: autopeer_data.url,
+                    autopeer_enabled: true,
+                    asn: apiobject.asn
+                  }
+                );
+              });
+
+              $(this).find('[data-element="request_peering"]').off('click')
+              $(this).find('[data-element="request_peering"]').on('click', ()=>{
+                new $peerctl.modals.RequestPeering(
+                  apiobject,
+                  {
+                    type: "email",
+                    url: autopeer_data.url,
+                    autopeer_enabled: true,
+                    asn: apiobject.asn
+                  }
+                );
+              });
+            }
+          })
+        })
+      })
     },
 
     toggle_available_peers: function() {
@@ -2133,46 +2210,7 @@ $peerctl.PeerList = $tc.extend(
 
 
       const request_peering_btn = new fullctl.application.DropdownBtn(row.find('.dropdown-btn'));
-
-      // check if autopeer is enabled
-      let url = `/api/autopeer/${fullctl.peerctl.network.asn}/enabled/${data.asn}/`
-
-      $.ajax({
-        url: url,
-        method: "GET",
-        headers : {
-          "Content-Type" : "application/json",
-          "X-CSRFToken" : twentyc.rest.config.csrf
-        },
-      }).then((response)=>{
-        const autopeer_data = response.data[0];
-        if (autopeer_data.enabled) {
-          const autopeer_btn = $(`
-              <button
-                class="primary btn | small active"
-                data-option-text="Autopeer"
-              >
-                <div class="row align-items-center">
-                  <div class="col label pe-0">
-                    Request peering
-                  </div>
-                  <div class="col-auto">
-                    <span class="icon icon-api"></span>
-                  </div>
-                </div>
-              </button>
-          `)
-          request_peering_btn.add_option(autopeer_btn);
-          autopeer_btn.click(()=>{
-            new $peerctl.modals.RequestPeering(data, {type: "autopeering", url: autopeer_data.url, autopeer_enabled: true, asn: data.asn});
-          });
-
-          row.find('[data-element="request_peering"]').off('click')
-          row.find('[data-element="request_peering"]').on('click', ()=>{
-            new $peerctl.modals.RequestPeering(data, {type: "email", url: autopeer_data.url, autopeer_enabled: true, asn: data.asn});
-          });
-        }
-      });
+      row.data('dropdown-peering-btn', request_peering_btn);
 
       return row;
     },
@@ -2529,10 +2567,18 @@ $peerctl.EmailPeeringForm = $tc.define(
 
       form.element.find('.'+current_step).addClass("highlight");
 
-
       form.format_request_url = (url) => {
+        if (ix_ids) {
+          return form.element.data('api-from-asn');
+        }
         return url.replace("port_id", fullctl.peerctl.port()).replace("peer_id", peer.id);
       };
+
+      if (ix_ids) {
+        $(form).on("api-write:before", (ev, e, payload) => {
+          payload["asn"] = peer.asn;
+        });
+      }
 
       return form
     }
@@ -2554,46 +2600,6 @@ $peerctl.AutopeerModalBody = $tc.define(
   }
 )
 
-
-$peerctl.modals.RequestPeeringFromAsn = $tc.extend(
-  "RequestPeeringFromAsn",
-  {
-    RequestPeeringFromAsn: function(peer, ix_ids) {
-
-      var current_step = "peer-request";
-      var title = "Peering Request";
-
-      var form = new $peerctl.EmailTemplatePreview(
-        $ctl.template('form_request_peering_from_asn'),
-        current_step,
-        peer,
-        ix_ids
-      );
-      form.fill(peer);
-
-      form.element.find('.'+current_step).addClass("highlight");
-
-      $(form).on("api-write:success", (ev, endpoint, data, response)=>{
-
-        if(form.element.find('#test-mode').is(":checked")) {
-          console.log(response);
-          alert("Test email has been sent");
-          return;
-        }
-
-        this.hide();
-      });
-
-      this.Modal("save_lg", title, form.element);
-      form.wire_submit(this.$e.button_submit);
-
-      this.$e.button_submit.empty().append($('<span>').addClass("icon icon-mail fullctl")).append($('<span>').addClass("label").text('Send'));
-    }
-
-  },
-  $ctl.application.Modal
-);
-
 $peerctl.PeeringRequestsList = $tc.extend(
   "PeeringRequestsList",
   {
@@ -2612,11 +2618,17 @@ $peerctl.PeeringRequestsList = $tc.extend(
           return `/api/autopeer/${fullctl.peerctl.network.asn}/`
         }
 
+        w.formatters.date = fullctl.formatters.datetime;
+
         return w;
       });
 
       this.$w.list_peer_sessions.load();
     },
+
+    sync: function() {
+      this.$w.list_peer_sessions.load();
+    }
   },
   $ctl.application.Tool
 );
