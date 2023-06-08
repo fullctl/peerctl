@@ -2576,46 +2576,6 @@ $peerctl.AutopeerModalBody = $tc.define(
   }
 )
 
-
-$peerctl.modals.RequestPeeringFromAsn = $tc.extend(
-  "RequestPeeringFromAsn",
-  {
-    RequestPeeringFromAsn: function(peer, ix_ids) {
-
-      var current_step = "peer-request";
-      var title = "Peering Request";
-
-      var form = new $peerctl.EmailTemplatePreview(
-        $ctl.template('form_request_peering_from_asn'),
-        current_step,
-        peer,
-        ix_ids
-      );
-      form.fill(peer);
-
-      form.element.find('.'+current_step).addClass("highlight");
-
-      $(form).on("api-write:success", (ev, endpoint, data, response)=>{
-
-        if(form.element.find('#test-mode').is(":checked")) {
-          console.log(response);
-          alert("Test email has been sent");
-          return;
-        }
-
-        this.hide();
-      });
-
-      this.Modal("save_lg", title, form.element);
-      form.wire_submit(this.$e.button_submit);
-
-      this.$e.button_submit.empty().append($('<span>').addClass("icon icon-mail fullctl")).append($('<span>').addClass("label").text('Send'));
-    }
-
-  },
-  $ctl.application.Modal
-);
-
 $peerctl.PeeringRequestsList = $tc.extend(
   "PeeringRequestsList",
   {
