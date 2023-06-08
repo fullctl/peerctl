@@ -810,7 +810,11 @@ class MutualLocation:
 
         self._portinfos = []
 
-        for port_info in self.net.port_info_qs.all():
+        _portinfos = list(self.net.port_info_qs.all())
+
+        Port.load_references(_portinfos)
+        
+        for port_info in _portinfos:
             if not port_info.ipaddr4 and not port_info.ipaddr6:
                 continue
 
@@ -1172,6 +1176,40 @@ class Port(devicectl.Port):
                     port.port_info_object._ref = member
 
         return instances
+
+    
+    @classmethod
+    def load_references(cls, objects):
+        """
+        Takes a list or generator of objects that have a `port` reference field
+        and batch loads all PortObjects at once
+        """
+
+        # collect all port ids
+
+        port_ids = set()
+
+        for obj in objects:
+            if obj.port.id:
+                port_ids.add(obj.port.id)
+
+        # load all ports
+
+        ports = Port().objects(ids=list(port_ids))
+
+        # map ports by id
+
+        port_map = {}
+
+        for port in ports:
+            port_map[port.id] = port
+
+        # assign port objects to objects
+
+        for obj in objects:
+            if obj.port.id:
+                obj.port._object = port_map[obj.port.id]
+
 
     @classmethod
     def augment_ix(cls, ixi_ports, asn):
@@ -2224,7 +2262,7 @@ class EmailTemplate(Base, TemplateBase):
         ctx = self.context
 
         asn = ctx.get("asn")
-
+        
         ix_ids = []
 
         for member in sot.InternetExchangeMember().objects(asn=self.net.asn):
