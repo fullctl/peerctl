@@ -1,5 +1,7 @@
 import ipaddress
 
+from django.conf import settings
+
 import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
@@ -903,6 +905,11 @@ class AutopeerRequest(viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
+
+        """
+        create new autopeer request
+        """
+
         serializer = self.get_serializer_class()(
             data=request.data, context={"asn": asn, "org": net.org}
         )
@@ -914,12 +921,29 @@ class AutopeerRequest(viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
-        tasks = self.get_serializer_class().get_requests(net)
 
-        print(tasks)
+        """
+        lists peer requests
+        """
+
+        requests = self.get_serializer_class().get_requests(net)
 
         serializer = self.get_serializer_class()(
-            instance=tasks, context={"asn": asn}, many=True
+            instance=requests, context={"asn": asn}, many=True
+        )
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="enabled")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list_enabled(self, request, asn, net, *args, **kwargs):
+
+        """
+        lists autopeer enabled asns
+        """
+
+        serializer = Serializers.autopeer_enabled(
+            instance=[{"asn":their_asn} for their_asn in settings.AUTOPEER_ENABLED_NETWORKS], context={"asn": asn}, many=True
         )
         return Response(serializer.data)
 
