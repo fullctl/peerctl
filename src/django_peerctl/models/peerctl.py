@@ -813,7 +813,7 @@ class MutualLocation:
         _portinfos = list(self.net.port_info_qs.all())
 
         Port.load_references(_portinfos)
-        
+
         for port_info in _portinfos:
             if not port_info.ipaddr4 and not port_info.ipaddr6:
                 continue
@@ -1177,7 +1177,6 @@ class Port(devicectl.Port):
 
         return instances
 
-    
     @classmethod
     def load_references(cls, objects):
         """
@@ -1209,7 +1208,6 @@ class Port(devicectl.Port):
         for obj in objects:
             if obj.port.id:
                 obj.port._object = port_map[obj.port.id]
-
 
     @classmethod
     def augment_ix(cls, ixi_ports, asn):
