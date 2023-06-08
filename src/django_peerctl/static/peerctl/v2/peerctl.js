@@ -578,7 +578,7 @@ $peerctl.Networks = $tc.extend(
           },
         }).then((response)=>{
           const autopeer_data = this.autopeer_data = response.data[0];
-          if (!autopeer_data.enabled) {
+          if (autopeer_data.enabled) {
             const autopeer_btn = $(`
                 <button
                   class="primary btn | small active"
