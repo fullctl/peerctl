@@ -765,7 +765,6 @@ $peerctl.Networks = $tc.extend(
         ix_ids.push($(this).data("ix-id"));
       });
 
-      console.log(this.peer_request_data)
       new $peerctl.modals.RequestPeering(
         this.peer, 
         this.peer_request_data,
@@ -2525,10 +2524,18 @@ $peerctl.EmailPeeringForm = $tc.define(
 
       form.element.find('.'+current_step).addClass("highlight");
 
-
       form.format_request_url = (url) => {
+        if (ix_ids) {
+          return form.element.data('api-from-asn');
+        }
         return url.replace("port_id", fullctl.peerctl.port()).replace("peer_id", peer.id);
       };
+
+      if (ix_ids) {
+        $(form).on("api-write:before", (ev, e, payload) => {
+          payload["asn"] = peer.asn;
+        });
+      }
 
       return form
     }

@@ -1,6 +1,7 @@
 {% load i18n %}
 <form data-template="form_request_peering"
   data-api-base="{% url "peerctl_api:email_workflow-list" asn=selected_asn port_pk="port_id" member_pk="peer_id" %}"
+  data-api-from-asn="{% url "peerctl_api:email_asn_request_peering-list" asn=selected_asn %}"
   data-api-method="post">
 
   <div class="row">
