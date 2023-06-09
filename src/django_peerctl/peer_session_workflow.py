@@ -303,16 +303,16 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         return peer_session_list
 
     def config_complete(self, user, email_template, *args, **kwargs):
-        my_asn = self.port.port_info_object.ref.asn
-        peer_asn = self.member.asn
+        my_asn = self.my_asn
+        peer_asn = self.peer_asn
 
         email_template.context["sessions"] = self.peer_sessions()
 
         subject = "Peering between {} (AS{}) and {} (AS{}) has been configured".format(
             self.member.name,
             self.member.asn,
-            self.port.port_info_object.ref.name,
-            self.port.port_info_object.ref.asn,
+            self.net.name,
+            self.net.asn,
         )
         body = self.render_email_body(email_template, "peer-config-complete")
 
@@ -343,16 +343,16 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         return peer_session_list
 
     def finalize(self, user, email_template, *args, **kwargs):
-        my_asn = self.port.port_info_object.ref.asn
-        peer_asn = self.member.asn
+        my_asn = self.my_asn
+        peer_asn = self.peer_asn
 
         email_template.context["sessions"] = self.peer_sessions()
 
         subject = "Peering between {} (AS{}) and {} (AS{}) has been enabled".format(
             self.member.name,
             self.member.asn,
-            self.port.port_info_object.ref.name,
-            self.port.port_info_object.ref.asn,
+            self.net.name,
+            self.net.asn,
         )
         body = self.render_email_body(email_template, "peer-session-live")
         contact = self.contact_email(self.member)
@@ -494,15 +494,27 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
 
         peer_request = self.get_peer_request("email", "pending")
 
+        # add the initial locations based on selected exchanges
+
         for ix in self.exchanges:
             if ix.source == "pdbctl":
                 peer_request.add_pdb_location(ix.id)
             elif ix.source == "ixctl":
                 peer_request.add_ixctl_location(ix.id, ix.pdb_id)
 
-        peer_session_list = PeerSessionWorkflow.request(self, peer_request)
+        peer_session_list = PeerSessionWorkflow.request(self, peer_request)  #
+
+        # initial locations can be deleted now that sessions are created
+        # created more specific locations from sessions
+
+        peer_request.locations.all().delete()
 
         for peer_session in peer_session_list:
+            peer_request.add_location(
+                peer_session.port.object.port_info_object,
+                port_id=int(peer_session.port) if peer_session.port else None,
+                member_ref_id=peer_session.peer_port.port_info.ref_id,
+            )
             AuditLog.log_peer_session_request(peer_session, user)
 
         return peer_session_list
@@ -510,3 +522,9 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
     @property
     def next_step(self):
         return "peer-request"
+
+    def progress(self, *args, **kwargs):
+        # this workflow is only used for the initial request
+        # continuation through peering request lists
+
+        return self.request(*args, **kwargs)
