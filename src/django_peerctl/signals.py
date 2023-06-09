@@ -65,7 +65,8 @@ def set_session_device(sender, **kwargs):
 def change_default_email_template(sender, **kwargs):
     """
     Before a EmailTemplate is saved we want to update the
-    default field to False for all other EmailTemplates
+    default field to False for all other EmailTemplates of
+    the same type
     """
 
     email_template = kwargs.get("instance")
