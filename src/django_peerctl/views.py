@@ -18,7 +18,12 @@ def make_env(request, **kwargs):
 def view_instance(request, instance, **kwargs):
     env = make_env(request, instance=instance, org=instance.org)
 
-    selected_asn = int(request.GET.get("asn", 0))
+    asn = request.GET.get("asn")
+    if asn is not None:
+        request.session["asn"] = asn
+
+    selected_asn = int(request.session.get("asn", 0))
+
     asns = {net.asn: net for net in verified_asns(request.perms, org=instance.org)}
 
     net = asns.get(selected_asn)
