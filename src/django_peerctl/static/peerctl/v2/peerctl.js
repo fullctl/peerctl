@@ -1537,7 +1537,14 @@ $peerctl.TemplateEditor= $tc.extend(
 
     init: function() {
       this.widget("list", ($e) => {
-        return new twentyc.rest.List(this.template("template_list", $e.list_container));
+        const list = new twentyc.rest.List(this.template("template_list", $e.list_container));
+        list.formatters.default = (val, data) => {
+          if (val)
+            return "(default)";
+          return '';
+        }
+
+        return list;
       });
 
       this.widget("form", ($e) => {

@@ -1419,6 +1419,7 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
         else:
             device_template = models.DeviceTemplate.objects.get(id=pk)
 
+        print(net.port_info_qs.first())
         port = net.port_info_qs.first().port.object
 
         device_template.context["port"] = port

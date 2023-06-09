@@ -1489,7 +1489,7 @@ class DeviceTemplateList(serializers.Serializer):
 class EmailTemplate(ModelSerializer):
     class Meta:
         model = models.EmailTemplate
-        fields = ["id", "name", "type", "body"]
+        fields = ["id", "name", "type", "body", "default"]
 
 
 @register

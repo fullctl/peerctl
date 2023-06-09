@@ -2,7 +2,7 @@ from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 
-from django_peerctl.models import PeerSession, UserSession
+from django_peerctl.models import EmailTemplate, PeerSession, UserSession
 
 
 @receiver(user_logged_in)
@@ -54,3 +54,21 @@ def set_session_device(sender, **kwargs):
         return
 
     session.device = session.port.object.device_id
+
+
+@receiver(pre_save, sender=EmailTemplate)
+def change_default_email_template(sender, **kwargs):
+    """
+    Before a EmailTemplate is saved we want to update the
+    default field to False for all other EmailTemplates
+    """
+
+    email_template = kwargs.get("instance")
+
+    if not email_template:
+        return
+
+    if email_template.default:
+        EmailTemplate.objects.filter(type=email_template.type).exclude(
+            pk=email_template.pk
+        ).update(default=False)
