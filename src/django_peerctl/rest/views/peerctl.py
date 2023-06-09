@@ -1,8 +1,8 @@
 import ipaddress
 
-import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
+from django.conf import settings
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
 from fullctl.django.rest.decorators import load_object
@@ -22,6 +22,7 @@ from django_peerctl.peer_session_workflow import (
 from django_peerctl.rest.decorators import grainy_endpoint
 from django_peerctl.rest.route.peerctl import route
 from django_peerctl.rest.serializers.peerctl import Serializers, ValidationError
+from django_peerctl.utils import load_exchanges
 
 
 @route
@@ -770,7 +771,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
 
 @route
-class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
+class EmailPeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
     serializer_class = Serializers.peer_session
     queryset = models.PeerSession.objects.all()
     require_asn = True
@@ -866,7 +867,7 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
             net.save()
 
         workflow = PeerRequestToAsnWorkflow(
-            asn, request.data.get("asn"), request.data.get("ix_ids")
+            asn, request.data.get("asn"), load_exchanges(request.data.get("ix_ids"))
         )
         workflow.cc = request.data.get("cc_reply_to")
         workflow.test_mode = request.data.get("test_mode")
@@ -889,6 +890,72 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
             raise ValidationError({"non_field_errors": [["usage_limit", f"{exc}"]]})
 
         return Response({})
+
+
+@route
+class PeerRequest(viewsets.GenericViewSet):
+    serializer_class = Serializers.autopeer
+    require_asn = True
+    require_port = False
+    require_member = False
+
+    http_method_names = ["get", "post"]
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def create(self, request, asn, net, *args, **kwargs):
+        """
+        create new autopeer request
+        """
+
+        serializer = self.get_serializer_class()(
+            data=request.data, context={"asn": asn, "org": net.org, "net": net}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list(self, request, asn, net, *args, **kwargs):
+        """
+        lists peer requests
+        """
+
+        requests = self.get_serializer_class().get_requests(net)
+
+        serializer = self.get_serializer_class()(
+            instance=requests, context={"asn": asn}, many=True
+        )
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="enabled")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list_enabled(self, request, asn, net, *args, **kwargs):
+        """
+        lists autopeer enabled asns
+        """
+
+        serializer = Serializers.autopeer_enabled(
+            instance=[
+                {"asn": their_asn} for their_asn in settings.AUTOPEER_ENABLED_NETWORKS
+            ],
+            context={"asn": asn},
+            many=True,
+        )
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="enabled/(?P<their_asn>[0-9]+)")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def enabled(self, request, asn, net, their_asn, *args, **kwargs):
+        serializer = Serializers.autopeer_enabled(
+            data={"asn": their_asn}, context={"asn": asn}
+        )
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
 
 
 # peer session view
@@ -1331,31 +1398,24 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             # we need to split them and get the ids and then selectively load them from
             # the service bridge.
 
-            exchanges = []
-            ixctl_ix_ids = [
-                int(ix_id.split(":")[1])
-                for ix_id in request.data["ix_ids"]
-                if ix_id.startswith("ixctl:")
-            ]
-            pdbctl_ix_ids = [
-                int(ix_id.split(":")[1])
-                for ix_id in request.data["ix_ids"]
-                if ix_id.startswith("pdbctl:")
-            ]
-
-            if ixctl_ix_ids:
-                exchanges.extend(ixctl.InternetExchange().objects(ids=ixctl_ix_ids))
-
-            if pdbctl_ix_ids:
-                exchanges.extend(pdbctl.InternetExchange().objects(ids=pdbctl_ix_ids))
-
+            exchanges = load_exchanges(request.data["ix_ids"])
             email_template.context["selected_exchanges"] = list(
                 models.MutualLocation(ix, net, None) for ix in exchanges
             )
 
-        if "peer_session" in request.data:
+        print("email template type", email_template.type)
+
+        if email_template.type == "peer-config-complete":
             email_template.context["sessions"] = models.PeerSession.objects.filter(
-                id=request.data["peer_session"]
+                peer_port__peer_net__net__asn=asn,
+                peer_port__peer_net__peer__asn=email_template.context["asn"],
+                status="requested",
+            )
+        elif email_template.type == "peer-session-live":
+            email_template.context["sessions"] = models.PeerSession.objects.filter(
+                peer_port__peer_net__net__asn=asn,
+                peer_port__peer_net__peer__asn=email_template.context["asn"],
+                status="configured",
             )
 
         serializer = Serializers.tmplpreview(instance=email_template)

@@ -22,7 +22,7 @@ from django_grainy.decorators import grainy_model
 from django_inet.models import ASNField
 from fullctl.django.fields.service_bridge import ReferencedObjectField
 from fullctl.django.models.abstract import HandleRefModel, meta
-from fullctl.django.models.concrete import Instance, Organization  # noqa
+from fullctl.django.models.concrete import Instance, Organization, Task  # noqa
 from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
@@ -1951,6 +1951,174 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         return "Session ({}): AS{} -> AS{}".format(
             self.id, self.peer_port.peer_net.net.asn, self.peer_port.peer_net.peer.asn
         )
+
+
+@grainy_model(
+    namespace="verified.asn", namespace_instance="{namespace}.{instance.net.asn}.?"
+)
+@reversion.register
+class PeerRequest(HandleRefModel):
+
+    """
+    Describes a peer request from one ASN to another
+    """
+
+    net = models.ForeignKey(
+        Network, on_delete=models.CASCADE, related_name="peer_requests"
+    )
+
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="peer_requests",
+        null=True,
+        blank=True,
+    )
+
+    peer_asn = models.PositiveIntegerField(help_text=_("Peer request to this ASN"))
+
+    notes = models.CharField(max_length=255, null=True, blank=True)
+
+    status = models.CharField(
+        max_length=32,
+        choices=(
+            ("pending", "Pending"),
+            ("completed", "Completed"),
+            ("failed", "Failed"),
+        ),
+        default="pending",
+    )
+
+    type = models.CharField(
+        max_length=32,
+        choices=(
+            ("email", "Email"),
+            ("autopeer", "Autopeer"),
+        ),
+    )
+
+    class Meta:
+        db_table = "peerctl_peerrequest"
+        verbose_name = _("Peer Request")
+        verbose_name_plural = _("Peer Requests")
+
+    class HandleRef:
+        tag = "peer_request"
+
+    def add_pdb_location(self, pdb_ix_id, port_id=None, member_ref_id=None):
+        """
+        Adds a PDB location to this peer request
+        """
+        loc, _ = PeerRequestLocation.objects.get_or_create(
+            peer_request=self,
+            pdb_ix_id=pdb_ix_id,
+        )
+
+        if port_id and member_ref_id:
+            loc.port = port_id
+            loc.peer_id = member_ref_id
+            loc.save()
+
+    def add_ixctl_location(
+        self, ixctl_ix_id, pdb_ix_id=None, port_id=None, member_ref_id=None
+    ):
+        """
+        Adds an IXCTL location to this peer request
+        """
+        loc, _ = PeerRequestLocation.objects.get_or_create(
+            peer_request=self,
+            ixctl_ix_id=ixctl_ix_id,
+            pdb_ix_id=pdb_ix_id,
+        )
+
+        if port_id and member_ref_id:
+            loc.port = port_id
+            loc.peer_id = member_ref_id
+            loc.save()
+
+    def add_location(self, port_info, port_id=None, member_ref_id=None):
+        """
+        Adds a location to this peer request
+        """
+        if not port_info.ref_id or not port_info.ref_ix_id:
+            return
+
+        if port_info.ref_source == "pdbctl":
+            self.add_pdb_location(
+                port_info.ref_ix_id.split(":")[1],
+                port_id=port_id,
+                member_ref_id=member_ref_id,
+            )
+        elif port_info.ref_source == "ixctl":
+            self.add_ixctl_location(
+                port_info.ref_ix_id.split(":")[1],
+                port_id=port_id,
+                member_ref_id=member_ref_id,
+            )
+
+
+class PeerRequestLocation(HandleRefModel):
+
+    """
+    Describes an exchange location for a peer request
+    """
+
+    peer_request = models.ForeignKey(
+        PeerRequest, on_delete=models.CASCADE, related_name="locations"
+    )
+
+    pdb_ix_id = models.PositiveIntegerField(null=True, blank=True)
+    ixctl_ix_id = models.PositiveIntegerField(null=True, blank=True)
+
+    peer_id = models.CharField(max_length=255, null=True, blank=True)
+    port = ReferencedObjectField(null=True, blank=True)
+
+    notes = models.CharField(max_length=255, null=True, blank=True)
+
+    status = models.CharField(
+        max_length=32,
+        choices=(
+            ("pending", "Pending"),
+            ("completed", "Completed"),
+            ("failed", "Failed"),
+        ),
+        default="pending",
+    )
+
+    class Meta:
+        db_table = "peerctl_peerrequest_location"
+        verbose_name = _("Peer Request Location")
+        verbose_name_plural = _("Peer Request Locations")
+
+    class HandleRef:
+        tag = "peer_request_location"
+
+    @property
+    def ref_id(self):
+        if self.pdb_ix_id:
+            return f"pdbctl:{self.pdb_ix_id}"
+        if self.ixctl_ix_id:
+            return f"ixctl:{self.ixctl_ix_id}"
+        return None  #
+
+    @property
+    def name(self):
+        if hasattr(self, "_name"):
+            return self._name
+
+        if self.pdb_ix_id:
+            pdb_ix = pdbctl.first(id=self.pdb_ix_id)
+            if pdb_ix:
+                self._name = pdb_ix.name
+                return self._name
+
+        if self.ixctl_ix_id:
+            ixctl_ix = ixctl.first(id=self.ixctl_ix_id)
+            if ixctl_ix:
+                self._name = ixctl_ix.name
+                return self._name
+
+        return ""
 
 
 @grainy_model(namespace="peerctl.user.{user.id}.wish")

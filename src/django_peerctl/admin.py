@@ -14,6 +14,8 @@ from django_peerctl.models import (
     Organization,
     PeerNetwork,
     PeerPort,
+    PeerRequest,
+    PeerRequestLocation,
     PeerSession,
     Policy,
     Port,
@@ -125,7 +127,7 @@ class PortInfoAdmin(CachedPortMixin, admin.ModelAdmin):
     def ip4(self, obj):
         try:
             return self._ports.get(int(obj.port)).ip_address_4
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             pass
 
         return obj.ip_address_4 or obj.ref.ipaddr4
@@ -134,7 +136,7 @@ class PortInfoAdmin(CachedPortMixin, admin.ModelAdmin):
     def ip6(self, obj):
         try:
             return self._ports.get(int(obj.port)).ip_address_6
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             pass
 
         return obj.ip_address_6 or obj.ref.ipaddr6
@@ -149,6 +151,19 @@ class DeviceTemplateAdmin(admin.ModelAdmin):
 class WishAdmin(admin.ModelAdmin):
     list_display = ("user", "path", "text", "ticket", "status", "created")
     form = status_form()
+
+
+class PeerRequestLocationInline(admin.TabularInline):
+    model = PeerRequestLocation
+    extra = 0
+
+
+@admin.register(PeerRequest)
+class PeerRequestAdmin(admin.ModelAdmin):
+    search_fields = ("net__asn", "peer_asn")
+    list_display = ("net", "peer_asn", "type", "status", "created", "updated")
+
+    inlines = (PeerRequestLocationInline,)
 
 
 @admin.register(PeerSession)
@@ -167,6 +182,7 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
         "policy4",
         "policy6",
         "status",
+        "request_status",
         "created",
         "updated",
         "port",
@@ -177,7 +193,7 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
         choices=[("ok", "ok"), ("requested", "requested"), ("configured", "configured")]
     )
 
-    readonly_fields = ("net", "peer", "policy4", "policy6")
+    readonly_fields = ("net", "peer", "policy4", "policy6", "request_status")
 
     def net(self, obj):
         return obj.peer_port.peer_net.net
@@ -228,6 +244,9 @@ class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
 
     def peer_ipaddr6(self, obj):
         return obj.peer_port.port_info.ipaddr6
+
+    def request_status(self, obj):
+        return obj.status
 
 
 class OrganizationForm(forms.ModelForm):

@@ -24,6 +24,7 @@ python = "^3.7"
 fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "prep-release" }
 
 netom = { git = "https://github.com/20c/netom.git", branch = "prep-release" }
+pydantic = "^1.10.8"
 
 [tool.poetry.dev-dependencies]
 # tests

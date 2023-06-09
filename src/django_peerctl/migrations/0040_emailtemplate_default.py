@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("django_peerctl", "0035_adjust_last_updown_type"),
+        ("django_peerctl", "0039_devicetemplate_default"),
     ]
 
     operations = [

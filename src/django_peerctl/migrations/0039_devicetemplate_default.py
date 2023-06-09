@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("django_peerctl", "0036_emailtemplate_default"),
+        ("django_peerctl", "0038_auto_20230609_1125"),
     ]
 
     operations = [

@@ -1,14 +1,18 @@
 import ipaddress
 
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
+from fullctl.django.models.concrete.tasks import TaskLimitError
 from fullctl.django.rest.decorators import serializer_registry
 from fullctl.django.rest.serializers import ModelSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError  # noqa
 
+import django_peerctl.autopeer.tasks as autopeer_tasks
 import django_peerctl.models as models
+from django_peerctl.autopeer import autopeer_url
 from django_peerctl.helpers import get_best_policy
 
 Serializers, register = serializer_registry()
@@ -1562,3 +1566,169 @@ class PeeringDBRelationship(serializers.Serializer):
 
     def get_url(self, obj):
         return f"https://www.peeringdb.com/{obj.ref_tag}/{obj.id}"
+
+
+@register
+class AutopeerRequest(serializers.Serializer):
+    """
+    Initiates an autopeering request
+    """
+
+    asn = serializers.IntegerField()
+    date = serializers.DateTimeField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    type = serializers.CharField(read_only=True)
+    location = serializers.SerializerMethodField()
+    id = serializers.IntegerField(read_only=True)
+    num_locations = serializers.IntegerField(read_only=True)
+    peer_id = serializers.CharField(read_only=True)
+    port_id = serializers.IntegerField(read_only=True, allow_null=True)
+
+    ref_tag = "autopeer"
+
+    class Meta:
+        fields = [
+            "id",
+            "asn",
+            "status",
+            "location",
+            "type",
+            "date",
+            "peer_id",
+            "port_id",
+        ]
+
+    @classmethod
+    def get_requests(cls, net):
+        _requests = list(
+            models.PeerRequest.objects.filter(net=net)
+            .prefetch_related("locations")
+            .order_by("-created")
+        )
+        ixctl_ix_ids = []
+        pdbctl_ix_ids = []
+        locations = []
+
+        for req in _requests:
+            for location in req.locations.all():
+                if location.pdb_ix_id:
+                    pdbctl_ix_ids.append(location.pdb_ix_id)
+                elif location.ixctl_ix_id:
+                    ixctl_ix_ids.append(location.ixctl_ix_id)
+
+        if pdbctl_ix_ids:
+            pdbctl_exchanges = {
+                ix.id: ix for ix in pdbctl.InternetExchange().objects(ids=pdbctl_ix_ids)
+            }
+
+        if ixctl_ix_ids:
+            ixctl_exchanges = {
+                ix.id: ix for ix in ixctl.InternetExchange().objects(ids=ixctl_ix_ids)
+            }
+
+        for req in _requests:
+            req_locations = list(req.locations.all())
+            num_locations = len(req_locations)
+
+            if not num_locations:
+                locations.append(
+                    {
+                        "id": req.id,
+                        "asn": req.peer_asn,
+                        "location": "...",
+                        "status": "pending",
+                        "date": req.created,
+                        "type": req.type,
+                        "num_locations": 0,
+                        "peer_id": None,
+                        "port_id": None,
+                    }
+                )
+
+            for location in req_locations:
+                ix = None
+                if location.pdb_ix_id:
+                    ix = pdbctl_exchanges.get(location.pdb_ix_id)
+                elif location.ixctl_ix_id:
+                    ix = ixctl_exchanges.get(location.ixctl_ix_id)
+
+                if ix:
+                    location._name = ix.name
+                else:
+                    location._name = "Unknown"
+
+                if location.port:
+                    port = int(location.port)
+                else:
+                    port = None
+
+                locations.append(
+                    {
+                        "id": req.id,
+                        "asn": req.peer_asn,
+                        "location": location.name,
+                        "status": location.status,
+                        "date": req.created,
+                        "type": req.type,
+                        "num_locations": num_locations,
+                        "peer_id": location.peer_id,
+                        "port_id": port,
+                    }
+                )
+
+        return locations
+
+    def get_location(self, obj):
+        return obj.get("location", [])
+
+    def validate(self, data):
+        asn = data["asn"]
+
+        if not autopeer_url(asn):
+            raise serializers.ValidationError(
+                "This ASN is not enabled for autopeering."
+            )
+
+        return data
+
+    def save(self):
+        try:
+            net = self.context.get("net")
+            asn = net.asn
+            peer_asn = self.validated_data["asn"]
+
+            peer_request = models.PeerRequest.objects.create(
+                net=net, peer_asn=peer_asn, type="autopeer"
+            )
+            return autopeer_tasks.AutopeerRequest.create_task(
+                asn,
+                peer_asn,
+                org=self.context.get("org"),
+                peer_request_id=peer_request.id,
+            )
+        except TaskLimitError:
+            raise serializers.ValidationError(
+                "You already have a pending autopeer request towards this ASN."
+            )
+
+
+@register
+class AutopeerEnabled(serializers.Serializer):
+    """
+    States whether or not a given asn has autopeer enabled
+    """
+
+    asn = serializers.IntegerField()
+    enabled = serializers.SerializerMethodField()
+    url = serializers.SerializerMethodField()
+
+    ref_tag = "autopeer_enabled"
+
+    class Meta:
+        fields = ["asn", "enabled", "url"]
+
+    def get_enabled(self, obj):
+        return autopeer_url(obj["asn"]) is not None
+
+    def get_url(self, obj):
+        return autopeer_url(obj["asn"])
