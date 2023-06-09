@@ -1060,7 +1060,8 @@ $peerctl.SessionsSummary = $tc.extend(
           const asn_field = row.find('[data-field="peer_asn"]');
           asn_field.attr("data-bs-toggle", "tooltip")
             .attr("data-bs-placement", "top")
-            .attr("data-bs-title", data.peer_network_name);
+            .attr("title", data.peer_name)
+            .addClass("dotted-underline");
           new bootstrap.Tooltip(asn_field);
 
           // handle policy editor widgets for each row
@@ -1536,7 +1537,14 @@ $peerctl.TemplateEditor= $tc.extend(
 
     init: function() {
       this.widget("list", ($e) => {
-        return new twentyc.rest.List(this.template("template_list", $e.list_container));
+        const list = new twentyc.rest.List(this.template("template_list", $e.list_container));
+        list.formatters.default = (val, data) => {
+          if (val)
+            return "(default)";
+          return '';
+        }
+
+        return list;
       });
 
       this.widget("form", ($e) => {

@@ -2069,6 +2069,7 @@ class TemplateBase(models.Model):
 )
 class DeviceTemplate(Base, TemplateBase):
     type = models.CharField(max_length=255, choices=const.DEVICE_TEMPLATE_TYPES)
+    default = models.BooleanField(default=False)
 
     class Meta:
         db_table = "peerctl_device_template"
@@ -2113,6 +2114,7 @@ class DeviceTemplate(Base, TemplateBase):
 )
 class EmailTemplate(Base, TemplateBase):
     type = models.CharField(max_length=255, choices=EMAIL_TEMPLATE_TYPES)
+    default = models.BooleanField(default=False)
 
     class Meta:
         db_table = "peerctl_email_template"
