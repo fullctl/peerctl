@@ -2509,6 +2509,7 @@ $peerctl.modals.RequestPeering = $tc.extend(
           if(this.peer.peer_session_status == "ok") {
             fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(this.peer.id)
           }
+          $(this).trigger("peer-request:after", []);
         });
         this.$e.body.append(form.element)
         this.$e.button_submit.empty().append($('<span>').addClass("icon icon-mail fullctl")).append($('<span>').addClass("label").text('Send'));
@@ -2543,6 +2544,7 @@ $peerctl.modals.RequestPeering = $tc.extend(
           }).then((data)=>{
             console.log(data);
             this.hide();
+            $(this).trigger("peer-request:after", []);
           });
         });
       }
@@ -2600,6 +2602,32 @@ $peerctl.AutopeerModalBody = $tc.define(
   }
 )
 
+$peerctl.ContinuePeerRequest = $tc.extend(
+  "ContinuePeerRequest",
+  {
+    ContinuePeerRequest: function(jq, port_id) {
+      this.Button(jq);
+      this.port_id = port_id;
+      this.method = "GET";
+
+      $(this).on('api-read:success', (ev, endpoint, data, response)=> {
+        let peer_info = response.first();
+        let modal = new $peerctl.modals.RequestPeering(peer_info);
+        $(modal).on("peer-request:after", (ev) => {
+          $(this).trigger("peer-request:after", []);
+        });
+
+      });
+    },
+
+    format_request_url: function(url) {
+      return url.replace("port_id", this.port_id);
+    }
+
+  },
+  twentyc.rest.Button
+)
+
 $peerctl.PeeringRequestsList = $tc.extend(
   "PeeringRequestsList",
   {
@@ -2614,14 +2642,78 @@ $peerctl.PeeringRequestsList = $tc.extend(
           this.jquery.find('table'),
         );
 
+        let peer_info_url = w.element.data('api-peer-info')
+
         w.format_request_url = () => {
           return `/api/autopeer/${fullctl.peerctl.network.asn}/`
         }
 
+        w.formatters.status = (value, data) => {
+          let bg_class;
+          if(value == "completed")
+            bg_class = "success";
+          else if(value == "failed")
+            bg_class = "error";
+          else if(value == "pending") {
+            bg_class = "warning";
+          
+            if(data.type == "email" && data.peer_id && w.element.find('.row-'+data.id).length == 0) {
+              let button_continue_element = $('<button class="badge badge-btn bg-primary action">').append(
+                $('<span class="icon icon-mail">'),
+                $('<span class="label">').text("continue")
+              )
+              let loading_indicator = $('<div class="loading-indicator-container fixed"><div class="loading-indicator"></div></div>').hide();
+
+              button_continue_element.attr("data-api-base", peer_info_url).attr("data-api-action", data.peer_id);
+
+              let button_continue = new $peerctl.ContinuePeerRequest(button_continue_element,data.port_id);
+              $(button_continue).on('peer-request:after', () => { w.load();});
+
+              let col = $('<div style="position:relative">').append(button_continue_element, loading_indicator);
+
+              return col;
+            }
+          }
+
+          return $("<div>").addClass("badge").addClass("bg-"+bg_class).text(value);
+        }
+
+        w.formatters.type = (value, data) => { 
+          let icon = "mail";
+          if(value == "autopeer")
+            icon = "api";
+          
+          return $("<span>").addClass("icon").addClass("icon-"+icon).text(value).attr("title", value);
+        };
+
         w.formatters.date = fullctl.formatters.datetime;
+
+        w.formatters.row = (row, data) => {
+          row.data("peering-request-id", data.id);
+          if(data.num_locations > 1) {
+
+            if(w.element.find('.row-'+data.id).length > 0) {
+              // additional location of this request, hide it
+              row.hide();
+              row.addClass("secondary")
+            } else {
+              // first location of this request
+              row.find("[data-field=location]").parent().addClass("action").click((ev) => {
+                // toggle elements with the same .row-{data.id} class as this row
+                // on or off, but this row should always remain visible
+                w.element.find('.row-'+data.id).not(row).toggle();
+              });
+              row.find(".note-expand").show();
+              row.find(".num-locations").text(data.num_locations-1);
+            }
+          }
+          return row;
+        };
 
         return w;
       });
+
+      this.$e.refresh_peering_requests.click((ev) => { this.$w.list_peer_sessions.load(); });
 
       this.$w.list_peer_sessions.load();
     },

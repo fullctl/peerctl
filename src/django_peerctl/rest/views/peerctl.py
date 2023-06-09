@@ -895,7 +895,7 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
 
 
 @route
-class AutopeerRequest(viewsets.GenericViewSet):
+class PeerRequest(viewsets.GenericViewSet):
     serializer_class = Serializers.autopeer
     require_asn = True
     require_port = False
@@ -912,7 +912,7 @@ class AutopeerRequest(viewsets.GenericViewSet):
         """
 
         serializer = self.get_serializer_class()(
-            data=request.data, context={"asn": asn, "org": net.org}
+            data=request.data, context={"asn": asn, "org": net.org, "net":net}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()

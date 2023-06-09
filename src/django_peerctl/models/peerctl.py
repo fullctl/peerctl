@@ -2003,36 +2003,48 @@ class PeerRequest(HandleRefModel):
     class HandleRef:
         tag = "peer_request"
 
-    def add_pdb_location(self, pdb_ix_id):
+
+    def add_pdb_location(self, pdb_ix_id, port_id=None, member_ref_id=None):
         """
         Adds a PDB location to this peer request
         """
-        PeerRequestLocation.objects.get_or_create(
+        loc, _ = PeerRequestLocation.objects.get_or_create(
             peer_request=self,
             pdb_ix_id=pdb_ix_id,
         )
 
-    def add_ixctl_location(self, ixctl_ix_id, pdb_ix_id=None):
+        if port_id and member_ref_id:
+            loc.port = port_id
+            loc.peer_id = member_ref_id
+            loc.save()
+
+    def add_ixctl_location(self, ixctl_ix_id, pdb_ix_id=None, port_id=None, member_ref_id=None):
         """
         Adds an IXCTL location to this peer request
         """
-        PeerRequestLocation.objects.get_or_create(
+        loc, _ = PeerRequestLocation.objects.get_or_create(
             peer_request=self,
             ixctl_ix_id=ixctl_ix_id,
             pdb_ix_id=pdb_ix_id,
         )
 
-    def add_location(self, port_info):
+        if port_id and member_ref_id:
+            loc.port = port_id
+            loc.peer_id = member_ref_id
+            loc.save()
+
+    def add_location(self, port_info, port_id=None, member_ref_id=None):
         """
         Adds a location to this peer request
         """
         if not port_info.ref_id or not port_info.ref_ix_id:
             return
+        
 
         if port_info.ref_source == "pdbctl":
-            self.add_pdb_location(port_info.ref_ix_id.split(":")[1])
+            self.add_pdb_location(port_info.ref_ix_id.split(":")[1], port_id=port_id, member_ref_id=member_ref_id)
         elif port_info.ref_source == "ixctl":
-            self.add_ixctl_location(port_info.ref_ix_id.split(":")[1])
+            self.add_ixctl_location(port_info.ref_ix_id.split(":")[1], port_id=port_id, member_ref_id=member_ref_id)
 
 
 class PeerRequestLocation(HandleRefModel):
@@ -2047,6 +2059,9 @@ class PeerRequestLocation(HandleRefModel):
 
     pdb_ix_id = models.PositiveIntegerField(null=True, blank=True)
     ixctl_ix_id = models.PositiveIntegerField(null=True, blank=True)
+
+    peer_id = models.CharField(max_length=255, null=True, blank=True)
+    port = ReferencedObjectField(null=True, blank=True)
 
     notes = models.CharField(max_length=255, null=True, blank=True)
 

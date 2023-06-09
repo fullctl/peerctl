@@ -1584,11 +1584,15 @@ class AutopeerRequest(serializers.Serializer):
     status = serializers.CharField(read_only=True)
     type = serializers.CharField(read_only=True)
     location = serializers.SerializerMethodField()
+    id = serializers.IntegerField(read_only=True)
+    num_locations = serializers.IntegerField(read_only=True)
+    peer_id = serializers.CharField(read_only=True)
+    port_id = serializers.IntegerField(read_only=True, allow_null=True)
 
     ref_tag = "autopeer"
 
     class Meta:
-        fields = ["asn", "status", "location", "type", "date"]
+        fields = ["id", "asn", "status", "location", "type", "date", "peer_id", "port_id"]
 
     @classmethod
     def get_requests(cls, net):
@@ -1619,7 +1623,26 @@ class AutopeerRequest(serializers.Serializer):
             }
 
         for req in _requests:
-            for location in req.locations.all():
+
+            req_locations = list(req.locations.all())
+            num_locations = len(req_locations)
+
+            if not num_locations:
+                locations.append(
+                    {
+                        "id": req.id,
+                        "asn": req.peer_asn,
+                        "location": "...",
+                        "status": "pending",
+                        "date": req.created,
+                        "type": req.type,
+                        "num_locations": 0,
+                        "peer_id": None,
+                        "port_id": None,
+                    }
+                )
+
+            for location in req_locations:
                 ix = None
                 if location.pdb_ix_id:
                     ix = pdbctl_exchanges.get(location.pdb_ix_id)
@@ -1630,14 +1653,23 @@ class AutopeerRequest(serializers.Serializer):
                     location._name = ix.name
                 else:
                     location._name = "Unknown"
-                    
+
+                if location.port:
+                    port = int(location.port)
+                else:
+                    port = None
+
                 locations.append(
                     {
+                        "id": req.id,
                         "asn": req.peer_asn,
                         "location": location.name,
                         "status": location.status,
                         "date": req.created,
                         "type": req.type,
+                        "num_locations": num_locations,
+                        "peer_id": location.peer_id,
+                        "port_id": port,
                     }
                 )
 
@@ -1658,10 +1690,18 @@ class AutopeerRequest(serializers.Serializer):
 
     def save(self):
         try:
+            net = self.context.get("net")
+            asn = net.asn
+            peer_asn = self.validated_data["asn"]
+
+            peer_request = models.PeerRequest.objects.create(
+                net=net, peer_asn=peer_asn, type="autopeer"
+            )
             return autopeer_tasks.AutopeerRequest.create_task(
-                self.context["asn"],
-                self.validated_data["asn"],
+                asn,
+                peer_asn,
                 org=self.context.get("org"),
+                peer_request_id=peer_request.id,
             )
         except TaskLimitError:
             raise serializers.ValidationError(

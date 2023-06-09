@@ -294,3 +294,16 @@ div.peers-row div.loading-indicator-container {
 .down .icon-triangle-fill-down {
   background-color: red;
 }
+
+.peer-requests tr.secondary {
+  background-color: var(--peer-row-light);
+}
+
+.peer-requests tr.secondary td {
+  padding: 10px;
+}
+
+.peer-requests td .note-expand {
+  font-size: 11px;
+  text-decoration: underline;
+}

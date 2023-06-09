@@ -30,14 +30,14 @@ class AutopeerWorkflow(PeerSessionWorkflow):
     cc = False
     test_mode = False
 
-    def __init__(self, my_asn, their_asn, task):
+    def __init__(self, my_asn, their_asn, task, peer_request=None):
         self.net = Network.objects.get(asn=my_asn)
         self.other_net = pdbctl.Network().first(asn=their_asn)
         self.to_asn = their_asn
         self.asn = my_asn
         self.locations = []
         self.task = task
-        self.peer_request = None
+        self.peer_request = peer_request
 
         if not self.autopeer_url:
             raise ValueError(f"Autopeer is not enabled for this ASN: AS{their_asn}")
@@ -53,9 +53,11 @@ class AutopeerWorkflow(PeerSessionWorkflow):
         return autopeer_url(self.to_asn)
 
     def request(self, *args, **kwargs):
-        self.peer_request = PeerRequest.objects.create(
-            net=self.net, peer_asn=self.to_asn, task=self.task, type="autopeer"
-        )
+
+        if not self.peer_request:
+            self.peer_request = PeerRequest.objects.create(
+                net=self.net, peer_asn=self.to_asn, task=self.task, type="autopeer"
+            )
 
         locations = self.request_list_locations()
 
@@ -211,7 +213,8 @@ class AutopeerWorkflow(PeerSessionWorkflow):
             if session_status:
                 break
 
-            time.sleep(1)
+            # high sleep time to simulate long running request
+            time.sleep(3)
             loops += 1
             if loops > 300:
                 raise Exception("never got session status")

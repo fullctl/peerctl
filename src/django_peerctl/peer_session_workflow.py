@@ -290,7 +290,12 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
         peer_session_list = super().request(peer_request)
             
         for peer_session in peer_session_list:
-            peer_request.add_location(peer_session.port.object.port_info_object)
+            print("Port", peer_session.port)
+            peer_request.add_location(
+                peer_session.port.object.port_info_object, 
+                port_id=int(peer_session.port) if peer_session.port else None, 
+                member_ref_id=peer_session.peer_port.port_info.ref_id,
+            )
             AuditLog.log_peer_session_request(peer_session, user)
 
         return peer_session_list

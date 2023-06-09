@@ -5,6 +5,8 @@ from fullctl.django.tasks import register
 
 from django_peerctl.autopeer.workflow import AutopeerWorkflow
 
+import django_peerctl.models.peerctl as models
+
 __all__ = [
     "AutopeerRequest",
 ]
@@ -44,10 +46,27 @@ class AutopeerRequest(Task):
     def to_asn(self):
         return self.param["args"][1]
 
+    @property
+    def peer_request(self):
+        if hasattr(self, "_peer_request"):
+            return self._peer_request
+
+        peer_request_id = self.param["kwargs"].get("peer_request_id")
+
+        try:
+            self._peer_request = models.PeerRequest.objects.get(id=peer_request_id)
+        except models.PeerRequest.DoesNotExist:
+            self._peer_request = None
+
+        return self._peer_request
+
     def run(self, from_asn, to_asn, *args, **kwargs):
         workflow = None
         try:
-            workflow = AutopeerWorkflow(from_asn, to_asn, self)
+            workflow = AutopeerWorkflow(from_asn, to_asn, self, peer_request=self.peer_request)
+            if self.peer_request:
+                self.peer_request.task = self
+                self.peer_request.save()
             return json.dumps(workflow.request())
         except Exception as e:
             # workflow failed
