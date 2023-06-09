@@ -1419,12 +1419,13 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
         else:
             device_template = models.DeviceTemplate.objects.get(id=pk)
 
-        port = net.port_info_qs.first().port.object
+        device = models.Device().object(request.data["device"])
+        port = models.Port().first(device=device.id)
 
         device_template.context["port"] = port
         device_template.context["net"] = net
         # FIXME: support more than one physical port in templates (expose multiple devices?)
-        device_template.context["device"] = models.Device().object(port.device_id)
+        device_template.context["device"] = device
         device_template.context["member"] = request.data.get("member")
 
         serializer = Serializers.tmplpreview(instance=device_template)
