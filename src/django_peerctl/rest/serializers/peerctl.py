@@ -1456,7 +1456,7 @@ class TemplatePreview(serializers.Serializer):
 class DeviceTemplate(ModelSerializer):
     class Meta:
         model = models.DeviceTemplate
-        fields = ["id", "name", "type", "body"]
+        fields = ["id", "name", "type", "body", "default"]
 
 
 @register
