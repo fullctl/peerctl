@@ -3,7 +3,6 @@ Classes describing the workflow of setting up a peering session
 """
 
 import fullctl.service_bridge.pdbctl as pdbctl
-import fullctl.service_bridge.sot as sot
 import reversion
 from django.conf import settings
 
@@ -72,7 +71,7 @@ class PeerSessionWorkflow:
     def next_step(self):
         sessions_requested = self.peer_sessions().filter(status="requested").exists()
         sessions_configured = self.peer_sessions().filter(status="configured").exists()
-    
+
         if not sessions_requested and not sessions_configured:
             return "peer-request"
         elif sessions_requested:
@@ -87,7 +86,7 @@ class PeerSessionWorkflow:
         Returns a list of all peer_session objects in status 'requested'
         """
         return self.peer_sessions().filter(status="requested")
-    
+
     @property
     def configured_sessions(self):
         """
@@ -96,7 +95,6 @@ class PeerSessionWorkflow:
         return self.peer_sessions().filter(status="configured")
 
     def progress(self, *args, **kwargs):
-
         sessions_requested = self.peer_sessions().filter(status="requested").exists()
         sessions_configured = self.peer_sessions().filter(status="configured").exists()
 
@@ -113,12 +111,10 @@ class PeerSessionWorkflow:
         """create/update peer_session object with status 'requested'"""
         return self._ensure_sessions(peer_request, "requested")
 
-
     @reversion.create_revision()
     def config_complete(self, peer_request, *args, **kwargs):
         """create/update peer_session object with status 'configured'"""
         return self._ensure_sessions(peer_request, "configured")
-
 
     @reversion.create_revision()
     def finalize(self, peer_request, *args, **kwargs):
@@ -126,16 +122,20 @@ class PeerSessionWorkflow:
         return self._ensure_sessions(peer_request, "ok")
 
     def get_peer_request(self, type, status):
-        peer_request = PeerRequest.objects.filter(
-            net=self.net,
-            peer_asn=self.peer_asn,
-            type=type,
-            status=status,
-        ).prefetch_related("locations").first()
+        peer_request = (
+            PeerRequest.objects.filter(
+                net=self.net,
+                peer_asn=self.peer_asn,
+                type=type,
+                status=status,
+            )
+            .prefetch_related("locations")
+            .first()
+        )
 
         if peer_request:
             return peer_request
-        
+
         return PeerRequest.objects.create(
             net=self.net,
             peer_asn=self.peer_asn,
@@ -143,9 +143,7 @@ class PeerSessionWorkflow:
             status=status,
         )
 
-
     def _ensure_sessions(self, peer_request, session_status):
-
         # automatically create peering sessions at
         # mutual locations
         mutual = self.net.get_mutual_locations(self.peer_asn)
@@ -160,7 +158,6 @@ class PeerSessionWorkflow:
                 exchanges.append(f"pdbctl:{location.pdb_ix_id}")
 
         for ix_id, members in list(mutual.items()):
-
             if exchanges and ix_id not in exchanges:
                 continue
 
@@ -174,7 +171,6 @@ class PeerSessionWorkflow:
 
             for member in members[self.my_asn]:
                 for peer in members[self.peer_asn]:
-
                     try:
                         port = PortInfo.objects.get(ref_id=member.ref_id).port.object
                     except (PortInfo.DoesNotExist, AttributeError):
@@ -183,11 +179,16 @@ class PeerSessionWorkflow:
                     if not port.ip_address_4 and not port.ip_address_6:
                         continue
 
-                    session = self.peer_session(
-                        member=peer,
-                        port=port
+                    session = self.peer_session(member=peer, port=port)
+                    print(
+                        "ensured session at mututal location",
+                        ix_id,
+                        "for",
+                        member.ipaddr4,
+                        peer.ipaddr4,
+                        session.status,
+                        session_status,
                     )
-                    print("ensured session at mututal location", ix_id, "for", member.ipaddr4, peer.ipaddr4, session.status, session_status)
                     if session.status == "ok":
                         continue
                     session.status = session_status
@@ -195,6 +196,7 @@ class PeerSessionWorkflow:
                     all_requested.append(session)
 
         return all_requested
+
 
 class PeerSessionEmailWorkflow(PeerSessionWorkflow):
 
@@ -288,12 +290,12 @@ class PeerSessionEmailWorkflow(PeerSessionWorkflow):
 
         peer_request = self.get_peer_request("email", "pending")
         peer_session_list = super().request(peer_request)
-            
+
         for peer_session in peer_session_list:
             print("Port", peer_session.port)
             peer_request.add_location(
-                peer_session.port.object.port_info_object, 
-                port_id=int(peer_session.port) if peer_session.port else None, 
+                peer_session.port.object.port_info_object,
+                port_id=int(peer_session.port) if peer_session.port else None,
                 member_ref_id=peer_session.peer_port.port_info.ref_id,
             )
             AuditLog.log_peer_session_request(peer_session, user)
@@ -453,8 +455,7 @@ class PeerRequestToAsnWorkflow(PeerSessionEmailWorkflow):
 
         if self.exchanges:
             email_template.context["selected_exchanges"] = list(
-                MutualLocation(ix, self.net, self.other_net)
-                for ix in self.exchanges
+                MutualLocation(ix, self.net, self.other_net) for ix in self.exchanges
             )
 
         return email_template.render()

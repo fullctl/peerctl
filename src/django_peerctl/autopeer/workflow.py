@@ -53,7 +53,6 @@ class AutopeerWorkflow(PeerSessionWorkflow):
         return autopeer_url(self.to_asn)
 
     def request(self, *args, **kwargs):
-
         if not self.peer_request:
             self.peer_request = PeerRequest.objects.create(
                 net=self.net, peer_asn=self.to_asn, task=self.task, type="autopeer"

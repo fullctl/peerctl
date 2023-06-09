@@ -3,9 +3,8 @@ import json
 from fullctl.django.models.concrete import Task
 from fullctl.django.tasks import register
 
-from django_peerctl.autopeer.workflow import AutopeerWorkflow
-
 import django_peerctl.models.peerctl as models
+from django_peerctl.autopeer.workflow import AutopeerWorkflow
 
 __all__ = [
     "AutopeerRequest",
@@ -63,7 +62,9 @@ class AutopeerRequest(Task):
     def run(self, from_asn, to_asn, *args, **kwargs):
         workflow = None
         try:
-            workflow = AutopeerWorkflow(from_asn, to_asn, self, peer_request=self.peer_request)
+            workflow = AutopeerWorkflow(
+                from_asn, to_asn, self, peer_request=self.peer_request
+            )
             if self.peer_request:
                 self.peer_request.task = self
                 self.peer_request.save()

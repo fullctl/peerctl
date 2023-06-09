@@ -1592,7 +1592,16 @@ class AutopeerRequest(serializers.Serializer):
     ref_tag = "autopeer"
 
     class Meta:
-        fields = ["id", "asn", "status", "location", "type", "date", "peer_id", "port_id"]
+        fields = [
+            "id",
+            "asn",
+            "status",
+            "location",
+            "type",
+            "date",
+            "peer_id",
+            "port_id",
+        ]
 
     @classmethod
     def get_requests(cls, net):
@@ -1623,7 +1632,6 @@ class AutopeerRequest(serializers.Serializer):
             }
 
         for req in _requests:
-
             req_locations = list(req.locations.all())
             num_locations = len(req_locations)
 

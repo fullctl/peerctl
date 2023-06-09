@@ -1,10 +1,8 @@
 import ipaddress
 
-from django.conf import settings
-
-import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
+from django.conf import settings
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
 from fullctl.django.rest.decorators import load_object
@@ -773,7 +771,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
 
 @route
-class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
+class EmailPeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
     serializer_class = Serializers.peer_session
     queryset = models.PeerSession.objects.all()
     require_asn = True
@@ -906,13 +904,12 @@ class PeerRequest(viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
-
         """
         create new autopeer request
         """
 
         serializer = self.get_serializer_class()(
-            data=request.data, context={"asn": asn, "org": net.org, "net":net}
+            data=request.data, context={"asn": asn, "org": net.org, "net": net}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -922,7 +919,6 @@ class PeerRequest(viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
-
         """
         lists peer requests
         """
@@ -938,13 +934,16 @@ class PeerRequest(viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_enabled(self, request, asn, net, *args, **kwargs):
-
         """
         lists autopeer enabled asns
         """
 
         serializer = Serializers.autopeer_enabled(
-            instance=[{"asn":their_asn} for their_asn in settings.AUTOPEER_ENABLED_NETWORKS], context={"asn": asn}, many=True
+            instance=[
+                {"asn": their_asn} for their_asn in settings.AUTOPEER_ENABLED_NETWORKS
+            ],
+            context={"asn": asn},
+            many=True,
         )
         return Response(serializer.data)
 
@@ -1410,13 +1409,13 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             email_template.context["sessions"] = models.PeerSession.objects.filter(
                 peer_port__peer_net__net__asn=asn,
                 peer_port__peer_net__peer__asn=email_template.context["asn"],
-                status="requested"            
+                status="requested",
             )
         elif email_template.type == "peer-session-live":
             email_template.context["sessions"] = models.PeerSession.objects.filter(
                 peer_port__peer_net__net__asn=asn,
                 peer_port__peer_net__peer__asn=email_template.context["asn"],
-                status="configured"            
+                status="configured",
             )
 
         serializer = Serializers.tmplpreview(instance=email_template)

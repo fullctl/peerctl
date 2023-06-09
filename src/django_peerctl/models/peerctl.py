@@ -817,7 +817,9 @@ class MutualLocation:
 
         members = {}
 
-        for member in sot.InternetExchangeMember().objects(asn=self.net.asn, join=["ix"]):
+        for member in sot.InternetExchangeMember().objects(
+            asn=self.net.asn, join=["ix"]
+        ):
             members[f"{member.source}:{member.id}"] = member
 
         for port_info in _portinfos:
@@ -2003,7 +2005,6 @@ class PeerRequest(HandleRefModel):
     class HandleRef:
         tag = "peer_request"
 
-
     def add_pdb_location(self, pdb_ix_id, port_id=None, member_ref_id=None):
         """
         Adds a PDB location to this peer request
@@ -2018,7 +2019,9 @@ class PeerRequest(HandleRefModel):
             loc.peer_id = member_ref_id
             loc.save()
 
-    def add_ixctl_location(self, ixctl_ix_id, pdb_ix_id=None, port_id=None, member_ref_id=None):
+    def add_ixctl_location(
+        self, ixctl_ix_id, pdb_ix_id=None, port_id=None, member_ref_id=None
+    ):
         """
         Adds an IXCTL location to this peer request
         """
@@ -2039,12 +2042,19 @@ class PeerRequest(HandleRefModel):
         """
         if not port_info.ref_id or not port_info.ref_ix_id:
             return
-        
 
         if port_info.ref_source == "pdbctl":
-            self.add_pdb_location(port_info.ref_ix_id.split(":")[1], port_id=port_id, member_ref_id=member_ref_id)
+            self.add_pdb_location(
+                port_info.ref_ix_id.split(":")[1],
+                port_id=port_id,
+                member_ref_id=member_ref_id,
+            )
         elif port_info.ref_source == "ixctl":
-            self.add_ixctl_location(port_info.ref_ix_id.split(":")[1], port_id=port_id, member_ref_id=member_ref_id)
+            self.add_ixctl_location(
+                port_info.ref_ix_id.split(":")[1],
+                port_id=port_id,
+                member_ref_id=member_ref_id,
+            )
 
 
 class PeerRequestLocation(HandleRefModel):

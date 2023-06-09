@@ -1,8 +1,8 @@
 import ipaddress
 
 import fullctl.service_bridge.devicectl as devicectl
-import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.ixctl as ixctl
+import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from django.db import IntegrityError
 
@@ -171,7 +171,6 @@ def port_components(member):
 
 
 def load_exchanges(ix_ids):
-
     """
     Takes a list of ix_ids and returns a list of exchanges
 
@@ -181,14 +180,10 @@ def load_exchanges(ix_ids):
 
     exchanges = []
     ixctl_ix_ids = [
-        int(ix_id.split(":")[1])
-        for ix_id in ix_ids
-        if ix_id.startswith("ixctl:")
+        int(ix_id.split(":")[1]) for ix_id in ix_ids if ix_id.startswith("ixctl:")
     ]
     pdbctl_ix_ids = [
-        int(ix_id.split(":")[1])
-        for ix_id in ix_ids
-        if ix_id.startswith("pdbctl:")
+        int(ix_id.split(":")[1]) for ix_id in ix_ids if ix_id.startswith("pdbctl:")
     ]
 
     if ixctl_ix_ids:
@@ -196,5 +191,5 @@ def load_exchanges(ix_ids):
 
     if pdbctl_ix_ids:
         exchanges.extend(pdbctl.InternetExchange().objects(ids=pdbctl_ix_ids))
-    
+
     return exchanges
