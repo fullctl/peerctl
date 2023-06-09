@@ -817,7 +817,9 @@ class MutualLocation:
 
         members = {}
 
-        for member in sot.InternetExchangeMember().objects(asn=self.net.asn, join=["ix"]):
+        for member in sot.InternetExchangeMember().objects(
+            asn=self.net.asn, join=["ix"]
+        ):
             members[f"{member.source}:{member.id}"] = member
 
         for port_info in _portinfos:
