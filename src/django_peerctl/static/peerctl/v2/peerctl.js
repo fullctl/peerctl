@@ -93,6 +93,9 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
           this.$t.sessions_summary.sync();
         }
       });
+      $(this.$c.toolbar.$e.peer_filter_submit).on("click", (ev)=>{
+        this.$t.sessions_summary.sync();
+      });
 
       $('#tab-peering-lists').on('show.bs.tab', () => {
         this.$t.peering_lists.sync_url(
