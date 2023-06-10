@@ -17,6 +17,7 @@
           <select
             class="form-control"
             id="port"
+            data-type="int"
             name="port">
           </select>
         </span>
@@ -61,6 +62,7 @@
           class="form-control"
           id="policy-4"
           name="policy4"
+          data-type="int"
           data-api-load="yes"
           data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
           data-null-option=";{% trans "Inherit Policy" %}">
@@ -84,6 +86,7 @@
           class="form-control"
           id="policy-6"
           name="policy6"
+          data-type="int"
           data-api-load="yes"
           data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
           data-null-option=";{% trans "Inherit Policy" %}">
