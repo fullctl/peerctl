@@ -2326,15 +2326,18 @@ class EmailTemplate(Base, TemplateBase):
         if ctx.get("peer"):
             peer = ctx.get("peer")
             mutual_locations = []
-            for ix_id in self.net.get_mutual_locations(peer.asn):
-                ix_source, ix_id = ix_id.split(":")
-                mutual_locations.append(
-                    MutualLocation(
-                        InternetExchange.get_or_create(int(ix_id), ix_source),
-                        self.net,
-                        peer,
+
+            if not ctx.get("selected_exchanges"):
+                for ix_id in self.net.get_mutual_locations(peer.asn):
+                    ix_source, ix_id = ix_id.split(":")
+                    mutual_locations.append(
+                        MutualLocation(
+                            InternetExchange.get_or_create(int(ix_id), ix_source),
+                            self.net,
+                            peer,
+                        )
                     )
-                )
+
             data.update(
                 {
                     "peer": {

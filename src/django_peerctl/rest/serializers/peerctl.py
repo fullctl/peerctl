@@ -1450,9 +1450,7 @@ class TemplatePreview(serializers.Serializer):
         except Exception as exc:
             return (
                 "!!! ERROR !!!\nWhen trying to render the template "
-                "we encountered the following issue:\n\n{}\n\nPlease fix and try again.".format(
-                    exc
-                )
+                f"we encountered the following issue:\n\n{exc}\n\nPlease fix and try again."
             )
 
 
