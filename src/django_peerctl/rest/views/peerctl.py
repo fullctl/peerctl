@@ -432,7 +432,6 @@ class NetworkSearch(viewsets.GenericViewSet):
             ).select_related("peer_port", "peer_port__port_info")
         )
 
-
         # loop through mutual locations
 
         for ix_id, loc_data in result["mutual_locations"].items():
