@@ -1636,7 +1636,7 @@ class AutopeerRequest(serializers.Serializer):
                         "id": req.id,
                         "asn": req.peer_asn,
                         "location": "...",
-                        "status": "pending",
+                        "status": req.status,
                         "date": req.created,
                         "type": req.type,
                         "num_locations": 0,
