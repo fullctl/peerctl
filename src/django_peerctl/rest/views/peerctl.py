@@ -399,13 +399,13 @@ class NetworkSearch(viewsets.GenericViewSet):
         # get their exchanges, our exchanges, and also summarize mutual exchanges
 
         for netixlan in sot.InternetExchangeMember().objects(
-            asns=[asn, other_asn], join="ix"
+            asns=[asn, other_asn], join="ix_name"
         ):
-            ix_id = f"{netixlan.source}:{netixlan.ix.id}"
+            ix_id = f"{netixlan.source}:{netixlan.ix_id}"
             if netixlan.asn == int(asn):
-                locations_us[ix_id] = netixlan.ix.name
+                locations_us[ix_id] = netixlan.ix_name
             elif netixlan.asn == int(other_asn):
-                locations_them[ix_id] = netixlan.ix.name
+                locations_them[ix_id] = netixlan.ix_name
                 ports_them.setdefault(ix_id, []).append(netixlan)
 
         for ix_id, ix_name in locations_them.items():
@@ -431,6 +431,7 @@ class NetworkSearch(viewsets.GenericViewSet):
                 status="ok",
             ).select_related("peer_port", "peer_port__port_info")
         )
+
 
         # loop through mutual locations
 
