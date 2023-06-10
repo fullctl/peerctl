@@ -77,12 +77,10 @@ class AutopeerRequest(Task):
                 workflow.peer_request.save()
             raise
 
-
     def _fail(self, error):
         super()._fail(error)
 
         if self.peer_request:
-
             # when the task fails, we need to update the peer request
             # and all the locations to failed as well
 
