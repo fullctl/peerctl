@@ -941,7 +941,9 @@ class PeerRequest(viewsets.GenericViewSet):
         serializer = Serializers.autopeer_enabled(
             instance=[
                 {"asn": their_asn} for their_asn in settings.AUTOPEER_ENABLED_NETWORKS
-            ],
+            ]
+            if settings.AUTOPEER_ENABLED
+            else [],
             context={"asn": asn},
             many=True,
         )

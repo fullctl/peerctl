@@ -141,6 +141,8 @@ AUTOPEER_ENABLED_NETWORKS = {
     13335: {"url": "https://autopeer.as13335.net/v0"},
 }
 
+settings_manager.set_option("AUTOPEER_ENABLED", False)
+
 # FINALIZE
 settings_manager.set_default_append()
 

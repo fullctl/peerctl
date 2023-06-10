@@ -13,5 +13,9 @@ def autopeer_url(asn):
     Will return None if disabled or no url is present
     """
 
+    if not settings.AUTOPEER_ENABLED:
+        # autopeer is disabled
+        return None
+
     # TODO: this should query autopeer-registry once it exsts
     return settings.AUTOPEER_ENABLED_NETWORKS.get(asn, {}).get("url")
