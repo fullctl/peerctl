@@ -2502,6 +2502,7 @@ $peerctl.modals.RequestPeering = $tc.extend(
       }
 
       this.$e.button_submit.off('click')
+      this.$e.button_submit.siblings('.autopeer-error').detach();
 
       // change body of modal based on mode
       if (mode.type=="email") {
@@ -2544,6 +2545,8 @@ $peerctl.modals.RequestPeering = $tc.extend(
             asn: this.peer.asn,
           }
 
+          this.$e.button_submit.siblings('.autopeer-error').detach();
+
           $.ajax({
             url: url,
             method: "POST",
@@ -2556,6 +2559,11 @@ $peerctl.modals.RequestPeering = $tc.extend(
             console.log(data);
             this.hide();
             $(this).trigger("peer-request:after", []);
+          }).fail((err)=>{
+            // TODO: make prettier error response
+            // all of this should really be in a twentyc.rest widget anyways
+            let error_message = $('<div class="alert alert-danger autopeer-error">').text(err.responseJSON.errors)
+            error_message.insertBefore(this.$e.button_submit);
           });
         });
       }
@@ -2664,7 +2672,7 @@ $peerctl.PeeringRequestsList = $tc.extend(
           if(value == "completed")
             bg_class = "success";
           else if(value == "failed")
-            bg_class = "error";
+            bg_class = "danger";
           else if(value == "pending") {
             bg_class = "warning";
           

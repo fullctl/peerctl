@@ -76,3 +76,15 @@ class AutopeerRequest(Task):
                 workflow.peer_request.notes = str(e)
                 workflow.peer_request.save()
             raise
+
+    def _fail(self, error):
+        super()._fail(error)
+
+        if self.peer_request:
+            # when the task fails, we need to update the peer request
+            # and all the locations to failed as well
+
+            self.peer_request.status = "failed"
+            self.peer_request.locations.all().update(status="failed")
+            self.peer_request.notes = "Task failed"
+            self.peer_request.save()
