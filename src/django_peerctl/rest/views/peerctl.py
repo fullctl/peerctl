@@ -432,7 +432,6 @@ class NetworkSearch(viewsets.GenericViewSet):
             ).select_related("peer_port", "peer_port__port_info")
         )
 
-
         # loop through mutual locations
 
         for ix_id, loc_data in result["mutual_locations"].items():
@@ -1472,17 +1471,19 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
         return self._preview(request, asn, net, pk, *args, **kwargs)
 
     def _preview(self, request, asn, net, pk, *args, **kwargs):
+        device = models.Device().object(request.data["device"])
+
         if not pk or pk == "0":
             device_template = models.DeviceTemplate(
                 name="Preview",
                 net=net,
                 body=request.data.get("body"),
-                type=request.data.get("type"),
+                # TODO: defaulting to junos ok?
+                type=request.data.get("type") or "junos-bgp-neighbors",
             )
         else:
             device_template = models.DeviceTemplate.objects.get(id=pk)
 
-        device = models.Device().object(request.data["device"])
         port = models.Port().first(device=device.id)
 
         device_template.context["port"] = port

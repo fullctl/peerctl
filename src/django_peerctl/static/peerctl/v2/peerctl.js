@@ -2312,11 +2312,18 @@ $peerctl.TemplatePreview = $tc.extend(
         var url = this.editor.data("api-preview-default");
       var client = new twentyc.rest.Client(url);
 
+      var loading_shim = $('<div>').addClass("loading-shim")
+
+      this.editor.parent().append(loading_shim);
+
       client.post(null, this.preview_payload()).then(
         (response)=>{
+          loading_shim.detach();
           this.editor.val(response.first().body);
         }
-      );
+      ).fail(() => {
+        loading_shim.detach();
+      });
     }
   },
   twentyc.rest.Form
