@@ -80,6 +80,8 @@ class Network(ModelSerializer):
 
 @register
 class Policy(ModelSerializer):
+    count_peers = serializers.SerializerMethodField()
+
     class Meta:
         model = models.Policy
         fields = [
@@ -94,6 +96,33 @@ class Policy(ModelSerializer):
             "peer_group",
             "count_peers",
         ]
+
+    def peer_sessions(self, obj):
+        """
+        Returns a queryset of all peer sessions that are using this policy
+
+        Will cache and return the same queryset on subsequent calls
+        """
+
+        if hasattr(self, "_peer_sessions"):
+            return self._peer_sessions
+        self._peer_sessions = (
+            obj.net.peer_session_at_ix(ix_id=None)
+            .select_related(
+                "policy4",
+                "policy6",
+                "peer_port",
+                "peer_port__peer_net",
+                "peer_port__peer_net__policy4",
+                "peer_port__peer_net__policy6",
+            )
+            .filter(status="ok")
+        )
+        models.Port.load_references(self._peer_sessions, load_policies=True)
+        return self._peer_sessions
+
+    def get_count_peers(self, obj):
+        return obj.count_peers(peer_sessions=self.peer_sessions(obj))
 
 
 @register
