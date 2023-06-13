@@ -92,8 +92,7 @@ class Policy(ModelSerializer):
             "is_global4",
             "is_global6",
             "peer_group",
-            # XXX
-            # "count_peers",
+            "count_peers",
         ]
 
 
