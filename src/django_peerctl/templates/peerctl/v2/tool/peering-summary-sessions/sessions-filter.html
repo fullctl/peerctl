@@ -11,7 +11,10 @@
             data-null-option="all;{% trans "Location" %}"
             data-name-field="slug"
             data-id-field="slug"
-            data-element="select_facility"></select>
+            data-element="select_facility"
+            data-localstorage-key="summary_select_facility"
+          >
+          </select>
         </span>
       </div>
 
@@ -22,7 +25,10 @@
             data-api-base="{% url "proxies-api-devicectl-facility-devices" org_tag=request.org.slug fac_tag="fac_tag" %}"
             data-null-option="all;{% trans "Device" %}"
             data-name-field="display_name"
-            data-element="select_device"></select>
+            data-element="select_device"
+            data-localstorage-key="summary_select_device"
+          >
+          </select>
         </span>
       </div>
 
@@ -33,7 +39,10 @@
             data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
             data-null-option="all;{% trans "Exchange / Port" %}"
             data-name-field="display_name"
-            data-element="select_port"></select>
+            data-element="select_port"
+            data-localstorage-key="summary_select_port"
+          >
+          </select>
         </span>
       </div>
     </div>
