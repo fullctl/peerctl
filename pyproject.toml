@@ -25,6 +25,7 @@ fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "prep-relea
 
 netom = { git = "https://github.com/20c/netom.git", branch = "prep-release" }
 pydantic = "^1.10.8"
+openapi-core = "^0.17.2"
 
 [tool.poetry.dev-dependencies]
 # tests

@@ -1,6 +1,7 @@
 import requests
 
 from django.conf import settings
+from django.contrib.staticfiles import finders
 from requests import PreparedRequest
 
 from openapi_core import Spec
@@ -45,11 +46,11 @@ def request_is_valid(request: PreparedRequest, schema_version="1.0"):
     """
     validate if the request matches autopeer schema
     """
-    schema_filename = f"static/autopeer/{schema_version}/openapi.yaml"
+    path = finders.find(f"autopeer/{schema_version}/openapi.yaml")
     try:
-        spec = Spec.from_file_path(schema_filename)
+        spec = Spec.from_file_path(path)
     except FileNotFoundError:
-        settings.print_debug(f"Cannot find and open autopeer schema v{schema_version} at '{schema_filename}'")
+        settings.print_debug(f"Cannot find and open autopeer schema v{schema_version} at '{path}'")
         return False   # TODO decide the default result when schema isn't found
     
     openapi_request = RequestsOpenAPIRequest(request)
@@ -64,7 +65,7 @@ def request_is_valid(request: PreparedRequest, schema_version="1.0"):
 
 def validate_and_send(method: str, url: str, params=None, data=None, json=None):
     """
-    Wrapper for requests operations. Validates the request according to AutoPeer schema
+    Wrapper for `requests` operations. Validates the request according to AutoPeer schema
     and sends the request if it's valid. Returns request response.
     
     Raises an exception otherwise.

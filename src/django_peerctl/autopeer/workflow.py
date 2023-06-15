@@ -3,7 +3,6 @@ import uuid
 
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
-import requests
 
 import django_peerctl.autopeer.schema as schema
 from django_peerctl.autopeer import autopeer_url, validate_and_send
