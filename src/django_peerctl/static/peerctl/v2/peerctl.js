@@ -1236,7 +1236,7 @@ $peerctl.SessionsSummary = $tc.extend(
           autoload.port,
           autoload.peer
         );
-        this.$w.select_facility.load()
+        this.$w.select_facility.load().then(() => this.sync);
       } else {
         // load filters from localstorage if available
         this.$w.select_facility.load().then(() => {
@@ -1307,21 +1307,21 @@ $peerctl.SessionsSummary = $tc.extend(
       const default_value = "all";
 
       const select_device_val = select_device.element.val();
-      if (select_device_val == default_value) {
+      if (select_device_val == default_value || select_device_val === null) {
         select_device.localstorage_remove()
       } else {
         select_device.localstorage_set(select_device_val)
       }
 
       const select_facility_val = select_facility.element.val();
-      if (select_facility_val == default_value) {
+      if (select_facility_val == default_value || select_facility_val === null) {
         select_facility.localstorage_remove()
       } else {
         select_facility.localstorage_set(select_facility_val)
       }
 
       const select_port_val = select_port.element.val();
-      if (select_port_val == default_value) {
+      if (select_port_val == default_value || select_port_val === null) {
         select_port.localstorage_remove()
       } else {
         select_port.localstorage_set(select_port_val)
