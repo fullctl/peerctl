@@ -2783,6 +2783,14 @@ $peerctl.PeeringRequestsList = $tc.extend(
         w.formatters.date = fullctl.formatters.datetime;
 
         w.formatters.row = (row, data) => {
+          // add network tooltip to asn
+          const asn_field = row.find('[data-field="asn"]');
+          asn_field.attr("data-bs-toggle", "tooltip")
+            .attr("data-bs-placement", "top")
+            .attr("title", data.name)
+            .addClass("dotted-underline");
+          new bootstrap.Tooltip(asn_field);
+
           row.data("peering-request-id", data.id);
           if(data.num_locations > 1) {
 
