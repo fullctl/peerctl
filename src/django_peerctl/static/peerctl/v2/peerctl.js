@@ -88,14 +88,6 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       $('a[data-select-asn]').click(function(){
         window.location.href = "?asn="+$(this).data("select-asn");
       });
-      $(this.$c.toolbar.$e.peer_filter).on("keydown", (ev)=>{
-        if(ev.which == 13) {
-          this.$t.sessions_summary.sync();
-        }
-      });
-      $(this.$c.toolbar.$e.peer_filter_submit).on("click", (ev)=>{
-        this.$t.sessions_summary.sync();
-      });
 
       $('#tab-peering-lists').on('show.bs.tab', () => {
         this.$t.peering_lists.sync_url(
@@ -108,7 +100,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         const port_filter = this.$t.sessions_summary.$w.select_port.element.val();
         const device_filter = this.$t.sessions_summary.$w.select_device.element.val();
         let facility_filter = this.$t.sessions_summary.$w.select_facility.element.val();
-        const peer_filter = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
+        const peer_filter = this.$t.sessions_summary.$w.peer_filter.val();
 
         if(peer_filter && !facility_filter) {
           facility_filter = "all";
@@ -1086,6 +1078,13 @@ $peerctl.SessionsSummary = $tc.extend(
         return $('#page-summary-sessions button[data-element="btn_add_peer_session"]');
       });
 
+      this.widget("searchbar", ($e) => {
+        return new fullctl.application.Searchbar(
+          $('#page-summary-sessions [data-element="summary_searchbar"]'),
+          () => this.sync(),
+          () => this.sync()
+        );
+      });
 
       this.$w.select_port.format_request_url = (url) => {
         let device_filter = this.$w.select_device.element.val();
@@ -1203,12 +1202,15 @@ $peerctl.SessionsSummary = $tc.extend(
         });
       }
 
-      $ctl.peerctl.$c.toolbar.$e.peer_filter.val(autoload ? autoload.peer : null);
+      if (autoload) {
+        this.$w.searchbar.element.val(autoload.peer);
+        this.$w.searchbar.show_clear_button();
+      }
 
       // set-up localstorage sync for filters
-      this.$w.select_port.init_localstorage()
-      this.$w.select_device.init_localstorage()
-      this.$w.select_facility.init_localstorage()
+      this.$w.select_port.init_localstorage();
+      this.$w.select_device.init_localstorage();
+      this.$w.select_facility.init_localstorage();
 
 
       $(this.$w.select_port.element).on("change", () => {
@@ -1361,7 +1363,6 @@ $peerctl.SessionsSummary = $tc.extend(
      */
 
     sync: function(facility_filter, device_filter, port_filter, peer_filter) {
-
       // if no filters were provided to the function read the filter values
       // from the various filter elements
 
@@ -1369,7 +1370,7 @@ $peerctl.SessionsSummary = $tc.extend(
         port_filter = this.$w.select_port.element.val();
         device_filter = this.$w.select_device.element.val();
         facility_filter = this.$w.select_facility.element.val();
-        peer_filter = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
+        peer_filter = this.$w.searchbar.element.val();
       }
 
       if(peer_filter && !facility_filter) {
@@ -2790,6 +2791,14 @@ $peerctl.PeeringRequestsList = $tc.extend(
             .attr("title", data.name)
             .addClass("dotted-underline");
           new bootstrap.Tooltip(asn_field);
+
+          // add view in summary functionality
+          row.find('[data-action="summary-button"]').on ('click', function() {
+            fullctl.peerctl.page("page-summary-sessions");
+
+            fullctl.peerctl.$t.sessions_summary.$w.searchbar.element.val(data.asn);
+            fullctl.peerctl.$t.sessions_summary.$w.searchbar.search(data.asn);
+          });
 
           row.data("peering-request-id", data.id);
           if(data.num_locations > 1) {

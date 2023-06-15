@@ -45,6 +45,9 @@
       <th>
         <div>{% trans "Type" %}</div>
       </th>
+      <th>
+        {% trans "Actions" %}
+      </th>
     </tr>
 
   </thead>
@@ -71,6 +74,9 @@
         </td>
         <td>
           <span data-field="type"></span>
+        </td>
+        <td class="p-1">
+          <button class="btn" data-btn-type="secondary" data-action="summary-button">View in Summary</button>
         </td>
       </tr>
   </tbody>
