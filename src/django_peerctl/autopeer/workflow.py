@@ -116,7 +116,9 @@ class AutopeerWorkflow(PeerSessionWorkflow):
         locations = []
 
         _locations = schema.Locations(
-            **validate_and_send("get", f"{self.autopeer_url}/list_locations?asn={self.asn}").json()
+            **validate_and_send(
+                "get", f"{self.autopeer_url}/list_locations?asn={self.asn}"
+            ).json()
         )
 
         for location in _locations.items:
@@ -193,7 +195,8 @@ class AutopeerWorkflow(PeerSessionWorkflow):
             if autopeer_session6:
                 autopeer_sessions.append(autopeer_session6)
 
-        response = validate_and_send("post",
+        response = validate_and_send(
+            "post",
             f"{self.autopeer_url}/add_sessions",
             json=[autopeer_session.dict() for autopeer_session in autopeer_sessions],
         )

@@ -13,13 +13,13 @@ class Command(CommandInterface):
     def add_arguments(self, parser):
         super(self).add_arguments(parser)
 
-        parser.add_argument("--version", default="1.0", type=str, help="API schema version")
+        parser.add_argument(
+            "--version", default="1.0", type=str, help="API schema version"
+        )
         parser.add_argument("method", type=str, help="request method (GET/POST)")
         parser.add_argument("url", type=str, help="URL with query")
 
-
     def run(self, *args, **kwargs):
-
         version = kwargs["version"]
         method = kwargs["method"]
         url = kwargs["url"]
