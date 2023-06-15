@@ -6,7 +6,7 @@ import fullctl.service_bridge.sot as sot
 import requests
 
 import django_peerctl.autopeer.schema as schema
-from django_peerctl.autopeer import autopeer_url
+from django_peerctl.autopeer import autopeer_url, validate_and_send
 from django_peerctl.models.peerctl import (
     Network,
     PeerPort,
@@ -117,7 +117,7 @@ class AutopeerWorkflow(PeerSessionWorkflow):
         locations = []
 
         _locations = schema.Locations(
-            **requests.get(f"{self.autopeer_url}/list_locations?asn={self.asn}").json()
+            **validate_and_send("get", f"{self.autopeer_url}/list_locations?asn={self.asn}").json()
         )
 
         for location in _locations.items:
@@ -194,7 +194,7 @@ class AutopeerWorkflow(PeerSessionWorkflow):
             if autopeer_session6:
                 autopeer_sessions.append(autopeer_session6)
 
-        response = requests.post(
+        response = validate_and_send("post",
             f"{self.autopeer_url}/add_sessions",
             json=[autopeer_session.dict() for autopeer_session in autopeer_sessions],
         )
@@ -230,7 +230,7 @@ class AutopeerWorkflow(PeerSessionWorkflow):
         url = f"{self.autopeer_url}/get_status?request_id={request_id}&asn={self.asn}"
         print("request_get_status", url)
 
-        response = requests.get(url)
+        response = validate_and_send("get", url)
 
         print(response.json())
 
