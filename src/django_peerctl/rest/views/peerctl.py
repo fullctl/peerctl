@@ -640,6 +640,21 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     require_asn = True
     require_port = True
 
+    def _filter_peer(self, instances, filter_term):
+        if not filter_term:
+            return instances
+
+        r = []
+        for instance in instances:
+            if instance.ipaddr4 == str(filter_term) or instance.ipaddr6 == filter_term:
+                r.append(instance)
+            elif instance.name.lower().find(filter_term.lower()) > -1:
+                r.append(instance)
+            elif str(instance.asn) == filter_term:
+                r.append(instance)
+
+        return r
+
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, port_pk, *args, **kwargs):
@@ -648,6 +663,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         device = port.devices[0]
 
         instances = port.get_available_peers()
+        instances = list(self._filter_peer(instances, request.GET.get("peer")))
 
         serializer = self.serializer_class(
             instances, many=True, context={"port": port, "net": net, "device": device}

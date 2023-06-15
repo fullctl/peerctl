@@ -820,10 +820,17 @@ $peerctl.PeeringLists = $tc.extend(
         return $('#page-peering-lists [data-element="toggle_available_peers"]');
       });
 
+      this.widget("searchbar", ($e) => {
+        return new fullctl.application.Searchbar(
+          $('#page-peering-lists [data-element="peer_searchbar"]'),
+          () => this.sync(),
+          () => this.sync()
+        );
+      });
+
       this.$w.select_port.format_request_url = (url) => {
         return url + "?ixi=1";
       };
-
 
       $(this.$w.select_port).on("load:after", (e, select) => {
         this.$w.devicectl_device.load();
@@ -892,7 +899,7 @@ $peerctl.PeeringLists = $tc.extend(
     },
 
     sync : function(port_id) {
-      let port = this.port_object();
+      const port = this.port_object();
       this.$e.menu.find(".ixctl-controls").hide();
 
       // no port supplied to sync, get from select eleement
@@ -912,8 +919,17 @@ $peerctl.PeeringLists = $tc.extend(
         }
       }
 
+      // Searchbar functionality
+      const peer_filter = this.$w.searchbar.element.val();
+      this.$w.peers.payload = () => {
+        if(peer_filter && peer_filter != "") {
+          return {peer:peer_filter}
+        }
+        return {};
+      }
+
       this.$w.select_port.load(port_id).then(() => {
-        let port = this.port_object();
+        const port = this.port_object();
         this.$w.port_info.find(".speed").text( $ctl.formatters.pretty_speed(port.speed) );
         this.$w.port_policy_4.element.val(port.policy4.id);
         this.$w.port_policy_6.element.val(port.policy6.id);
