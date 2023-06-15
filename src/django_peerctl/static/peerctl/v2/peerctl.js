@@ -100,7 +100,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         const port_filter = this.$t.sessions_summary.$w.select_port.element.val();
         const device_filter = this.$t.sessions_summary.$w.select_device.element.val();
         let facility_filter = this.$t.sessions_summary.$w.select_facility.element.val();
-        const peer_filter = this.$t.sessions_summary.$w.peer_filter.val();
+        const peer_filter = this.$t.sessions_summary.$w.searchbar.element.val();
 
         if(peer_filter && !facility_filter) {
           facility_filter = "all";
