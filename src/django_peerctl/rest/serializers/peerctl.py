@@ -1574,6 +1574,7 @@ class AutopeerRequest(serializers.Serializer):
 
     asn = serializers.IntegerField()
     date = serializers.DateTimeField(read_only=True)
+    name = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
     type = serializers.CharField(read_only=True)
     location = serializers.SerializerMethodField()
@@ -1588,6 +1589,7 @@ class AutopeerRequest(serializers.Serializer):
         fields = [
             "id",
             "asn",
+            "name",
             "status",
             "location",
             "type",
@@ -1606,6 +1608,10 @@ class AutopeerRequest(serializers.Serializer):
         ixctl_ix_ids = []
         pdbctl_ix_ids = []
         locations = []
+        asns = set()
+        pdbctl_exchanges = {}
+        ixctl_exchanges = {}
+        networks = {}
 
         for req in _requests:
             for location in req.locations.all():
@@ -1613,6 +1619,7 @@ class AutopeerRequest(serializers.Serializer):
                     pdbctl_ix_ids.append(location.pdb_ix_id)
                 elif location.ixctl_ix_id:
                     ixctl_ix_ids.append(location.ixctl_ix_id)
+            asns.add(req.peer_asn)
 
         if pdbctl_ix_ids:
             pdbctl_exchanges = {
@@ -1624,15 +1631,26 @@ class AutopeerRequest(serializers.Serializer):
                 ix.id: ix for ix in ixctl.InternetExchange().objects(ids=ixctl_ix_ids)
             }
 
+        if asns:
+            networks = {
+                net.asn: net for net in pdbctl.Network().objects(asns=list(asns))
+            }
+
         for req in _requests:
             req_locations = list(req.locations.all())
             num_locations = len(req_locations)
+            peer_name = (
+                networks.get(req.peer_asn, {}).name
+                if req.peer_asn in networks
+                else None
+            )
 
             if not num_locations:
                 locations.append(
                     {
                         "id": req.id,
                         "asn": req.peer_asn,
+                        "name": peer_name,
                         "location": "...",
                         "status": req.status,
                         "date": req.created,
@@ -1664,6 +1682,7 @@ class AutopeerRequest(serializers.Serializer):
                     {
                         "id": req.id,
                         "asn": req.peer_asn,
+                        "name": peer_name,
                         "location": location.name,
                         "status": location.status,
                         "date": req.created,

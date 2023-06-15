@@ -2387,10 +2387,11 @@ $peerctl.TemplatePreview = $tc.extend(
         (response)=>{
           loading_shim.detach();
           this.editor.val(response.first().body);
+        },
+        () => {
+          loading_shim.detach();
         }
-      ).fail(() => {
-        loading_shim.detach();
-      });
+      );
     }
   },
   twentyc.rest.Form
