@@ -939,7 +939,6 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     @property
     def peer_session_ips(self):
-
         """
         Returns a dictionary of session peer ips for this port
 
@@ -947,7 +946,7 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
         Returns:
 
-            dict: Dictionary of peer_session_ips for this port in the format of 
+            dict: Dictionary of peer_session_ips for this port in the format of
             {ip: peer_session}
         """
 
@@ -965,9 +964,9 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
                 port_infos.append(peer_session.peer_port.port_info)
             elif peer_session.peer_port.port_info.ref_source == "pdbctl":
                 port_infos.append(peer_session.peer_port.port_info)
-            
+
         # load references for port_infos from ixctl and pcbctl
-        
+
         PortInfo.load_references(port_infos)
 
         # organization peer session peer port ips into dictionary
@@ -982,7 +981,6 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
                 self._peer_session_ips[ip] = peer_session
 
         return self._peer_session_ips
-
 
     @property
     def is_ixi(self):
@@ -1465,7 +1463,6 @@ class PortInfo(sot.ReferenceMixin, Base):
 
     @classmethod
     def load_references(self, objects):
-
         """
         loads ixctl/pdbctl references for port info objects
 
@@ -1480,7 +1477,6 @@ class PortInfo(sot.ReferenceMixin, Base):
         # collect all ref ids and categorize ixctl or pdbctl
 
         for obj in objects:
-
             if not obj.ref_id:
                 continue
 
@@ -1489,24 +1485,22 @@ class PortInfo(sot.ReferenceMixin, Base):
             elif obj.ref_source == "ixctl":
                 ixctl_ref_ids.add(int(obj.ref_id.split(":")[1]))
 
-
         # fetch all ixctl/pdbctl objects
 
         if pdbctl_ref_ids:
             pdbctl_members = {
-                m.id: m
-                for m in pdbctl.NetworkIXLan().objects(ids=list(pdbctl_ref_ids))
+                m.id: m for m in pdbctl.NetworkIXLan().objects(ids=list(pdbctl_ref_ids))
             }
 
         if ixctl_ref_ids:
             ixctl_members = {
-                m.id: m for m in ixctl.InternetExchangeMember().objects(ids=list(ixctl_ref_ids))
+                m.id: m
+                for m in ixctl.InternetExchangeMember().objects(ids=list(ixctl_ref_ids))
             }
 
         # set references according to ref id
 
         for obj in objects:
-
             if not obj.ref_id:
                 continue
 
@@ -1515,8 +1509,6 @@ class PortInfo(sot.ReferenceMixin, Base):
 
             elif obj.ref_source == "ixctl":
                 obj._ref = ixctl_members[int(obj.ref_id.split(":")[1])]
-
-
 
     @property
     @ref_fallback(0)
