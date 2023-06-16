@@ -1163,9 +1163,9 @@ $peerctl.SessionsSummary = $tc.extend(
 
           value.last_updown = value.last_updown ? fullctl.formatters.seconds_to_wdhms(value.last_updown) : '-';
           node.append($('<span class="ps-1">').text(
-            (value.accepted ? fullctl.formatters.shorten_number(value.accepted) : '-') +
+            (value.accepted ? fullctl.formatters.shorten_number(value.accepted) : '0') +
             "/" +
-            (value.received ? fullctl.formatters.shorten_number(value.received) : '-')
+            (value.received ? fullctl.formatters.shorten_number(value.received) : '0')
           ));
           node.append($('<span data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').prop("title", fullctl.formatters.meta_data(value).html()).tooltip().append(
             $('<span class="icon fullctl icon-list">')
