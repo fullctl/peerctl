@@ -2545,8 +2545,8 @@ $peerctl.modals.RequestPeering = $tc.extend(
   "RequestPeering",
   {
     RequestPeering: function(peer, request_data={type: "email"}, ix_ids) {
-      console.log(peer, request_data, ix_ids)
       this.peer = peer;
+      this.request_data = request_data;
       this.ix_ids = ix_ids;
 
       let current_step = "peer-request";
@@ -2564,40 +2564,36 @@ $peerctl.modals.RequestPeering = $tc.extend(
 
       this.Modal("save_lg", title, $());
 
+      this.change_peer_mode(request_data);
+    },
+
+    change_peer_mode: function(request_data) {
+      const body_elements = [];
       if (request_data.autopeer_enabled) {
         const select_peer_method = this.select_peer_method = $(
           `<select class="form-select mb-4 mode-select">
             <option value="autopeering" selected>Autopeer</option>
             <option value="email">E-mail</option>
           </select>`
-        )
-
-        this.$e.body.prepend(select_peer_method)
+        );
 
         const modal = this;
         select_peer_method.on('change', function(ev) {
-          const data = request_data
-          data.type = $(this).find('option:selected').val()
-          modal.change_peer_mode(data)
-        })
-      }
+          const data = request_data;
+          data.type = $(this).find('option:selected').val();
+          modal.change_peer_mode(data);
+        });
 
-      this.change_peer_mode(request_data);
-    },
-
-    change_peer_mode: function(mode) {
-      if (this.select_peer_method) {
         // select the correct mode in dropdown
-        console.log(this.select_peer_method.find(`[value="${mode.type}"]`));
-        this.select_peer_method.find(`[value="${mode.type}"]`).attr('selected', true)
-        this.select_peer_method.siblings().remove()
+        this.select_peer_method.find(`[value="${request_data.type}"]`).attr('selected', true);
+        body_elements.push(select_peer_method);
       }
 
       this.$e.button_submit.off('click')
       this.$e.button_submit.siblings('.autopeer-error').detach();
 
       // change body of modal based on mode
-      if (mode.type=="email") {
+      if (request_data.type=="email") {
         const form = new $peerctl.EmailPeeringForm(this.current_step, this.peer, this.ix_ids);
         $(form).on("api-write:success", (ev, endpoint, data, response)=>{
 
@@ -2615,20 +2611,20 @@ $peerctl.modals.RequestPeering = $tc.extend(
           }
           $(this).trigger("peer-request:after", []);
         });
-        this.$e.body.append(form.element)
+        body_elements.push(form.element);
         this.$e.button_submit.empty().append($('<span>').addClass("icon icon-mail fullctl")).append($('<span>').addClass("label").text('Send'));
         form.wire_submit(this.$e.button_submit);
-      } else if (mode.type=="autopeering") {
-        this.$e.body.append(
+      } else if (request_data.type=="autopeering") {
+        body_elements.push(
           new $peerctl.AutopeerModalBody(
             {
               peer_name: this.peer.name,
               asn: this.peer.asn,
               current_step: this.current_step,
-              url: mode.url
+              url: request_data.url
             }
           )
-        )
+        );
         // wire submit button
         this.$e.button_submit.empty().append($('<span>').addClass("icon icon-api fullctl")).append($('<span>').addClass("label").text('Send'));
         this.$e.button_submit.on('click', (ev) => {
@@ -2659,6 +2655,8 @@ $peerctl.modals.RequestPeering = $tc.extend(
           });
         });
       }
+
+      this.set_content(body_elements);
     },
 
   },
