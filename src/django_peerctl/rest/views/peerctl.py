@@ -223,7 +223,15 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
             instances, many=True, context={"load_md5": load_md5}
         )
 
-        data = sorted(serializer.data, key=lambda x: x["ix_simple_name"])
+        data = serializer.data
+        # ordering data based on order param
+        order = request.GET.get("ordering")
+        if order == "ix_simple_name":
+            data = sorted(data, key=lambda x: x["ix_simple_name"])
+        elif order == "-ix_simple_name":
+            data = sorted(data, key=lambda x: x["ix_simple_name"])[::-1]
+        else:
+            data = sorted(data, key=lambda x: x["ix_name"])
 
         return Response(data)
 
