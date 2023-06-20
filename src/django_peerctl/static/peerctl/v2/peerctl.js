@@ -1934,7 +1934,15 @@ $peerctl.PeerSessionToggle = $tc.extend(
         member: this.peer_id,
         through: this.through_id
       };
+    },
 
+    render_non_field_errors: function(errors) {
+      const error = errors[0];
+      this.element.parent().after($('<div class="validation-error non-field-errors | text-nowrap position-absolute top-0 start-0">').text(error));
+    },
+
+    clear_errors : function() {
+      this.element.parent().parent().find('.validation-error').detach();
     },
   },
   twentyc.rest.Checkbox
@@ -2048,6 +2056,7 @@ $peerctl.PeerSessionList = $tc.extend(
       const peer_row = this.peer_row;
 
       const init_method = data.peer_session_status == "ok" ? "delete" : "post";
+
       const switch_add = new $peerctl.PeerSessionToggle(
         port_row.find("input.peer_session-add"),
         data.id,
@@ -2063,7 +2072,7 @@ $peerctl.PeerSessionList = $tc.extend(
       });
 
 
-      $(switch_add).on("api-post:success", (ev, endpoint, sent_data, response)=>{
+      $(switch_add).on("api-post:success", (ev, endpoint, sent_data, response) => {
         port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
         if(peer_row)
           peer_row.addClass("border-active").removeClass("border-inactive");
@@ -2073,7 +2082,7 @@ $peerctl.PeerSessionList = $tc.extend(
         fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
       });
 
-      $(switch_add).on("api-delete:success", ()=>{
+      $(switch_add).on("api-delete:success", () => {
         port_row.addClass("peer_session-inactive").removeClass("peer_session-active");
         if(peer_row)
           peer_row.addClass("border-inactive").removeClass("border-active");

@@ -152,6 +152,15 @@ div.peers-row div.loading-indicator-container {
   margin-left: 0.25rem;
 }
 
+.peers-row [data-field="ix_name"] {
+  overflow: hidden;
+  text-overflow: ellipsis ellipsis;
+}
+
+.peers-row .switch ~ .validation-error {
+  transform: translateY(-100%);
+}
+
 .secondary .property .field [data-field="peeringdb"] .icon {
   padding-left: 0.5ch;
 }
