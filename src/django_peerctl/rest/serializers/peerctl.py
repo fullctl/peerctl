@@ -2,6 +2,7 @@ import ipaddress
 
 import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
+import fullctl.service_bridge.sot as sot
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from fullctl.django.models.concrete.tasks import TaskLimitError
@@ -382,6 +383,7 @@ class Peer(serializers.Serializer):
     ipaddr = serializers.SerializerMethodField()
     is_rs_peer = serializers.BooleanField()
     ref_id = serializers.CharField()
+    mutual_locations_count = serializers.SerializerMethodField()
     ref_tag = "peer"
     id = serializers.CharField(source="ref_id")
 
@@ -457,6 +459,48 @@ class Peer(serializers.Serializer):
                 for peer_net in _peer_nets:
                     self._peer_nets[peer_net.peer.asn] = peer_net
         return self._peer_nets
+
+    @property
+    def mutual_locations(self):
+        """
+        Caches and returns mutual locations
+        """
+
+        if hasattr(self, "_mutual_locations"):
+            return self._mutual_locations
+
+        mutual_locations = {}
+
+        net = self.context.get("net")
+
+        for member in sot.InternetExchangeMember().objects(mutual=net.asn):
+            location_id = f"{member.source}:{member.ix_id}"
+            mutual_locations.setdefault(member.asn, set())
+            mutual_locations[member.asn].add(location_id)
+
+        self._mutual_locations = mutual_locations
+
+        return self._mutual_locations
+
+    @property
+    def peer_sessions(self):
+        """
+        Cache and return peer sessions for this port
+        """
+
+        if hasattr(self, "_peer_sessions"):
+            return self._peer_sessions
+
+        port = self.context.get("port")
+        self._peer_sessions = port.peer_sessions
+
+        return self._peer_sessions
+
+    def get_mutual_locations_count(self, obj):
+        """
+        Returns the number of mutual locations
+        """
+        return len(self.mutual_locations.get(obj.asn, []))
 
     def get_scope(self, obj):
         if hasattr(obj, "net") and obj.net is not None:
