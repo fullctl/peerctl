@@ -2256,30 +2256,11 @@ $peerctl.PeerList = $tc.extend(
       var row = this.List_insert(data);
       this.render_ports(row, data);
 
-
-      row.find("button.toggle-mutual-locations").click(function() {
-          var button = $(this);
-          var container = row.find('.mutual-locations')
-
-          var mutual_list = row.data("mutual-list");
-          if(mutual_list) {
-						button.find('.icon').removeClass('icon-caret-down').addClass('icon-caret-left');
-            mutual_list.element.detach();
-            row.data("mutual-list", null);
-          } else {
-            var loading = $ctl.loading_animation();
-						button.find('.icon').addClass('icon-caret-down').removeClass('icon-caret-left');
-            mutual_list = new $peerctl.MutualLocations(
-              fullctl.template("port_list").data("data-api-base", button.data("data-api-base")),
-              data.id
-            );
-            mutual_list.load();
-            $(mutual_list).on("load:after", ()=>{ container.append(mutual_list.element); loading.detach(); });
-            container.append(loading);
-            row.data("mutual-list", mutual_list);
-          }
-      });
-
+      new $peerctl.OtherMutualLocationsButton(
+        row.find("button.toggle-mutual-locations"),
+        row,
+        data
+      );
 
       new $peerctl.MaxPrefixInput(row.find('input[data-field="info_prefixes4"]'), data.id);
       new $peerctl.MaxPrefixInput(row.find('input[data-field="info_prefixes6"]'), data.id);
@@ -2369,7 +2350,58 @@ $peerctl.PeerList = $tc.extend(
   twentyc.rest.List
 );
 
+$peerctl.OtherMutualLocationsButton = $tc.define(
+  "OtherMutualLocationsButton",
+  {
+    OtherMutualLocationsButton : function(jq, row, data) {
+      this.element = jq;
+      this.row = row;
+      this.data = data;
 
+      const other_mutual_loc_count = data.mutual_locations_count - 1;
+      if(other_mutual_loc_count > 0) {
+        this.element.find('.icon').show();
+        this.element.find('.text').text(`${other_mutual_loc_count} other exchange points`);
+        this.element.click(this.toggle_mutual_list.bind(this));
+      } else {
+        this.element.find('.text').text("No other exchange points");
+        this.element.find('.icon').hide();
+        this.element.attr("disabled", true);
+      }
+    },
+
+    toggle_mutual_list: function() {
+      if(this.mutual_list) {
+        this.remove_mutual_list();
+      } else {
+        this.add_mutual_list();
+      }
+    },
+
+    remove_mutual_list: function() {
+      this.element.find('.icon').removeClass('icon-caret-down').addClass('icon-caret-left');
+      this.mutual_list.element.remove();
+      this.mutual_list = null;
+    },
+
+    add_mutual_list: function() {
+      const container = this.row.find('.mutual-locations')
+      const loading = $ctl.loading_animation();
+
+      this.element.find('.icon').addClass('icon-caret-down').removeClass('icon-caret-left');
+      const mutual_list = this.mutual_list = new $peerctl.MutualLocations(
+        fullctl.template("port_list").data("data-api-base", this.element.data("data-api-base")),
+        this.data.id
+      );
+      $(mutual_list).on("load:after", ()=>{
+        container.append(mutual_list.element);
+        loading.remove();
+      });
+      mutual_list.load();
+      container.append(loading);
+    },
+  }
+)
 
 
 $peerctl.TemplatePreview = $tc.extend(
