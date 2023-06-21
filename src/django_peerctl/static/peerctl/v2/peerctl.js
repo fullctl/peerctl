@@ -1217,7 +1217,7 @@ $peerctl.SessionsSummary = $tc.extend(
         });
       }
 
-      if (autoload) {
+      if (autoload && autoload.peer) {
         this.$w.searchbar.element.val(autoload.peer);
         this.$w.searchbar.show_clear_button();
       }
