@@ -1458,18 +1458,10 @@ class PeerSession(ModelSerializer):
         if not obj.port or not obj.port.object:
             return "No port assigned"
 
-        parts = []
-
         if obj.port.object.port_info_object.ix_name:
-            parts += [obj.port.object.port_info_object.ix_name]
+            return obj.port.object.port_info_object.ix_name
 
-        if obj.port.object.virtual_port_name:
-            parts += [obj.port.object.virtual_port_name]
-
-        if obj.port.object.port_info_object.ipaddr4:
-            parts += [str(obj.port.object.port_info_object.ipaddr4)]
-
-        return " ".join(parts)
+        return ""
 
 
 @register
