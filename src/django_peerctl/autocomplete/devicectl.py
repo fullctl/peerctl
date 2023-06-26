@@ -1,12 +1,7 @@
-from dal import autocomplete
-from django.utils import html
-
-import fullctl.service_bridge.devicectl as devicectl
-from fullctl.django.models.concrete import Organization
-
-from django_peerctl.models import PortInfo, Network
-
 import fullctl.django.autocomplete.devicectl as devicectl_autocomplete
+import fullctl.service_bridge.devicectl as devicectl
+
+from django_peerctl.models import Network, PortInfo
 
 
 class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
@@ -18,13 +13,17 @@ class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
     """
 
     def get_queryset(self):
-
-        asn=self.request.GET.get("asn")
+        asn = self.request.GET.get("asn")
 
         if not asn:
             return []
 
-        net = Network.objects.filter(asn=asn).exclude(org_id__isnull=True).select_related("org").first()
+        net = (
+            Network.objects.filter(asn=asn)
+            .exclude(org_id__isnull=True)
+            .select_related("org")
+            .first()
+        )
         if not net or not net.org_id:
             return []
         org = net.org
@@ -35,9 +34,18 @@ class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
         if not self.q:
             return []
 
-        candidates = PortInfo.objects.filter(net=net, port__gt=0).exclude(ref_id__isnull=True).exclude(ref_id="")
+        candidates = (
+            PortInfo.objects.filter(net=net, port__gt=0)
+            .exclude(ref_id__isnull=True)
+            .exclude(ref_id="")
+        )
 
         port_ids = [int(c.port) for c in candidates]
 
-        qs = [o for o in devicectl.Port().objects(org_slug=org.slug, q=self.q, ids=port_ids, has_ips=True)]
+        qs = [
+            o
+            for o in devicectl.Port().objects(
+                org_slug=org.slug, q=self.q, ids=port_ids, has_ips=True
+            )
+        ]
         return qs

@@ -2,10 +2,9 @@ import fullctl.django.rest.urls.service_bridge_proxy as proxy
 from django.conf import settings
 from django.urls import include, path
 
+import django_peerctl.autocomplete.devicectl
 import django_peerctl.views as views
 from django_peerctl.legacy.views import device_template_base, email_template_base
-
-import django_peerctl.autocomplete.devicectl
 
 # from fullctl.django.views.template import TemplateFileView
 
@@ -49,7 +48,6 @@ proxy.setup(
 )
 
 urlpatterns = proxy.urlpatterns(["aaactl", "devicectl"])
-
 
 
 urlpatterns += [
