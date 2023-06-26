@@ -1076,6 +1076,7 @@ $peerctl.SessionsSummary = $tc.extend(
       this.Tool("peering_summary-sessions");
 
       this.ports = {};
+      this.filters = [];
 
       this.widget("select_port", ($e) => {
         return this.setup_select_filter('#page-summary-sessions select[data-element="select_port"]');
@@ -1459,8 +1460,19 @@ $peerctl.SessionsSummary = $tc.extend(
           jq.attr('disabled', false)
         }
       });
+
+
+      this.filters.push(w)
       return w
     },
+
+    clear_select_filter : function() {
+      for (let i = 0; i < this.filters.length; i++) {
+        this.filters[i].val('all');
+      }
+      this.toggle_facility_filters();
+      this.update_filter_localstorage();
+    }
   },
   $ctl.application.Tool
 );
@@ -2892,9 +2904,11 @@ $peerctl.PeeringRequestsList = $tc.extend(
           new bootstrap.Tooltip(asn_field);
 
           // add view in summary functionality
-          row.find('[data-action="summary-button"]').on ('click', function() {
+          const view_in_summary_btn = row.find('[data-action="summary-button"]');
+          view_in_summary_btn.on ('click', function() {
             fullctl.peerctl.page("page-summary-sessions");
 
+            fullctl.peerctl.$t.sessions_summary.clear_select_filter();
             fullctl.peerctl.$t.sessions_summary.$w.searchbar.element.val(data.asn);
             fullctl.peerctl.$t.sessions_summary.$w.searchbar.search(data.asn);
           });
