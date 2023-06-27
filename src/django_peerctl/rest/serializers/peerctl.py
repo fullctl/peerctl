@@ -1581,6 +1581,7 @@ class AutopeerRequest(serializers.Serializer):
     num_locations = serializers.IntegerField(read_only=True)
     peer_id = serializers.CharField(read_only=True)
     port_id = serializers.IntegerField(read_only=True, allow_null=True)
+    sessions = serializers.IntegerField(read_only=True, allow_null=True)
 
     ref_tag = "autopeer"
 
@@ -1624,6 +1625,31 @@ class AutopeerRequest(serializers.Serializer):
                 ix.id: ix for ix in ixctl.InternetExchange().objects(ids=ixctl_ix_ids)
             }
 
+        sessions = list(
+            net.peer_session_set.filter(status__in=["ok", "configured"]).select_related(
+                "peer_port", "peer_port__peer_net", "peer_port__peer_net__peer"
+            )
+        )
+
+        # count sessions towards each asn and port
+        sessions_dict = {}
+        sessions_port_dict = {}
+
+        for session in sessions:
+            # increment session count to asn
+            sessions_dict[session.peer_port.peer_net.peer.asn] = (
+                sessions_dict.get(session.peer_port.peer_net.peer.asn, 0) + 1
+            )
+
+            # increment session count to asn/port
+            sessions_port_dict.setdefault(session.port, {})
+            sessions_port_dict[session.peer_port.peer_net.peer.asn] = (
+                sessions_port_dict[session.port].get(
+                    session.peer_port.peer_net.peer.asn, 0
+                )
+                + 1
+            )
+
         for req in _requests:
             req_locations = list(req.locations.all())
             num_locations = len(req_locations)
@@ -1638,6 +1664,7 @@ class AutopeerRequest(serializers.Serializer):
                         "date": req.created,
                         "type": req.type,
                         "num_locations": 0,
+                        "sessions": sessions_dict.get(req.peer_asn, 0),
                         "peer_id": None,
                         "port_id": None,
                     }
@@ -1669,6 +1696,11 @@ class AutopeerRequest(serializers.Serializer):
                         "date": req.created,
                         "type": req.type,
                         "num_locations": num_locations,
+                        "sessions": sessions_port_dict.get(port, {}).get(
+                            req.peer_asn, 0
+                        )
+                        if port
+                        else sessions_dict.get(req.peer_asn, 0),
                         "peer_id": location.peer_id,
                         "port_id": port,
                     }
