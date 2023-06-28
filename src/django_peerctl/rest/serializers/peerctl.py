@@ -1681,21 +1681,11 @@ class AutopeerRequest(serializers.Serializer):
 
         # count sessions towards each asn and port
         sessions_dict = {}
-        sessions_port_dict = {}
 
         for session in sessions:
             # increment session count to asn
             sessions_dict[session.peer_port.peer_net.peer.asn] = (
                 sessions_dict.get(session.peer_port.peer_net.peer.asn, 0) + 1
-            )
-
-            # increment session count to asn/port
-            sessions_port_dict.setdefault(session.port, {})
-            sessions_port_dict[session.peer_port.peer_net.peer.asn] = (
-                sessions_port_dict[session.port].get(
-                    session.peer_port.peer_net.peer.asn, 0
-                )
-                + 1
             )
 
         for req in _requests:
@@ -1751,11 +1741,7 @@ class AutopeerRequest(serializers.Serializer):
                         "date": req.created,
                         "type": req.type,
                         "num_locations": num_locations,
-                        "sessions": sessions_port_dict.get(port, {}).get(
-                            req.peer_asn, 0
-                        )
-                        if port
-                        else sessions_dict.get(req.peer_asn, 0),
+                        "sessions": sessions_dict.get(req.peer_asn, 0),
                         "peer_id": location.peer_id,
                         "port_id": port,
                     }
