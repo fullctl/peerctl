@@ -552,7 +552,7 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
-        instances = net.peer_session_set.filter(status="ok")
+        instances = net.peer_session_set.filter(status__in=["ok", "configured"])
 
         print([instance.id for instance in instances])
 

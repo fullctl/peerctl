@@ -2912,6 +2912,8 @@ $peerctl.PeeringRequestsList = $tc.extend(
             fullctl.peerctl.$t.sessions_summary.$w.searchbar.element.val(data.asn);
             fullctl.peerctl.$t.sessions_summary.$w.searchbar.search(data.asn);
           });
+          if (data.sessions <= 0)
+            view_in_summary_btn.hide();
 
           row.data("peering-request-id", data.id);
           if(data.num_locations > 1) {
