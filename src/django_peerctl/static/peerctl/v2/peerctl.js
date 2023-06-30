@@ -825,10 +825,13 @@ $peerctl.PeeringLists = $tc.extend(
             // place holder text for the search field
             placeholder: "Search IP, device, port or location names.",
 
-            controls: false
+            controls: false,
+
+            localstorage_key: "peering_lists_port_filter"
           }
         );
       });
+      const port_filter = this.$w.port_filter;
       this.$w.port_filter.load = (port_id) => {
 
         const list = this;
@@ -848,15 +851,16 @@ $peerctl.PeeringLists = $tc.extend(
             }
 
             // set value of select element on loading
-            let port;
             if (port_id) {
               if (select_element.find("option[value='" + port_id + "']").length)
                 return
-              port = peering_lists_tool.ports[port_id];
             } else {
-              port = Object.values(peering_lists_tool.ports)[0];
+              port_id = port_filter.localstorage_get() || Object.keys(peering_lists_tool.ports)[0];
             }
-            if (port == undefined) return;
+            if (!port_id) return;
+            port_filter.localstorage_set(port_id);
+            peering_lists_tool.sync_url(port_id);
+            const port = peering_lists_tool.ports[port_id];
             let initial = {
               id: port.id,
               primary: port.ix_name,
@@ -873,6 +877,7 @@ $peerctl.PeeringLists = $tc.extend(
           }
         });
       };
+      this.$w.port_filter.init_localstorage();
 
       this.$w.port_filter.element.on("change", () => {
         this.sync();
