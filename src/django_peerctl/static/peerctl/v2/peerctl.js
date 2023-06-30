@@ -17,14 +17,14 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       this.tool("home", () => {
         return new $peerctl.Home();
       });
-			
+
       // init peering lists tool
 
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();
       });
 
-      // init network search tool 
+      // init network search tool
 
       this.tool("networks", () => {
         return new $peerctl.Networks();
@@ -129,10 +129,10 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
     },
 
     port : function() {
-      return this.$t.peering_lists.$w.select_port.element.val();
+      return this.$t.peering_lists.$w.port_filter.element.val();
     },
 
-    port_object: function() {
+    port_object : function() {
       return this.$t.peering_lists.ports[this.port()]
     },
 
@@ -149,14 +149,6 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
           this.$t[i].sync();
         }
       }
-    },
-
-    refresh : function() {
-      return this.refresh_select_port();
-    },
-
-    refresh_select_port : function() {
-      return this.$t.peering_lists.$w.select_port.refresh();
     },
 
     /**
@@ -442,7 +434,7 @@ $peerctl.Ix = $tc.extend(
         }
         return "";
       };
-      
+
       $(this.$w.list).on("load:after", () => {
         // only show first data-ix-header element distinguishing
         // by value of data-ix-header
@@ -466,7 +458,7 @@ $peerctl.Ix = $tc.extend(
      */
 
     sync: function(force) {
-      
+
       // if force is false check if we have already loaded the list
       // in the last minute and dont sync if we have
       var now = new Date();
@@ -483,7 +475,7 @@ $peerctl.Ix = $tc.extend(
 
       // set last sync time
       this.$w.list.element.data("last-sync", now);
-      
+
       this.$w.list.load();
     }
   },
@@ -492,12 +484,12 @@ $peerctl.Ix = $tc.extend(
 
 /**
  * Modal that lets user edit the following values on an ixi port
- * 
+ *
  * - prefix4
  * - prefix6
  * - mac_address
  * - md5
- * 
+ *
  * @class ModalIxPort
  * @extends $ctl.application.Modal
  * @constructor
@@ -519,7 +511,7 @@ $peerctl.ModalIxPort = $tc.extend(
       form.format_request_url = (url) => {
         return url.replace("/0/", "/"+port.id+"/");
       }
-      
+
       // fill form
       form.fill(port);
 
@@ -538,7 +530,7 @@ $peerctl.ModalIxPort = $tc.extend(
   },
   $ctl.application.Modal
 );
-        
+
 
 $peerctl.Networks = $tc.extend(
   "Networks",
@@ -767,12 +759,11 @@ $peerctl.Networks = $tc.extend(
       var ix_ids = []
 
       selected.each(function() {
-        //console.log(this);
         ix_ids.push($(this).data("ix-id"));
       });
 
       new $peerctl.modals.RequestPeering(
-        this.peer, 
+        this.peer,
         this.peer_request_data,
         ix_ids,
       );
@@ -788,24 +779,104 @@ $peerctl.PeeringLists = $tc.extend(
   {
     PeeringLists : function() {
       this.Tool("peering_lists");
+      const peering_lists_tool = this;
 
       this.ports = {};
 
-      this.widget("select_port", ($e) => {
-        let select_port = $('#page-peering-lists select[data-element="select_port"]');
-        var w = new twentyc.rest.Select(select_port);
-        $(w).on("load:after", (event, element, data) => {
-          var i;
-          for(i = 0; i < data.length; i++) {
-            this.ports[data[i].id] = data[i];
+      this.widget("port_filter", ($e) => {
+        return fullctl.ext.select2.init_autocomplete(
+
+          // bind to port <select> element
+          $('#page-peering-lists select#port-filter'),
+
+          // parent dropdown to form element
+          $('#page-peering-lists select#port-filter').parent(),
+
+          // options
+          {
+
+            // autocomplete url
+            url: '/autocomplete/device/ixi-port?asn=' + fullctl.peerctl.network.asn,
+
+            // process results, allowing us to add entries for
+            // ips that are not assigned to a port
+            process: (data, term, params) => {
+              if(fullctl.util.is_valid_ip4(term)) {
+
+                // check if we have an exact match for the ip in the results
+                var exact_found = data.results.find((obj) => {
+                  return obj.text.primary && obj.text.primary.split("/")[0] == term
+                });
+
+                if(!exact_found) {
+
+                  // if no exact match was found, add an entry for the ip that
+                  // can be selected as a choice.
+
+                  data.results.unshift({
+                    id: term,
+                    text: {primary: term, secondary:"Ip not assigned", extra:""},
+                    selected_text: {primary: term, secondary:"Ip not assigned", extra:""},
+                  });
+                }
+              }
+            },
+
+            // place holder text for the search field
+            placeholder: "Search IP, device, port or location names.",
+
+            controls: false
           }
-          if(data.length == 0) {
-            select_port.attr('disabled', true);
-          } else {
-            select_port.attr('disabled', false)
+        );
+      });
+      this.$w.port_filter.load = (port_id) => {
+
+        const list = this;
+        // use data-api-ports to get a list of ports
+        const port_api_url = this.$w.port_filter.element.data("api-ports");
+        const select_element = this.$w.port_filter.element;
+
+        return $.ajax({
+          type: 'GET',
+          dataType: 'json',
+          url: port_api_url,
+          timeout: 5000,
+          success: function(response){
+            const data = response.data;
+            for(let i = 0; i < data.length; i++) {
+              peering_lists_tool.ports[data[i].id] = data[i];
+            }
+
+            // set value of select element on loading
+            let port;
+            if (port_id) {
+              if (select_element.find("option[value='" + port_id + "']").length)
+                return
+              port = peering_lists_tool.ports[port_id];
+            } else {
+              port = Object.values(peering_lists_tool.ports)[0];
+            }
+            if (port == undefined) return;
+            let initial = {
+              id: port.id,
+              primary: port.ix_name,
+              secondary: "",
+              extra: ""
+            };
+            let option = $(new Option(initial.primary, initial.id, true, true));
+            option.data("selection_data", initial);
+            select_element.append(option);
+            list.$w.devicectl_device.load();
+          },
+          fail: function(xhr, textStatus, errorThrown){
+            console.log(xhr)
           }
         });
-        return w
+      };
+
+      this.$w.port_filter.element.on("change", () => {
+        this.sync();
+        this.sync_url(this.$w.port_filter.element.val())
       });
 
       this.widget("port_info", ($e) => {
@@ -828,14 +899,6 @@ $peerctl.PeeringLists = $tc.extend(
         );
       });
 
-      this.$w.select_port.format_request_url = (url) => {
-        return url + "?ixi=1";
-      };
-
-      $(this.$w.select_port).on("load:after", (e, select) => {
-        this.$w.devicectl_device.load();
-      });
-
       $(this.$w.devicectl_device).on("load:after", (e, select) => {
         let port_object = fullctl.peerctl.port_object();
         if(port_object)
@@ -845,11 +908,6 @@ $peerctl.PeeringLists = $tc.extend(
         this.$w.devicectl_port.device_id = select.val();
         if(this.$w.devicectl_port.device_id)
           this.$w.devicectl_port.load();
-      });
-
-      $(this.$w.select_port.element).on("change", () => {
-        this.sync();
-        this.sync_url(this.$w.select_port.element.val())
       });
 
       var peering_lists = this;
@@ -887,7 +945,7 @@ $peerctl.PeeringLists = $tc.extend(
     },
 
     port : function() {
-      return this.$w.select_port.element.val();
+      return this.$w.port_filter.element.val();
     },
 
     port_object: function() {
@@ -928,8 +986,10 @@ $peerctl.PeeringLists = $tc.extend(
         return {};
       }
 
-      this.$w.select_port.load(port_id).then(() => {
+      this.$w.port_filter.load(port_id).then(() => {
         const port = this.port_object();
+        if (!port)
+          return;
         this.$w.port_info.find(".speed").text( $ctl.formatters.pretty_speed(port.speed) );
         this.$w.port_policy_4.element.val(port.policy4.id);
         this.$w.port_policy_6.element.val(port.policy6.id);
@@ -1408,6 +1468,7 @@ $peerctl.SessionsSummary = $tc.extend(
       } else if(device_filter && !isNaN(device_filter)) {
         action = "device/"+device_filter;
       } else if(facility_filter != "all") {
+        console.log(facility_filter)
         action = "facility/"+facility_filter;
       }
 
@@ -1519,10 +1580,10 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
             if(fullctl.util.is_valid_ip4(term)) {
 
               // check if we have an exact match for the ip in the results
-              var exact_found = data.results.find((obj) => { 
+              var exact_found = data.results.find((obj) => {
                 return obj.text.primary && obj.text.primary.split("/")[0] == term
               });
-    
+
               if(!exact_found) {
 
                 // if no exact match was found, add an entry for the ip that
@@ -1534,7 +1595,7 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
                   selected_text: {primary: term, secondary:"Ip not assigned", extra:""}
                 });
               }
-            }   
+            }
           },
 
           // place holder text for the search field
@@ -1542,18 +1603,18 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
 
           // if session is specifed, preselect it's port
           initial: (
-            session ? 
+            session ?
             {
               id: session.port_id,
-              primary: session.ip4, 
-              secondary: session.port_interface, 
+              primary: session.ip4,
+              secondary: session.port_interface,
               extra: session.device_name
-            } 
+            }
             : null
           )
         }
       );
-    
+
       // edit existing session
 
       if(session) {
@@ -2173,7 +2234,7 @@ $peerctl.PeerList = $tc.extend(
               const autopeer_data = autopeer_enabled_asns[apiobject.asn];
               const request_peering_btn = $(this).data('dropdown-peering-btn')
 
-              // load function runs twice due to the strucutre of the List
+              // load function runs twice due to the structure of the List
               if (request_peering_btn.jq.find('button[data-element="request_peering_autopeering"]').length > 0)
                 return;
 
@@ -2525,7 +2586,7 @@ $peerctl.EmailTemplatePreview = $tc.extend(
 
     payload : function() {
       let payload = this.TemplatePreview_payload();
-      
+
       payload.ix_ids = this.ix_ids;
 
       return payload;
@@ -2862,7 +2923,7 @@ $peerctl.PeeringRequestsList = $tc.extend(
             bg_class = "danger";
           else if(value == "pending") {
             bg_class = "warning";
-          
+
             if(data.type == "email" && data.peer_id && w.element.find('.row-'+data.id).length == 0) {
               let button_continue_element = $('<button class="badge badge-btn bg-primary action">').append(
                 $('<span class="icon icon-mail">'),
@@ -2884,11 +2945,11 @@ $peerctl.PeeringRequestsList = $tc.extend(
           return $("<div>").addClass("badge").addClass("bg-"+bg_class).text(value);
         }
 
-        w.formatters.type = (value, data) => { 
+        w.formatters.type = (value, data) => {
           let icon = "mail";
           if(value == "autopeer")
             icon = "api";
-          
+
           return $("<span>").addClass("icon").addClass("icon-"+icon).text(value).attr("title", value);
         };
 
