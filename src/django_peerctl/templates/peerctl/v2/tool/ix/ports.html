@@ -5,6 +5,11 @@
     data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
     data-template="ix_list"
     >
+    <div class="list-header marg-top-lg">
+        <div class="row">
+            <div data-sort-target="ix_simple_name" data-sort-initial="yes" class="col-12 list-th sortable-button selected-order-header-asc">{% trans "Name" %}</div>
+        </div>
+    </div>
     <div class="list-body">
     </div>
 

@@ -1458,18 +1458,10 @@ class PeerSession(ModelSerializer):
         if not obj.port or not obj.port.object:
             return "No port assigned"
 
-        parts = []
-
         if obj.port.object.port_info_object.ix_name:
-            parts += [obj.port.object.port_info_object.ix_name]
+            return obj.port.object.port_info_object.ix_name
 
-        if obj.port.object.virtual_port_name:
-            parts += [obj.port.object.virtual_port_name]
-
-        if obj.port.object.port_info_object.ipaddr4:
-            parts += [str(obj.port.object.port_info_object.ipaddr4)]
-
-        return " ".join(parts)
+        return ""
 
 
 @register
@@ -1618,6 +1610,7 @@ class AutopeerRequest(serializers.Serializer):
 
     asn = serializers.IntegerField()
     date = serializers.DateTimeField(read_only=True)
+    name = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
     type = serializers.CharField(read_only=True)
     location = serializers.SerializerMethodField()
@@ -1625,6 +1618,7 @@ class AutopeerRequest(serializers.Serializer):
     num_locations = serializers.IntegerField(read_only=True)
     peer_id = serializers.CharField(read_only=True)
     port_id = serializers.IntegerField(read_only=True, allow_null=True)
+    sessions = serializers.IntegerField(read_only=True, allow_null=True)
 
     ref_tag = "autopeer"
 
@@ -1632,6 +1626,7 @@ class AutopeerRequest(serializers.Serializer):
         fields = [
             "id",
             "asn",
+            "name",
             "status",
             "location",
             "type",
@@ -1650,6 +1645,10 @@ class AutopeerRequest(serializers.Serializer):
         ixctl_ix_ids = []
         pdbctl_ix_ids = []
         locations = []
+        asns = set()
+        pdbctl_exchanges = {}
+        ixctl_exchanges = {}
+        networks = {}
 
         for req in _requests:
             for location in req.locations.all():
@@ -1657,6 +1656,7 @@ class AutopeerRequest(serializers.Serializer):
                     pdbctl_ix_ids.append(location.pdb_ix_id)
                 elif location.ixctl_ix_id:
                     ixctl_ix_ids.append(location.ixctl_ix_id)
+            asns.add(req.peer_asn)
 
         if pdbctl_ix_ids:
             pdbctl_exchanges = {
@@ -1668,20 +1668,47 @@ class AutopeerRequest(serializers.Serializer):
                 ix.id: ix for ix in ixctl.InternetExchange().objects(ids=ixctl_ix_ids)
             }
 
+        if asns:
+            networks = {
+                net.asn: net for net in pdbctl.Network().objects(asns=list(asns))
+            }
+
+        sessions = list(
+            net.peer_session_set.filter(status__in=["ok", "configured"]).select_related(
+                "peer_port", "peer_port__peer_net", "peer_port__peer_net__peer"
+            )
+        )
+
+        # count sessions towards each asn and port
+        sessions_dict = {}
+
+        for session in sessions:
+            # increment session count to asn
+            sessions_dict[session.peer_port.peer_net.peer.asn] = (
+                sessions_dict.get(session.peer_port.peer_net.peer.asn, 0) + 1
+            )
+
         for req in _requests:
             req_locations = list(req.locations.all())
             num_locations = len(req_locations)
+            peer_name = (
+                networks.get(req.peer_asn, {}).name
+                if req.peer_asn in networks
+                else None
+            )
 
             if not num_locations:
                 locations.append(
                     {
                         "id": req.id,
                         "asn": req.peer_asn,
+                        "name": peer_name,
                         "location": "...",
                         "status": req.status,
                         "date": req.created,
                         "type": req.type,
                         "num_locations": 0,
+                        "sessions": sessions_dict.get(req.peer_asn, 0),
                         "peer_id": None,
                         "port_id": None,
                     }
@@ -1708,11 +1735,13 @@ class AutopeerRequest(serializers.Serializer):
                     {
                         "id": req.id,
                         "asn": req.peer_asn,
+                        "name": peer_name,
                         "location": location.name,
                         "status": location.status,
                         "date": req.created,
                         "type": req.type,
                         "num_locations": num_locations,
+                        "sessions": sessions_dict.get(req.peer_asn, 0),
                         "peer_id": location.peer_id,
                         "port_id": port,
                     }

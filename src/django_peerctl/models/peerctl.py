@@ -1481,7 +1481,7 @@ class PortInfo(sot.ReferenceMixin, Base):
                 continue
 
             if obj.ref_source == "pdbctl":
-                pdbctl_ref_ids.add(int(obj.ref_ids.split(":")[1]))
+                pdbctl_ref_ids.add(int(obj.ref_id.split(":")[1]))
             elif obj.ref_source == "ixctl":
                 ixctl_ref_ids.add(int(obj.ref_id.split(":")[1]))
 
@@ -1505,8 +1505,7 @@ class PortInfo(sot.ReferenceMixin, Base):
                 continue
 
             if obj.ref_source == "pdbctl":
-                obj._ref = pdbctl_members[int(obj.ref_ids.split(":")[1])]
-
+                obj._ref = pdbctl_members[int(obj.ref_id.split(":")[1])]
             elif obj.ref_source == "ixctl":
                 obj._ref = ixctl_members[int(obj.ref_id.split(":")[1])]
 
