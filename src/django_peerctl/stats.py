@@ -41,7 +41,7 @@ def count_peers():
 
         - all: all peer networks
         - scope: counts per scope
-        - typ: counts per type
+        - type: counts per type
     """
 
     peers_by_scope = {}

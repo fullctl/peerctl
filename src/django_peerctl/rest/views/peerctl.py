@@ -3,6 +3,7 @@ import ipaddress
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from django.conf import settings
+from django.db.models.functions import Lower
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
 from fullctl.django.rest.decorators import load_object
@@ -106,7 +107,9 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
 
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, *args, **kwargs):
-        instances = models.Policy.objects.filter(net__asn=asn, status="ok")
+        instances = models.Policy.objects.filter(net__asn=asn, status="ok").order_by(
+            Lower("name")
+        )
         serializer = self.serializer_class(instances, many=True)
         return Response(serializer.data)
 
@@ -220,7 +223,15 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
             instances, many=True, context={"load_md5": load_md5}
         )
 
-        data = sorted(serializer.data, key=lambda x: x["ix_simple_name"])
+        data = serializer.data
+        # ordering data based on order param
+        order = request.GET.get("ordering")
+        if order == "ix_simple_name":
+            data = sorted(data, key=lambda x: x["ix_simple_name"])
+        elif order == "-ix_simple_name":
+            data = sorted(data, key=lambda x: x["ix_simple_name"])[::-1]
+        else:
+            data = sorted(data, key=lambda x: x["ix_name"])
 
         return Response(data)
 
@@ -541,7 +552,7 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
-        instances = net.peer_session_set.filter(status="ok")
+        instances = net.peer_session_set.filter(status__in=["ok", "configured"])
 
         print([instance.id for instance in instances])
 
@@ -637,6 +648,21 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     require_asn = True
     require_port = True
 
+    def _filter_peer(self, instances, filter_term):
+        if not filter_term:
+            return instances
+
+        r = []
+        for instance in instances:
+            if instance.ipaddr4 == str(filter_term) or instance.ipaddr6 == filter_term:
+                r.append(instance)
+            elif instance.name.lower().find(filter_term.lower()) > -1:
+                r.append(instance)
+            elif str(instance.asn) == filter_term:
+                r.append(instance)
+
+        return r
+
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, port_pk, *args, **kwargs):
@@ -645,6 +671,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         device = port.devices[0]
 
         instances = port.get_available_peers()
+        instances = list(self._filter_peer(instances, request.GET.get("peer")))
 
         serializer = self.serializer_class(
             instances, many=True, context={"port": port, "net": net, "device": device}

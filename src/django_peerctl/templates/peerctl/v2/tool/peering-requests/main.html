@@ -25,7 +25,7 @@
   <table
   class="table list-table table-borderless center peer-requests"
   data-api-load="yes"
-  data-api-base="{% url "peerctl_api:sessions_summary-list" asn=selected_asn %}"
+  data-api-base=""
   data-api-peer-info="{% url "peerctl_api:peer-list" asn=selected_asn port_pk="port_id" %}"
   data-template="list">
   <thead>
@@ -45,6 +45,9 @@
       <th>
         <div>{% trans "Type" %}</div>
       </th>
+      <th>
+        {% trans "Actions" %}
+      </th>
     </tr>
 
   </thead>
@@ -55,7 +58,7 @@
   <tbody class="templates">
       <tr data-template="row" class="with-border">
         <td>
-          <span data-field="asn"></span>
+          <span class="dotted-underline" data-field="asn"></span>
         </td>
         <td>
           <span data-field="location"></span>
@@ -71,6 +74,11 @@
         </td>
         <td>
           <span data-field="type"></span>
+        </td>
+        <td class="p-1">
+          <button class="btn" data-btn-type="secondary" data-action="summary-button">
+            {% trans "View in Summary" %}
+          </button>
         </td>
       </tr>
   </tbody>
