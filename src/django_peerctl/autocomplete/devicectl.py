@@ -2,7 +2,7 @@ import fullctl.django.autocomplete.devicectl as devicectl_autocomplete
 import fullctl.service_bridge.devicectl as devicectl
 from django.utils import html
 
-from django_peerctl.models import InternetExchange, Network, PortInfo
+from django_peerctl.models import InternetExchange, Network, Port, PortInfo
 
 
 class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
@@ -32,8 +32,8 @@ class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
         if not self.request.perms.check(f"port.{org.permission_id}", "r"):
             return []
 
-        if not self.q:
-            return []
+        # collect port info objects that an exchange reference, set through
+        # ref id
 
         candidates = (
             PortInfo.objects.filter(net=net, port__gt=0)
@@ -41,22 +41,51 @@ class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
             .exclude(ref_id="")
         )
 
-        port_ids = [int(c.port) for c in candidates]
-        qs = [
-            o
-            for o in devicectl.Port().objects(
-                org_slug=org.slug, q=self.q, ids=port_ids, has_ips=True
-            )
-        ]
+        # map them by port for easy reference layer
 
-        # check if query matches any IX names
+        candidates_by_port = {int(c.port): c for c in candidates}
+
+        # batch load service bridge references
+
+        PortInfo.load_references(candidates)
+
+        # gather port ids
+
+        port_ids = [int(c.port) for c in candidates]
+
+        if not self.q:
+            # no search query, preprare a list of ports with IPs set
+            # return at most 5
+
+            qs = list(Port().objects(org_slug=org.slug, ids=port_ids, has_ips=True))[:5]
+            query_exchanges = {}
+
+        else:
+            # search query, query devicectl port and ix names separately (Since
+            # they dont exist in one service)
+
+            qs = [
+                o
+                for o in Port().objects(
+                    org_slug=org.slug, q=self.q, ids=port_ids, has_ips=True
+                )
+            ]
+
+            # ix query search
+            query_exchanges = {
+                ix.ref_id: ix
+                for ix in InternetExchange.objects.filter(
+                    ref_id__in=[c.ref_ix_id for c in candidates], name__icontains=self.q
+                )
+            }
+
+        # collect IX matches into ports
         ix_match_ports = []
         for candidate in candidates:
-            ix = InternetExchange.objects.filter(
-                ref_id=candidate.ref_ix_id, name__istartswith=self.q
-            ).first()
-            if ix:
+            if query_exchanges.get(candidate.ref_ix_id):
                 ix_match_ports.append(int(candidate.port))
+
+        # combine both queries
 
         if len(ix_match_ports) > 0:
             ix_match_ports_obj = [
@@ -71,12 +100,27 @@ class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
             dict_objects = {obj.id: obj for obj in qs}
             qs = list(dict_objects.values())
 
+        # load all exchanges rquired to render the results
+
+        all_exchanges_for_results = {
+            ix.ref_id: ix
+            for ix in InternetExchange.objects.filter(
+                ref_id__in=[c.ref_ix_id for c in candidates]
+            )
+        }
+
+        # set references to port info objects and ix objects on the result
+        # items so we dont need to look them up again during result rendering
+
+        for obj in qs:
+            obj._port_info_object = candidates_by_port.get(obj.id)
+            obj.ix = all_exchanges_for_results.get(obj.port_info_object.ref_ix_id)
+
         return qs
 
     def get_result_label(self, devicectl_port):
-        port_info = PortInfo.objects.get(port=devicectl_port.id)
-        ix = InternetExchange.objects.filter(ref_id=port_info.ref_ix_id).first()
-
+        port_info = devicectl_port.port_info_object
+        ix = devicectl_port.ix
         display_name = ix.name
 
         ipaddr4 = port_info.ipaddr4
