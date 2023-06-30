@@ -107,8 +107,10 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
 
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, *args, **kwargs):
-        instances = models.Policy.objects.filter(net__asn=asn, status="ok").order_by(
-            Lower("name")
+        instances = (
+            models.Policy.objects.filter(net__asn=asn, status="ok")
+            .select_related("net")
+            .order_by(Lower("name"))
         )
         serializer = self.serializer_class(instances, many=True)
         return Response(serializer.data)

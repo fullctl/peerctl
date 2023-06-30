@@ -152,10 +152,30 @@ class Policy(Base):
     def is_global6(self):
         return self.net.policy6_id == self.id
 
-    @property
-    def count_peers(self):
+    def count_peers(self, peer_sessions=None):
+        """
+        Counts the number of peers using this policy
+
+        Arguments:
+            peer_sessions (QuerySet): optional queryset of peer sessions to count, if
+                not provided, all peer sessions for the network will be counted
+        """
+
         count = 0
-        for peer_session in self.net.peer_session_at_ix(ix_id=None):
+
+        if not peer_sessions:
+            # load peer sessions for the network
+
+            peer_sessions = self.net.peer_session_at_ix(ix_id=None).filter(status="ok")
+
+            # batch load port references from devicectl
+
+            Port.load_references(peer_sessions)
+
+        # count peers using this policy by checking if the best policy for each peer
+        # session is this policy
+
+        for peer_session in peer_sessions:
             if get_best_policy(peer_session, 4) == self:
                 count += 1
             elif get_best_policy(peer_session, 6) == self:
@@ -1217,7 +1237,7 @@ class Port(devicectl.Port):
         return instances
 
     @classmethod
-    def load_references(cls, objects):
+    def load_references(cls, objects, load_policies=False):
         """
         Takes a list or generator of objects that have a `port` reference field
         and batch loads all PortObjects at once
@@ -1242,6 +1262,14 @@ class Port(devicectl.Port):
         for port in ports:
             port_map[port.id] = port
 
+        if load_policies:
+            policies = {
+                policy.port: policy
+                for policy in PortPolicy.objects.filter(port__in=port_ids)
+            }
+        else:
+            policies = {}
+
         # assign port objects to objects
 
         for obj in objects:
@@ -1250,6 +1278,9 @@ class Port(devicectl.Port):
 
                 if isinstance(obj, PortInfo):
                     obj.port._object._port_info_object = obj
+
+                if obj.port.id in policies:
+                    obj.port._object._port_policy = policies[obj.port.id]
 
     @classmethod
     def augment_ix(cls, ixi_ports, asn):
