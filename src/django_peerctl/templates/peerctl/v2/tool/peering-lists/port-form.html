@@ -3,12 +3,13 @@
   <div class="toolbar-control-group col-auto me-auto mt-1">
     <span class="inline-label">{% trans "Exchange / Port" %}</span>
     <span class="toolbar-control">
-    <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
     <select
-      --data-api-load="yes"
-      data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
-      data-name-field="ix_name"
-      data-element="select_port"></select>
+      class="form-control"
+      id="port-filter"
+      data-type="int"
+      data-api-ports="{% url "peerctl_api:port-list" asn=selected_asn %}?ixi=1"
+    >
+    </select>
     </span>
     <button class="col-auto py-2 btn secondary" data-element="button_port_settings">
       <span class="icon fullctl icon-settings"></span>
@@ -28,6 +29,19 @@
         <span class="icon-background"><span data-element="toggle_available_peers" class="action icon icon-view fullctl"></span></span>
         <span class="field">Available Peers:</span> <span class="value available-peers">-</span>
       </div>
+    </div>
+  </div>
+</div>
+<div class="row mt-2">
+  <div class="col-md-6">
+    <div class="toolbar-control input-group searchbar mx-auto" data-element="peer_searchbar">
+      <input type="text" value="" data-element="peer_filter" data-role="filter" placeholder="Search by IP / ASN / Name">
+      <button class="btn curved" data-element="peer_filter_submit" data-role="filter_submit" type="button">
+        <span class="icon icon-search"></span>
+      </button>
+      <button class="btn secondary small" data-role="filter_clear" type="button" style="display: none;">
+        <span class="icon icon-cancel"></span>
+      </button>
     </div>
   </div>
 </div>

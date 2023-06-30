@@ -950,14 +950,57 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         Returns an instance of the peer_session_qs set that has peer_port
         and port_info preselected for performance.
         """
-        # FIXME: should see if there is a way to tell django to automatically
-        # do that for a set.
         if not hasattr(self, "_peer_session_qs_prefetched"):
             peer_sessions = PeerSession.objects.filter(port=self.pk)
             self._peer_session_qs_prefetched = peer_sessions.select_related(
                 "peer_port", "peer_port__port_info", "peer_port__peer_net"
             ).exclude(status="deleted")
         return self._peer_session_qs_prefetched
+
+    @property
+    def peer_session_ips(self):
+        """
+        Returns a dictionary of session peer ips for this port
+
+        Will use a cache to avoid multiple queries
+
+        Returns:
+
+            dict: Dictionary of peer_session_ips for this port in the format of
+            {ip: peer_session}
+        """
+
+        if hasattr(self, "_peer_session_ips"):
+            return self._peer_session_ips
+
+        self._peer_session_ips = {}
+
+        port_infos = list()
+
+        # loop through peer_session_qs_prefetched and add port_infos to list
+
+        for peer_session in self.peer_session_qs_prefetched:
+            if peer_session.peer_port.port_info.ref_source == "ixctl":
+                port_infos.append(peer_session.peer_port.port_info)
+            elif peer_session.peer_port.port_info.ref_source == "pdbctl":
+                port_infos.append(peer_session.peer_port.port_info)
+
+        # load references for port_infos from ixctl and pcbctl
+
+        PortInfo.load_references(port_infos)
+
+        # organization peer session peer port ips into dictionary
+
+        for peer_session in self.peer_session_qs_prefetched:
+            if peer_session.peer_port.port_info.ipaddr4:
+                ip = ipaddress.ip_interface(peer_session.peer_port.port_info.ipaddr4).ip
+                self._peer_session_ips[ip] = peer_session
+
+            if peer_session.peer_port.port_info.ipaddr6:
+                ip = ipaddress.ip_interface(peer_session.peer_port.port_info.ipaddr6).ip
+                self._peer_session_ips[ip] = peer_session
+
+        return self._peer_session_ips
 
     @property
     def is_ixi(self):
@@ -1018,33 +1061,15 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         Returns the peering session for this port
         and a member
         """
-        try:
-            for peer_session in self.peer_session_qs_prefetched:
-                try:
-                    if (
-                        ipaddress.ip_interface(member.ipaddr4).ip
-                        == ipaddress.ip_interface(
-                            peer_session.peer_port.port_info.ipaddr4
-                        ).ip
-                    ):
-                        return peer_session
-                except ValueError:
-                    pass
 
-                try:
-                    if (
-                        ipaddress.ip_interface(member.ipaddr6).ip
-                        == ipaddress.ip_interface(
-                            peer_session.peer_port.port_info.ipaddr6
-                        ).ip
-                    ):
-                        return peer_session
-                except ValueError:
-                    pass
+        ip4 = ipaddress.ip_interface(member.ipaddr4).ip if member.ipaddr4 else None
+        ip6 = ipaddress.ip_interface(member.ipaddr6).ip if member.ipaddr6 else None
 
-        except PeerSession.DoesNotExist:
-            return None
-        return None
+        if ip4 and ip4 in self.peer_session_ips:
+            return self.peer_session_ips[ip4]
+
+        if ip6 and ip6 in self.peer_session_ips:
+            return self.peer_session_ips[ip6]
 
     def get_route_server_member(self):
         """
@@ -1466,6 +1491,55 @@ class PortInfo(sot.ReferenceMixin, Base):
 
         cls.objects.filter(port=from_port).update(port=to_port)
         PeerSession.objects.filter(port=from_port).update(port=to_port)
+
+    @classmethod
+    def load_references(self, objects):
+        """
+        loads ixctl/pdbctl references for port info objects
+
+        This will do a batched request to ixctl/pdbctl to fetch all at once
+        """
+
+        ixctl_ref_ids = set()
+        pdbctl_ref_ids = set()
+        ixctl_members = {}
+        pdbctl_members = {}
+
+        # collect all ref ids and categorize ixctl or pdbctl
+
+        for obj in objects:
+            if not obj.ref_id:
+                continue
+
+            if obj.ref_source == "pdbctl":
+                pdbctl_ref_ids.add(int(obj.ref_id.split(":")[1]))
+            elif obj.ref_source == "ixctl":
+                ixctl_ref_ids.add(int(obj.ref_id.split(":")[1]))
+
+        # fetch all ixctl/pdbctl objects
+
+        if pdbctl_ref_ids:
+            pdbctl_members = {
+                m.id: m for m in pdbctl.NetworkIXLan().objects(ids=list(pdbctl_ref_ids))
+            }
+
+        if ixctl_ref_ids:
+            ixctl_members = {
+                m.id: m
+                for m in ixctl.InternetExchangeMember().objects(ids=list(ixctl_ref_ids))
+            }
+
+        # set references according to ref id
+
+        for obj in objects:
+            if not obj.ref_id:
+                continue
+
+            if obj.ref_source == "pdbctl":
+                obj._ref = pdbctl_members[int(obj.ref_id.split(":")[1])]
+
+            elif obj.ref_source == "ixctl":
+                obj._ref = ixctl_members[int(obj.ref_id.split(":")[1])]
 
     @property
     @ref_fallback(0)
