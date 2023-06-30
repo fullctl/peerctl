@@ -1,5 +1,4 @@
 import fullctl.django.autocomplete.devicectl as devicectl_autocomplete
-import fullctl.service_bridge.devicectl as devicectl
 from django.utils import html
 
 from django_peerctl.models import InternetExchange, Network, Port, PortInfo
