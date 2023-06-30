@@ -90,7 +90,7 @@ class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
         if len(ix_match_ports) > 0:
             ix_match_ports_obj = [
                 o
-                for o in devicectl.Port().objects(
+                for o in Port().objects(
                     org_slug=org.slug, ids=ix_match_ports, has_ips=True
                 )
             ]
