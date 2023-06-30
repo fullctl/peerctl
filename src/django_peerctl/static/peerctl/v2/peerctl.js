@@ -994,10 +994,16 @@ $peerctl.PeeringLists = $tc.extend(
         return {};
       }
 
+      // add loading shim to peers manually otherwise it will take a while
+      // for it to appear as it needs to wait until the request resolves
+      this.$w.peers.start_processing();
+
       this.$w.port_filter.load(port_id).then(() => {
         const port = this.port_object();
-        if (!port)
+        if (!port) {
+          this.$w.peers.done_processing();
           return;
+        }
         this.$w.port_info.find(".speed").text( $ctl.formatters.pretty_speed(port.speed) );
         this.$w.port_policy_4.element.val(port.policy4.id);
         this.$w.port_policy_6.element.val(port.policy6.id);
