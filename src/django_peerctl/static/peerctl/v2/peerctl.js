@@ -855,7 +855,10 @@ $peerctl.PeeringLists = $tc.extend(
               if (select_element.find("option[value='" + port_id + "']").length)
                 return
             } else {
-              port_id = port_filter.localstorage_get() || Object.keys(peering_lists_tool.ports)[0];
+              if (port_filter.localstorage_get() && peering_lists_tool.ports[port_filter.localstorage_get()])
+                port_id = port_filter.localstorage_get();
+              else
+                port_id = Object.keys(peering_lists_tool.ports)[0];
             }
             if (!port_id) return;
             port_filter.localstorage_set(port_id);
