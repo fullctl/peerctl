@@ -118,7 +118,7 @@ class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
             ix = all_exchanges_for_results.get(port_info.ref_ix_id)
 
             # skip if we dont have a port info object or ix object
-            # TODO: figure out why this can happen, it shouldnt
+            # TODO: figure out why this can happen, it shouldnt!
             # for now do final filtering here.
 
             if not ix or not port_info:
