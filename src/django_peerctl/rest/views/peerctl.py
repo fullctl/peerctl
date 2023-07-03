@@ -1192,8 +1192,6 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
                 data.get("peer_ip4") or data.get("peer_ip6"),
             )
 
-            print("FOUND UNIQUE SESSION", session, data)
-
         if session:
             serializer = Serializers.update_peer_session(
                 instance=session, data=data, context={"asn": asn}
