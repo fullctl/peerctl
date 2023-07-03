@@ -988,6 +988,11 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         # loop through peer_session_qs_prefetched and add port_infos to list
 
         for peer_session in self.peer_session_qs_prefetched:
+            # we dont need to preload port_info for pni ports
+
+            if not peer_session.peer_port.port_info.ref_id:
+                continue
+
             if peer_session.peer_port.port_info.ref_source == "ixctl":
                 port_infos.append(peer_session.peer_port.port_info)
             elif peer_session.peer_port.port_info.ref_source == "pdbctl":
