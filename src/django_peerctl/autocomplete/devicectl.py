@@ -114,14 +114,18 @@ class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
         items = []
 
         for obj in qs:
-            port_info = candidates_by_port.get(obj.id)
-            ix = all_exchanges_for_results.get(port_info.ref_ix_id)
-
             # skip if we dont have a port info object or ix object
             # TODO: figure out why this can happen, it shouldnt!
             # for now do final filtering here.
 
-            if not ix or not port_info:
+            port_info = candidates_by_port.get(obj.id)
+
+            if not port_info:
+                continue
+
+            ix = all_exchanges_for_results.get(port_info.ref_ix_id)
+
+            if not ix:
                 continue
 
             obj._port_info_object = port_info

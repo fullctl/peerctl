@@ -30,7 +30,11 @@ from netfields import InetAddressField, MACAddressField, NetManager
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
-from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
+from django_peerctl.exceptions import (
+    PolicyMissingError,
+    TemplateRenderError,
+    UsageLimitError,
+)
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.meta import PeerSessionSchema
 from django_peerctl.models.tasks import SyncIsRsPeer, SyncMacAddress, SyncRouteServerMD5
@@ -176,10 +180,14 @@ class Policy(Base):
         # session is this policy
 
         for peer_session in peer_sessions:
-            if get_best_policy(peer_session, 4) == self:
-                count += 1
-            elif get_best_policy(peer_session, 6) == self:
-                count += 1
+            try:
+                if get_best_policy(peer_session, 4) == self:
+                    count += 1
+                elif get_best_policy(peer_session, 6) == self:
+                    count += 1
+            except PolicyMissingError:
+                # no policy could be determined (no global policy set either)
+                pass
         return count
 
     def __str__(self):
