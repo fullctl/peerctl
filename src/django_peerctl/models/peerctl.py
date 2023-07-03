@@ -888,7 +888,7 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
 
     class Meta:
         abstract = True
-
+        
     @property
     def port_policy(self):
         if not hasattr(self, "_port_policy"):

@@ -760,7 +760,6 @@ class SoftModelReferenceField(serializers.IntegerField):
         if hasattr(value, "id"):
             return value.id
 
-
 @register
 class UpdatePeerSession(serializers.Serializer):
     id = serializers.IntegerField(
@@ -918,7 +917,7 @@ class UpdatePeerSession(serializers.Serializer):
             and self.instance.port
             and data.get("device")
         ):
-            if self.instance.port.object.device_id == int(data.get("device")):
+            if self.instance.port.object and self.instance.port.object.device_id == int(data.get("device")):
                 data["port"] = int(self.instance.port)
 
         # validate policies exist
@@ -1190,11 +1189,30 @@ class UpdatePeerSession(serializers.Serializer):
         if "meta6" in data:
             session.meta6 = data.get("meta6") or None
 
+        if "device" in data and not session.port:
+            
+            # if device is specified and session is not yet
+            # assigned to a port, we can safely override the device
+            
+            session.device = data["device"]
+
+        # if there is no port yet, try to find one based on the 
+        # the peer ip addresses. This is only done when port is not specified
+        # and device is specified.
+
+        if not session.port and session.device:
+            candidate_ports = models.Port.in_same_subnet(
+                net.org, session.device.id, data.get("peer_ip4") or data.get("peer_ip6")
+            )
+            if candidate_ports:
+                session.port = candidate_ports[0].id
+                
         if session.port and not session.port.object.port_info_object:
             port_info = models.PortInfo.objects.create(
                 port=session.port.object.id, net=net
             )
             session.port.object._port_info = port_info
+
 
         session.status = "ok"
         session.save()
