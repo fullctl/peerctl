@@ -111,11 +111,25 @@ class devicectl_ixi_port(devicectl_autocomplete.devicectl_port):
         # set references to port info objects and ix objects on the result
         # items so we dont need to look them up again during result rendering
 
-        for obj in qs:
-            obj._port_info_object = candidates_by_port.get(obj.id)
-            obj.ix = all_exchanges_for_results.get(obj.port_info_object.ref_ix_id)
+        items = []
 
-        return qs
+        for obj in qs:
+            port_info = candidates_by_port.get(obj.id)
+            ix = all_exchanges_for_results.get(port_info.ref_ix_id)
+
+            # skip if we dont have a port info object or ix object
+            # TODO: figure out why this can happen, it shouldnt!
+            # for now do final filtering here.
+
+            if not ix or not port_info:
+                continue
+
+            obj._port_info_object = port_info
+            obj.ix = ix
+
+            items.append(obj)
+
+        return items
 
     def get_result_label(self, devicectl_port):
         port_info = devicectl_port.port_info_object

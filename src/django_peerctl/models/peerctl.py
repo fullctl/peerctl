@@ -1248,7 +1248,7 @@ class Port(devicectl.Port):
         port_ids = set()
 
         for obj in objects:
-            if obj.port.id:
+            if obj.port:
                 port_ids.add(obj.port.id)
 
         # load all ports
@@ -1273,7 +1273,7 @@ class Port(devicectl.Port):
         # assign port objects to objects
 
         for obj in objects:
-            if obj.port.id:
+            if obj.port:
                 obj.port._object = port_map[obj.port.id]
 
                 if isinstance(obj, PortInfo):
