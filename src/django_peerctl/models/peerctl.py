@@ -1194,10 +1194,16 @@ class Port(devicectl.Port):
         candidates = []
 
         for port in ports:
-            if not port.ip_address_4:
-                continue
+            peer_ip = ipaddress.ip_address(ip)
 
-            port_ip = ipaddress.ip_interface(port.ip_address_4)
+            if peer_ip.version == 6 and not port.ip_address_6:
+                continue
+            if peer_ip.version == 4 and not port.ip_address_4:
+                continue
+            port_ip = ipaddress.ip_interface(
+                port.ip_address_4 if peer_ip.version == 4 else port.ip_address_6
+            )
+
             peer_ip = ipaddress.ip_interface(f"{ip}/{port_ip.network.prefixlen}")
 
             # check if peer_ip and port_ip4 are in the same subnet
@@ -1972,7 +1978,7 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
         if peer_port:
             session = cls.objects.filter(
-                device=int(device), peer_port=peer_port
+                device=int(device), peer_port=peer_port, status="ok"
             ).first()
 
         if session:
@@ -1999,7 +2005,9 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
                 peer_port = _peer_port
                 break
 
-        return cls.objects.filter(device=int(device), peer_port=peer_port).first()
+        return cls.objects.filter(
+            device=int(device), peer_port=peer_port, status="ok"
+        ).first()
 
     @property
     def ip4(self):
