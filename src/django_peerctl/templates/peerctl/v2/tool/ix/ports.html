@@ -14,6 +14,7 @@
     </div>
 
     <div class="templates">
+
         <div data-template="row" class="pad-top-lg">
             <div class="row ix-header" style="display:none;">
                 <div class="col-12">
@@ -21,9 +22,57 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-sm-5 col-md-3 secondary" data-element="ips">
-                    <h5 data-field="ip4" class="highlight action"></h5>
-                    <div data-field="ip6" class="small-info action"></div>
+                <div class="col-sm-5 col-md-3">
+                    <div class="port-link mb-3" data-element="ips">
+                        <h5 data-field="ip4" class="highlight action"></h5>
+                        <div data-field="ip6" class="small-info action"></div>
+                    </div>
+
+                    <!-- graph controls -->
+                    <div class="controls graph-controls" style="display:none">
+                        <div class="row mb-3">
+                            <div class="col-6">
+     
+                                <select class="form-select form-control mb-3" id="date_range_select">
+                                    <option value="1">1 hour</option>
+                                    <option value="24" selected>24 hours</option>
+                                    <option value="168">7 days</option>
+                                    <option value="720">30 days</option>
+                                    <option value="current_month">Current Month</option>
+                                    <option value="last_month">Last Month</option>
+                                    <option value="2160">90 days</option>
+                                    <option value="8760">365 days</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+
+                            </div>
+                            <div class="col-6 right">
+
+                                <button class="secondary col-md-auto btn btn-sm ms-3" data-element="refresh_traffic_graph">
+                                    <div class="row align-items-center">
+                                    <div class="col label pe-0">Refresh</div>
+                                    <div class="col-auto">
+                                        <span class="icon icon-refresh"></span>
+                                    </div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div id="custom_date_range" style="display: none;" class="right row">
+
+                                    <div class="col-12 col-md-6">
+                                        <input placeholder="Select start date" type="text" id="custom_start_date" class="form-control datepicker">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <input placeholder="Select end date" type="text" id="custom_end_date" class="form-control datepicker">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
                 <div class="col-sm-7 col-md-9 secondary">
                     <div class="property">
@@ -49,6 +98,11 @@
                                     <a class="button" data-action="edit"><span class="icon fullctl icon-edit"></span></a>
                                 </div>
                             </div>  
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="graph_container" data-element="graph_container" style="height:250px"></div>
                         </div>
                     </div>
                 </div>

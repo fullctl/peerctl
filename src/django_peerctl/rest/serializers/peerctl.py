@@ -164,6 +164,7 @@ class Port(serializers.Serializer):
     is_route_server_peer = serializers.SerializerMethodField()
     md5 = serializers.SerializerMethodField()
 
+    ref_id = serializers.CharField(read_only=True)
     ref_ix_id = serializers.SerializerMethodField()
     ref_source = serializers.SerializerMethodField()
     ip4 = serializers.SerializerMethodField()
@@ -188,6 +189,7 @@ class Port(serializers.Serializer):
             "ip4",
             "ip6",
             "device",
+            "ref_id",
             "ref_ix_id",
             "ref_source",
             "mac_address",
