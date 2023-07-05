@@ -366,7 +366,6 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     @action(detail=True, methods=["get"], url_path="traffic/ix")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def ix_traffic(self, request, asn, pk, *args, **kwargs):
-
         """
         IX traffic datapoints for this port (only if the port is
         is referenced by an ixctl port info object)
@@ -380,7 +379,7 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
         if not port_info or not port_info.ref_id:
             return Response({})
-        
+
         # port info reference needs to be from ixctl
 
         if not port_info.ref_source == "ixctl":
