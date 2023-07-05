@@ -1114,7 +1114,7 @@ class UpdatePeerSession(serializers.Serializer):
         if peer_net.peer.asn == net.asn:
             default_peer_session_type = "core"
         elif port and port.is_ixi:
-            default_peer_session_type = "peer"
+            default_peer_session_type = "ixp"
         else:
             default_peer_session_type = "transit"
 

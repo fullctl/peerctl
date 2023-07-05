@@ -1863,12 +1863,13 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     peer_session_type = models.CharField(
         max_length=255,
         choices=(
-            ("peer", _("Peer")),
+            ("ixp", _("IXP")),
+            ("pni", _("PNI")),
             ("transit", _("Transit")),
             ("customer", _("Customer")),
             ("core", _("Core")),
         ),
-        default="peer",
+        default="ixp",
     )
 
     meta4 = models.JSONField(null=True, blank=True)
