@@ -1,5 +1,6 @@
 import ipaddress
 
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from django.conf import settings
@@ -361,6 +362,45 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
         serializer = self.serializer_class(port)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["get"], url_path="traffic/ix")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def ix_traffic(self, request, asn, pk, *args, **kwargs):
+        """
+        IX traffic datapoints for this port (only if the port is
+        is referenced by an ixctl port info object)
+        """
+
+        port = models.Port().object(pk)
+        port_info = port.port_info_object
+
+        # port info reference needs to exist, as it is used to relate
+        # the port to an exchange
+
+        if not port_info or not port_info.ref_id:
+            return Response({})
+
+        # port info reference needs to be from ixctl
+
+        if not port_info.ref_source == "ixctl":
+            return Response({})
+
+        # port info reference needs to be from the same asn as this
+        # network (everyone is only allowed to see their own traffic)
+
+        if int(port_info.ref.asn) != int(asn):
+            return Response({}, status=403)
+
+        start_time = request.GET.get("start_time")
+        duration = request.GET.get("duration")
+
+        return Response(
+            ixctl.InternetExchangeMember().traffic(
+                port_info.ref_id.split(":")[1],
+                start_time=start_time,
+                duration=duration,
+            )
+        )
 
 
 # peer view

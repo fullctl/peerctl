@@ -407,9 +407,15 @@ $peerctl.Ix = $tc.extend(
         // set up local action handler for opening the edit modal
 
         row.find("[data-action=edit]").click((e) => {
-          console.log("DATA", data);
           new $peerctl.ModalIxPort(data);
         });
+
+        if(data.ref_source == "ixctl"){
+          row.addClass("ixctl-port");
+          this.show_graph_controls(row, data)
+        }
+
+        row.attr("id", "ix-port-"+data.id);
 
       };
 
@@ -448,6 +454,8 @@ $peerctl.Ix = $tc.extend(
             shown[ix_id] = true;
           }
         });
+
+        this.show_graphs();
       })
     },
 
@@ -477,7 +485,75 @@ $peerctl.Ix = $tc.extend(
       this.$w.list.element.data("last-sync", now);
 
       this.$w.list.load();
+    },
+    
+    // Function to indicate loading
+    indicate_loading : function(row) {
+      let graph_container = row.find("[data-element=graph_container]");
+      console.log("LOADING GRAPH", graph_container.length, fullctl.template("graph_placeholder"))
+      graph_container.empty().append(
+        fullctl.template("graph_placeholder")
+      );
+      return this;
+    },  
+
+    show_graph_controls(row, port) {
+      fullctl.graphs.init_controls(row, this, (end_date, duration)=>{
+        this.indicate_loading(row).show_graph(port, row, end_date, duration);
+      });
+      row.find('.graph-controls').show();
+    },
+
+    show_graphs : function() {
+      this.$w.list.element.find("div.ixctl-port").each((i, row) => {
+        row = $(row);
+        let port = row.data("apiobject");
+        this.indicate_loading(row);
+        this.show_graph(port, row);
+      });
+    },
+
+    // Function to show graphs
+    show_graph : function(port, row, end_date, duration) {
+      let graph_container = row.find("[data-element=graph_container]");
+
+      if(!port.ref_id || port.ref_id.split(":")[0] != "ixctl") {
+        graph_container.empty().append(message);
+        return;
+      }
+
+      let url = this.$w.list.element.data('api-base') + "/" + port.id + "/traffic/ix";
+      let params = [];
+      if (end_date) {
+        params.push('start_time=' + end_date);
+      }
+      if (end_date && duration) {
+        params.push('duration=' + duration);
+      }
+      if (params.length > 0) {
+        url += '?' + params.join('&');
+      }
+
+      console.log(port, "#ix-port-"+port.id+" .graph_container");
+
+      fullctl.graphs.render_graph_from_file(
+        url,
+        "#ix-port-"+port.id+" .graph_container",
+        port.virtual_port_name,
+      ).then(() => {
+        // check if a svg has been added to the container, if not, graph data was empty
+        if(graph_container.find("svg").length == 0) {
+          graph_container.empty().append(
+            $('<div class="alert alert-info">').append(
+              $('<p>').text("No traffic data available for this port.")
+            )
+          )
+        } else {
+          this.$e.refresh_traffic_graph.show();
+        }
+      })
     }
+
   },
   $ctl.application.Tool
 )
