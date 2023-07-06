@@ -2364,8 +2364,7 @@ $peerctl.PeerList = $tc.extend(
 
     render_ports : function(row, data) {
       const list_node = fullctl.template("port_list")
-      const ports = new $peerctl.PeerSessionList(list_node, row.data('apiobject'));
-      ports.peer_row = row;
+      const ports = new $peerctl.PeerSessionList(list_node, data);
 
       data.ipaddr.forEach((port) => {
         port.ix_name = data.ix_name;
