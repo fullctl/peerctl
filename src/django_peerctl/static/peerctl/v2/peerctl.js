@@ -2206,20 +2206,22 @@ $peerctl.ASSetInput = $tc.extend(
 $peerctl.PeerSessionList = $tc.extend(
   "PeerSessionList",
   {
+    PeerSessionList: function(jq, peer_apiobject) {
+      this.List(jq)
+      this.peer = peer_apiobject;
+    },
+
     insert: function(data) {
       const list = this;
       const port_row = this.List_insert(data);
-      const peer_row = this.peer_row;
-      const peer_data = peer_row.data('apiobject');
 
-      const init_method = data.peer_session_status == "ok" ? "delete" : "post";
-
+      const switch_init_method = data.peer_session_status == "ok" ? "delete" : "post";
       const switch_add = new $peerctl.PeerSessionToggle(
         port_row.find("input.peer_session-add"),
         data.id,
         data.origin_id,
         data.port_id,
-        init_method
+        switch_init_method
       );
 
       const button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
@@ -2230,7 +2232,7 @@ $peerctl.PeerSessionList = $tc.extend(
 
 
       $(switch_add).on("api-post:success api-delete:success", (ev, endpoint, sent_data, response) => {
-        fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(peer_data.id).then(() => {
+        fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(this.peer.id).then(() => {
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts()
         });
         fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
@@ -2257,8 +2259,6 @@ $peerctl.PeerSessionList = $tc.extend(
       ).element.val(data.policy6_id);
 
     }
-
-
   },
   twentyc.rest.List
 );
@@ -2266,8 +2266,8 @@ $peerctl.PeerSessionList = $tc.extend(
 $peerctl.MutualLocations = $tc.extend(
   "MutualLocations",
   {
-    MutualLocations : function(jq, peer_id) {
-      this.PeerSessionList(jq);
+    MutualLocations : function(jq, peer_id, peer_apiobject) {
+      this.PeerSessionList(jq, peer_apiobject);
       this.peer_id = peer_id;
     },
     format_request_url : function(url, method) {
@@ -2440,8 +2440,7 @@ $peerctl.PeerList = $tc.extend(
 
     render_ports : function(row, data) {
       const list_node = fullctl.template("port_list")
-      const ports = new $peerctl.PeerSessionList(list_node);
-      ports.peer_row = row;
+      const ports = new $peerctl.PeerSessionList(list_node, data);
 
       data.ipaddr.forEach((port) => {
         port.ix_name = data.ix_name;
@@ -2594,7 +2593,8 @@ $peerctl.OtherMutualLocationsButton = $tc.define(
       this.element.find('.icon').addClass('icon-caret-down').removeClass('icon-caret-left');
       const mutual_list = this.mutual_list = new $peerctl.MutualLocations(
         fullctl.template("port_list").data("data-api-base", this.element.data("data-api-base")),
-        this.data.id
+        this.data.id,
+        this.data
       );
       $(mutual_list).on("load:after", ()=>{
         container.append(mutual_list.element);
