@@ -168,6 +168,14 @@ div.peers-row div.loading-indicator-container {
   transform: translateY(-100%);
 }
 
+.peers-row .mutual-locations .list-body > row {
+  margin-top: 0;
+}
+
+.peers-row .mutual-locations .list-body {
+  border-top: 1px solid var(--clr-border-400);
+}
+
 .secondary .property .field [data-field="peeringdb"] .icon {
   padding-left: 0.5ch;
 }
