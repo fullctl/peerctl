@@ -338,23 +338,27 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     def get_or_create(cls, asn, org):
         """get or create a network object from an ASN"""
         try:
-            if org:
-                obj = cls.objects.get(asn=asn, org=org)
-            else:
-                obj = cls.objects.get(asn=asn)
+            obj = cls.objects.get(asn=asn)
+            if not obj.org and org:
+                obj.org = org
+                obj.create_global_policy()
 
         except cls.DoesNotExist:
             obj = cls.objects.create(asn=asn, org=org, status="ok")
+            obj.create_global_policy()
 
-            # create global policy owned by network
-            global_policy = Policy.objects.create(name="Global", status="ok", net=obj)
-
-            # assign global policy as network policy
-            obj.policy4 = global_policy
-            obj.policy6 = global_policy
-            obj.save()
 
         return obj
+    
+    def create_global_policy(self):
+
+        # create global policy owned by network
+        global_policy = Policy.objects.create(name="Global", status="ok", net=self)
+
+        # assign global policy as network policy
+        self.policy4 = global_policy
+        self.policy6 = global_policy
+        self.save()
 
     def get_mutual_locations(self, other_asn, exclude=None):
         asns = [self.asn, other_asn]
@@ -1278,8 +1282,10 @@ class Port(devicectl.Port):
 
         port_map = {}
 
-        for port in ports:
-            port_map[port.id] = port
+
+        if port_ids:
+            for port in ports:
+                port_map[port.id] = port
 
         if load_policies:
             policies = {
@@ -1322,6 +1328,10 @@ class Port(devicectl.Port):
         ixctl_ix = {}
 
         for ixi_port in ixi_ports:
+
+            if not ixi_port.port_info_object.ref_id:
+                continue
+            
             source, ix_id = ixi_port.port_info_object.ref_ix_id.split(":")
 
             ix_id = int(ix_id)
@@ -1358,6 +1368,9 @@ class Port(devicectl.Port):
 
         for ixi_port in ixi_ports:
             mtu = None
+    
+            if not ixi_port.port_info_object.ref_id:
+                continue
 
             if ixi_port.source == "ixctl":
                 # port has SoT in ixctl
@@ -1464,12 +1477,15 @@ class PortInfo(sot.ReferenceMixin, Base):
         try:
             port_info = cls.objects.get(net=network, ref_id=member.ref_id)
 
-            if int(port_info.port) != int(port_id):
+            if int(port_info.port) and int(port_info.port) != int(port_id):
                 try:
-                    cls.migrate_ports(port_info.port, port_id, reassign=True)
+                    cls.migrate_ports(int(port_info.port), int(port_id), reassign=True)
                     port_info.port = port_id
                 except ValueError:
                     return port_info
+            elif not int(port_info.port):
+                port_info.port = port_id
+                port_info.save()
 
         except cls.DoesNotExist:
             port_info = cls.objects.create(
