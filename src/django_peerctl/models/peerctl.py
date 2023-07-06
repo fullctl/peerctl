@@ -347,11 +347,9 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             obj = cls.objects.create(asn=asn, org=org, status="ok")
             obj.create_global_policy()
 
-
         return obj
-    
-    def create_global_policy(self):
 
+    def create_global_policy(self):
         # create global policy owned by network
         global_policy = Policy.objects.create(name="Global", status="ok", net=self)
 
@@ -1282,7 +1280,6 @@ class Port(devicectl.Port):
 
         port_map = {}
 
-
         if port_ids:
             for port in ports:
                 port_map[port.id] = port
@@ -1328,10 +1325,9 @@ class Port(devicectl.Port):
         ixctl_ix = {}
 
         for ixi_port in ixi_ports:
-
             if not ixi_port.port_info_object.ref_id:
                 continue
-            
+
             source, ix_id = ixi_port.port_info_object.ref_ix_id.split(":")
 
             ix_id = int(ix_id)
@@ -1368,7 +1364,7 @@ class Port(devicectl.Port):
 
         for ixi_port in ixi_ports:
             mtu = None
-    
+
             if not ixi_port.port_info_object.ref_id:
                 continue
 
