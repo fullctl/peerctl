@@ -1286,6 +1286,13 @@ $peerctl.SessionsSummary = $tc.extend(
             .addClass("dotted-underline");
           new bootstrap.Tooltip(asn_field);
 
+          const ip_container = row.find('[data-element="ip_container"]');
+          ip_container.attr("data-bs-toggle", "tooltip")
+            .attr("data-bs-placement", "top")
+            .attr("title", `${data.ip4}\n${data.ip6}`)
+            .addClass("dotted-underline");
+          new bootstrap.Tooltip(ip_container);
+
           // handle policy editor widgets for each row
           row.find("[data-action=edit_session]").click(() => {
             new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
