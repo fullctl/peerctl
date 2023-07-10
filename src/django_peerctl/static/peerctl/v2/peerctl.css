@@ -201,14 +201,6 @@ div.peers-row div.loading-indicator-container {
   color: var(--foreground);
 }
 
-.port-info .toolbar-field {
-  border: 1px solid var(--clr-border-200);
-}
-
-.port-info .toolbar-field span.icon:not(.inactive) {
-  background-color: var(--clr-accent-400);
-}
-
 .toggle-mutual-locations {
   border: none;
   background-color: transparent;

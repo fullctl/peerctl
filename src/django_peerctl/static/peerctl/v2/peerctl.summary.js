@@ -73,12 +73,16 @@ $ctl.application.Peerctl.SessionsSummary = $tc.extend(
             .addClass("dotted-underline");
           new bootstrap.Tooltip(asn_field);
 
+          // add ip tooltip to ip container
           const ip_container = row.find('[data-element="ip_container"]');
           ip_container.attr("data-bs-toggle", "tooltip")
             .attr("data-bs-placement", "top")
             .attr("title", `${data.ip4}\n${data.ip6}`)
             .addClass("dotted-underline");
           new bootstrap.Tooltip(ip_container);
+
+          // add class to row based on peer type
+          row.attr("data-peer-session-type", data.peer_session_type);
 
           // handle policy editor widgets for each row
           row.find("[data-action=edit_session]").click(() => {
@@ -116,6 +120,10 @@ $ctl.application.Peerctl.SessionsSummary = $tc.extend(
         w.formatters.meta6 = w.formatters.meta4;
 
         return w;
+      });
+
+      this.widget("count_panel", ($e) => {
+        return new $ctl.application.Peerctl.SummaryCountsPanel(this.$w.list_peer_sessions);
       });
 
       // set up delete select functionality
@@ -414,6 +422,41 @@ $ctl.application.Peerctl.SessionsSummary = $tc.extend(
     }
   },
   $ctl.application.Tool
+);
+
+$ctl.application.Peerctl.SummaryCountsPanel = $tc.extend(
+  "CountsPanel",
+  {
+    CountsPanel : function(list) {
+      this.Component("summary-counts-panel");
+      this.list = list;
+
+      $(this.list).on("load:after", () => {this.update()});
+    },
+
+    update : function() {
+      const rows = this.get_list_rows();
+      this.$e.total.text(rows.length);
+      this.$e.peer_count.text(this.get_list_rows("peer").length);
+      this.$e.transit_count.text(this.get_list_rows("transit").length);
+      this.$e.customer_count.text(this.get_list_rows("customer").length);
+      this.$e.core_count.text(this.get_list_rows("core").length);
+    },
+
+    /**
+     * Returns a jquery object containing the rows of the list
+     *
+     * @param {String} type peer session type
+     * @returns
+     */
+    get_list_rows : function(type) {
+      const rows = this.list.list_body.find('tr');
+      if (type)
+        return rows.filter('tr[data-peer-session-type="'+type+'"]');
+      return rows;
+    }
+  },
+  $ctl.application.Component
 );
 
 $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
