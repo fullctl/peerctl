@@ -699,7 +699,7 @@ $peerctl.Networks = $tc.extend(
         for(i=0; i< data.mutual_locations.length; i++) {
           loc = data.mutual_locations[i];
           node = $('<div class="compact-row field">').data("ix-id", loc.ix_id).append(
-            $('<input type="checkbox">').attr("disabled", loc.session).css("visibility", (loc.session ? "hidden" : "visible"))
+            $('<input type="checkbox">')
           ).append(
             $('<span>').text(loc.ix_name).addClass((loc.session ? "session-active" : ""))
           ).appendTo(cont_mutual);
