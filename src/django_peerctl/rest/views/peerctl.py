@@ -553,8 +553,20 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
         except ValueError:
             pass
 
+        peers_asns = []
+        port_infos = []
+        for session in sessions:
+            peers_asns.append(session.peer_port.peer_net.peer.asn)
+            port_infos.append(session.peer_port.port_info)
+
+        networks = {net.asn: net for net in pdbctl.Network().objects(asns=peers_asns)}
+        models.PortInfo.load_references(port_infos)
+
         r = []
         for session in sessions:
+            session.peer_port.peer_net.peer._ref = networks.get(
+                session.peer_port.peer_net.peer.asn
+            )
             if session.peer_ip4 == peer or session.peer_ip6 == peer:
                 r.append(session)
             elif session.peer_port.peer_net.peer.name.lower().find(peer.lower()) > -1:
