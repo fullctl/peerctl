@@ -7,9 +7,7 @@ from django_peerctl.models.peerctl import PeerSession, Port
 
 class Command(CommandInterface):
     """
-    Sets the device field on a PeerSession to match the device field of the port
-
-    devicectl needs to be running.
+    Sets the peer_session_type of a PeerSession based on the ports properties
     """
 
     def run(self, *args, **kwargs):
