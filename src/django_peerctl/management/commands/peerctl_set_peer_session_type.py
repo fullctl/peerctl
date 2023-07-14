@@ -14,7 +14,7 @@ class Command(CommandInterface):
         qset = PeerSession.objects.all()
 
         for session in qset:
-            if not session.port or port.id == 0:
+            if not session.port or session.port.id == 0:
                 continue
             port = Port().first(id=session.port.id)
 
