@@ -1,4 +1,5 @@
 import ipaddress
+import re
 
 import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
@@ -1113,10 +1114,17 @@ class UpdatePeerSession(serializers.Serializer):
 
         # determine default peer session type
 
+        pni_regex = re.compile(r"\bPNI\b", re.IGNORECASE)
         if peer_net.peer.asn == net.asn:
             default_peer_session_type = "core"
         elif port and port.is_ixi:
-            default_peer_session_type = "peer"
+            default_peer_session_type = "ixp"
+        elif (
+            port
+            and port.virtual_port_description
+            and pni_regex.search(port.virtual_port_description)
+        ):
+            default_peer_session_type = "pni"
         else:
             default_peer_session_type = "transit"
 
