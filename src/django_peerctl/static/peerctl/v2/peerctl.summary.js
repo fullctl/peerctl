@@ -437,7 +437,8 @@ $ctl.application.Peerctl.SummaryCountsPanel = $tc.extend(
     update : function() {
       const rows = this.get_list_rows();
       this.$e.total.text(rows.length);
-      this.$e.peer_count.text(this.get_list_rows("peer").length);
+      this.$e.ixp_count.text(this.get_list_rows("ixp").length);
+      this.$e.pni_count.text(this.get_list_rows("pni").length);
       this.$e.transit_count.text(this.get_list_rows("transit").length);
       this.$e.customer_count.text(this.get_list_rows("customer").length);
       this.$e.core_count.text(this.get_list_rows("core").length);
