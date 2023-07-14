@@ -1,3 +1,5 @@
+import re
+
 from fullctl.django.management.commands.base import CommandInterface
 
 from django_peerctl.models.peerctl import PeerSession, Port
@@ -11,11 +13,20 @@ class Command(CommandInterface):
     """
 
     def run(self, *args, **kwargs):
-        qset = PeerSession.objects
+        qset = PeerSession.objects.all()
 
         for session in qset:
             port = Port().first(id=session.port.id)
+
+            pni_regex = re.compile(r"\bPNI\b", re.IGNORECASE)
             if port.is_ixi:
                 session.peer_session_type = "ixp"
+            # if "PNI" or "pni" in port.virtual_port_description:
+            elif port.virtual_port_description and pni_regex.search(
+                port.virtual_port_description
+            ):
+                session.peer_session_type = "pni"
             else:
                 session.peer_session_type = "transit"
+
+            session.save()
