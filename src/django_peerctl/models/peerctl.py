@@ -514,7 +514,12 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         """
         returns all peer sessions owned by this network
         """
-        return PeerSession.objects.filter(peer_port__peer_net__net=self)
+        return PeerSession.objects.filter(peer_port__peer_net__net=self).select_related(
+            "peer_port",
+            "peer_port__peer_net",
+            "peer_port__port_info",
+            "peer_port__peer_net__peer",
+        )
 
     @property
     def peer_net_set(self):
@@ -963,7 +968,10 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         if not hasattr(self, "_peer_session_qs_prefetched"):
             peer_sessions = PeerSession.objects.filter(port=self.pk)
             self._peer_session_qs_prefetched = peer_sessions.select_related(
-                "peer_port", "peer_port__port_info", "peer_port__peer_net"
+                "peer_port",
+                "peer_port__port_info",
+                "peer_port__peer_net",
+                "peer_port__peer_net__peer",
             ).exclude(status="deleted")
         return self._peer_session_qs_prefetched
 
@@ -1258,7 +1266,7 @@ class Port(devicectl.Port):
         return instances
 
     @classmethod
-    def load_references(cls, objects, load_policies=False):
+    def load_references(cls, objects, load_policies=False, join=None):
         """
         Takes a list or generator of objects that have a `port` reference field
         and batch loads all PortObjects at once
@@ -1274,7 +1282,7 @@ class Port(devicectl.Port):
 
         # load all ports
 
-        ports = Port().objects(ids=list(port_ids))
+        ports = Port().objects(ids=list(port_ids), join=join)
 
         # map ports by id
 
@@ -1295,7 +1303,7 @@ class Port(devicectl.Port):
         # assign port objects to objects
 
         for obj in objects:
-            if obj.port:
+            if obj.port and obj.port.id:
                 obj.port._object = port_map[obj.port.id]
 
                 if isinstance(obj, PortInfo):
@@ -1703,7 +1711,9 @@ class DeviceObject(devicectl.DeviceCtlEntity):
 
     @property
     def ports(self):
-        return Port().objects(device=self.id)
+        if not hasattr(self, "_ports"):
+            self._ports = Port().objects(device=self.id)
+        return self._ports
 
     def peer_groups(self, net, ip_version):
         """return collection of peer groups"""
@@ -1789,6 +1799,31 @@ class Device(devicectl.Device):
 
     class Meta(devicectl.Device.Meta):
         data_object_cls = DeviceObject
+
+    @classmethod
+    def load_references(cls, devices, org=None):
+        """
+        Loads references for the given devices
+
+        Arguments:
+
+        - devices <list>: list of Device objects
+
+        Keyword Arguments:
+
+        - org <str>: organization slug
+        """
+
+        device_ids = [device.id for device in devices]
+
+        ports_by_device = {}
+        for port in Port().objects(devices=device_ids, org_slug=org):
+            if port.device_id not in ports_by_device:
+                ports_by_device[port.device_id] = []
+            ports_by_device[port.device_id].append(port)
+
+        for device in devices:
+            device._ports = ports_by_device.get(device.id, [])
 
 
 @reversion.register
@@ -2020,6 +2055,49 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         return cls.objects.filter(
             device=int(device), peer_port=peer_port, status="ok"
         ).first()
+
+    @classmethod
+    def load_references(cls, sessions):
+        """
+        Prefetches relations for the sessions
+
+        This will batch several service bridge requests
+        """
+
+        peers_asns = []
+        port_infos = []
+
+        for session in sessions:
+            peers_asns.append(session.peer_port.peer_net.peer.asn)
+            port_infos.append(session.peer_port.port_info)
+
+        if peers_asns:
+            networks = {
+                net.asn: net
+                for net in pdbctl.Network().objects(asns=list(set(peers_asns)))
+            }
+        else:
+            networks = {}
+
+        Port.load_references(port_infos + sessions, join="device")
+
+        for session in sessions:
+            if not session.port or not session.port.id:
+                continue
+
+            port_infos.append(session.port.object.port_info_object)
+
+        PortInfo.load_references(port_infos)
+
+        if not networks:
+            return sessions
+
+        for session in sessions:
+            session.peer_port.peer_net.peer._ref = networks.get(
+                session.peer_port.peer_net.peer.asn
+            )
+
+        return sessions
 
     @property
     def ip4(self):
