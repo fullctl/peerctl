@@ -14,9 +14,9 @@ class Command(CommandInterface):
         qset = PeerSession.objects.all()
 
         for session in qset:
-            port = Port().first(id=session.port.id)
-            if not port or port.id == 0:
+            if not session.port or port.id == 0:
                 continue
+            port = Port().first(id=session.port.id)
 
             pni_regex = re.compile(r"\bPNI\b", re.IGNORECASE)
             new_peer_session_type = ""
@@ -36,6 +36,3 @@ class Command(CommandInterface):
                 )
                 session.peer_session_type = new_peer_session_type
                 session.save()
-
-            session.peer_session_type
-            session.save()
