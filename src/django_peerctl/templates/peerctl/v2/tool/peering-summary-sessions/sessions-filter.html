@@ -2,7 +2,41 @@
 <div class="row">
   <div class="col">
 
-    <div class="row align-items-center">
+    <div class="infobar row my-2" data-component="summary-counts-panel">
+      <div class="col-auto right me-auto my-1">
+        <div class="container">
+          <div class="row">
+            <div class="toolbar-field col-auto">
+              <span class="field">Sessions:</span> <span class="value" data-element="total">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-auto right my-1">
+        <div class="container">
+          <div class="row">
+            <div class="toolbar-field col-auto">
+              <span class="field">IXP:</span> <span data-element="ixp_count" class="value">-</span>
+            </div>
+            <div class="toolbar-field col-auto">
+              <span class="field">PNI:</span> <span data-element="pni_count" class="value">-</span>
+            </div>
+            <div class="toolbar-field col-auto">
+              <span class="field">Transit:</span> <span data-element="transit_count" class="value">-</span>
+            </div>
+            <div class="toolbar-field col-auto">
+              <span class="field">Customer:</span> <span data-element="customer_count" class="value">-</span>
+            </div>
+            <div class="toolbar-field col-auto">
+              <span class="field">Core:</span> <span data-element="core_count" class="value">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row align-items-center mb-2">
       <div class="toolbar-control-group col-auto">
         <span class="toolbar-control">
           <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
@@ -47,31 +81,31 @@
       </div>
     </div>
 
-  <div class="row align-items-center">
-    <div class="col">
-      <div class="toolbar-control input-group searchbar" data-element="summary_searchbar">
-        <input type="text" value="" data-role="filter" placeholder="Search by IP / ASN / Name">
-        <button class="btn curved" data-role="filter_submit" type="button">
-          <span class="icon icon-search"></span>
-        </button>
-        <button class="btn secondary small" data-role="filter_clear" type="button" style="display: none;">
-          <span class="icon icon-cancel"></span>
+    <div class="row align-items-center">
+      <div class="col">
+        <div class="toolbar-control input-group searchbar" data-element="summary_searchbar">
+          <input type="text" value="" data-role="filter" placeholder="Search by IP / ASN / Name">
+          <button class="btn curved" data-role="filter_submit" type="button">
+            <span class="icon icon-search"></span>
+          </button>
+          <button class="btn secondary small" data-role="filter_clear" type="button" style="display: none;">
+            <span class="icon icon-cancel"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-sm-auto ms-auto">
+        <button class="primary btn" data-element="btn_add_peer_session" type="button">
+          <div class="row align-items-center">
+            <div class="col label pe-0">{% trans "Add Session" %}</div>
+            <div class="col-auto">
+                <span class="icon icon-add"></span>
+            </div>
+          </div>
         </button>
       </div>
-    </div>
 
-    <div class="col-sm-auto ms-auto">
-      <button class="primary btn" data-element="btn_add_peer_session" type="button">
-        <div class="row align-items-center">
-          <div class="col label pe-0">{% trans "Add Session" %}</div>
-          <div class="col-auto">
-              <span class="icon icon-add"></span>
-          </div>
-        </div>
-      </button>
     </div>
-
-  </div>
 
   </div>
 </div>

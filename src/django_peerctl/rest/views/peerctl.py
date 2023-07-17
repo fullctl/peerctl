@@ -564,45 +564,17 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
 
         return r
 
-    def prefetch_relations(self, instances):
-        port_ids = [i.port for i in instances]
-        ports = {
-            port.id: port
-            for port in models.Port().objects(id__in=port_ids, join="device")
-        }
-
-        peer_asns = list({i.peer_port.peer_net.peer.asn for i in instances})
-        peer_nets = {}
-        if peer_asns:
-            peer_nets = {
-                net.asn: net for net in pdbctl.Network().objects(asns=peer_asns)
-            }
-        else:
-            peer_nets = {}
-
-        for i in instances:
-            if not i.port:
-                continue
-
-            port = ports.get(int(i.port))
-            if port:
-                i.port._object = port
-
-            net = peer_nets.get(i.peer_port.peer_net.peer.asn)
-            i.peer_port.peer_net.peer._ref = net
+    def prefetch_relations(self, sessions):
+        return models.PeerSession.load_references(sessions)
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
-        instances = net.peer_session_set.filter(status__in=["ok", "configured"])
-
-        print([instance.id for instance in instances])
-
-        instances = list(self._filter_peer(instances, request.GET.get("peer")))
-
-        print([instance.id for instance in instances])
+        instances = list(net.peer_session_set.filter(status__in=["ok", "configured"]))
 
         self.prefetch_relations(instances)
+
+        instances = list(self._filter_peer(instances, request.GET.get("peer")))
 
         serializer = self.serializer_class(instances, many=True)
         data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
@@ -614,10 +586,12 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_port(self, request, asn, net, port_pk, *args, **kwargs):
         port = models.Port().object(id=port_pk)
-        instances = port.peer_session_qs_prefetched.filter(status="ok")
-        instances = self._filter_peer(instances, request.GET.get("peer"))
+        instances = list(port.peer_session_qs_prefetched.filter(status="ok"))
 
         self.prefetch_relations(instances)
+
+        instances = self._filter_peer(instances, request.GET.get("peer"))
+
         serializer = self.serializer_class(instances, many=True)
         data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
         return Response(data)
@@ -627,9 +601,9 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_device(self, request, asn, net, device_pk, *args, **kwargs):
         device = models.Device().object(id=device_pk)
-        instances = device.peer_session_qs.filter(status="ok")
-        instances = self._filter_peer(instances, request.GET.get("peer"))
+        instances = list(device.peer_session_qs.filter(status="ok"))
         self.prefetch_relations(instances)
+        instances = self._filter_peer(instances, request.GET.get("peer"))
         serializer = self.serializer_class(instances, many=True)
         data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
         return Response(data)
@@ -638,15 +612,18 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_facility(self, request, asn, net, facility_tag, *args, **kwargs):
-        devices = models.Device().objects(facility_slug=facility_tag)
+        devices = list(models.Device().objects(facility_slug=facility_tag))
 
         instances = []
+
+        models.Device.load_references(devices, org=net.org.slug)
 
         for device in devices:
             instances.extend(list(device.peer_session_qs.filter(status="ok")))
 
-        instances = self._filter_peer(instances, request.GET.get("peer"))
         self.prefetch_relations(instances)
+
+        instances = self._filter_peer(instances, request.GET.get("peer"))
         serializer = self.serializer_class(instances, many=True)
         data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
         return Response(data)
