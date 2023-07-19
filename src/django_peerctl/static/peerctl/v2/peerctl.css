@@ -12,6 +12,14 @@
   background-color: rgba(255, 0, 0, 0.1);
 }
 
+.filter-out-ixp_btn [data-peer-session-type="ixp"],
+.filter-out-pni_btn [data-peer-session-type="pni"],
+.filter-out-transit_btn [data-peer-session-type="transit"],
+.filter-out-customer_btn [data-peer-session-type="customer"],
+.filter-out-core_btn [data-peer-session-type="core"] {
+  display: none;
+}
+
 /* Peering list */
 
 div.inactive-port .peer_session-active-toggled {
