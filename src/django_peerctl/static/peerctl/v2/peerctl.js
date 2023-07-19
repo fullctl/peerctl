@@ -900,7 +900,8 @@ $peerctl.PeeringLists = $tc.extend(
           type: 'GET',
           dataType: 'json',
           url: port_api_url,
-          timeout: 5000,
+          // TODO: optimize response speed
+          timeout: 30000,
           success: function(response){
             const data = response.data;
             for(let i = 0; i < data.length; i++) {
