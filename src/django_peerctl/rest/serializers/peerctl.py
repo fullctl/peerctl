@@ -1518,6 +1518,8 @@ class PeerSession(ModelSerializer):
 
         if obj.port.object.port_info_object.ix_name:
             return obj.port.object.port_info_object.ix_name
+        elif obj.port.object.virtual_port_name:
+            return obj.port.object.virtual_port_name
 
         return ""
 
