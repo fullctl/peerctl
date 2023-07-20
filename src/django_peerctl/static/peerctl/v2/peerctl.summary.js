@@ -462,6 +462,12 @@ $ctl.application.Peerctl.SummaryCountsPanel = $tc.extend(
       this.$w.transit_btn.text(this.get_list_rows("transit").length);
       this.$w.customer_btn.text(this.get_list_rows("customer").length);
       this.$w.core_btn.text(this.get_list_rows("core").length);
+
+      const unique_counts = this.get_unique_asn_session_type_counts();
+      this.$e.unique_ixp_count.find('.value').text(unique_counts.ixp);
+      this.$e.unique_pni_count.find('.value').text(unique_counts.pni);
+      this.$e.unique_transit_count.find('.value').text(unique_counts.transit);
+      this.$e.unique_customer_count.find('.value').text(unique_counts.customer);
     },
 
     /**
@@ -475,6 +481,29 @@ $ctl.application.Peerctl.SummaryCountsPanel = $tc.extend(
       if (type)
         return rows.filter('tr[data-peer-session-type="'+type+'"]');
       return rows;
+    },
+
+    get_unique_asn_session_type_counts : function() {
+      const asn_dict = {
+        ixp: new Set(),
+        pni: new Set(),
+        transit: new Set(),
+        customer: new Set(),
+        core: new Set()
+      };
+
+      this.list.list_body.find('tr').each(function() {
+        const session = $(this).data('apiobject');
+        asn_dict[session.peer_session_type].add(session.peer_asn);
+      })
+
+      return {
+        ixp: asn_dict.ixp.size,
+        pni: asn_dict.pni.size,
+        transit: asn_dict.transit.size,
+        customer: asn_dict.customer.size,
+        core: asn_dict.core.size
+      }
     }
   },
   $ctl.application.Component
