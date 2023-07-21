@@ -2,34 +2,64 @@
 <div class="row">
   <div class="col">
 
-    <div class="infobar row my-2" data-component="summary-counts-panel">
-      <div class="col-auto right me-auto my-1">
-        <div class="container">
-          <div class="row">
-            <div class="toolbar-field col-auto">
-              <span class="field">Sessions:</span> <span class="value" data-element="total">-</span>
+    <div class="infobar container mt-2" data-component="summary-counts-panel">
+      <div class="row">
+        <div class="col-auto right me-auto mt-1">
+          <div class="container">
+            <div class="row">
+              <div class="toolbar-field col-auto">
+                <span class="field">{% trans "Sessions" %}:</span> <span class="value" data-element="total">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-auto right mt-1">
+          <div class="container">
+            <div class="row">
+              <div class="toolbar-field col-auto" data-element="ixp_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "IXP" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="pni_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "PNI" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="transit_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "Transit" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="customer_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "Customer" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="core_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "Core" %}:</span> <span class="value count">-</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      <div class="infobar row mb-2" >
+        <div class="col-auto right me-auto my-1">
+        </div>
 
-      <div class="col-auto right my-1">
-        <div class="container">
-          <div class="row">
-            <div class="toolbar-field col-auto">
-              <span class="field">IXP:</span> <span data-element="ixp_count" class="value">-</span>
-            </div>
-            <div class="toolbar-field col-auto">
-              <span class="field">PNI:</span> <span data-element="pni_count" class="value">-</span>
-            </div>
-            <div class="toolbar-field col-auto">
-              <span class="field">Transit:</span> <span data-element="transit_count" class="value">-</span>
-            </div>
-            <div class="toolbar-field col-auto">
-              <span class="field">Customer:</span> <span data-element="customer_count" class="value">-</span>
-            </div>
-            <div class="toolbar-field col-auto">
-              <span class="field">Core:</span> <span data-element="core_count" class="value">-</span>
+        <div class="col-auto right my-1">
+          <div class="container">
+            <div class="row">
+              <div class="toolbar-field col-auto" data-element="unique_ixp_count">
+                <span class="field">{% trans "Unique IXP" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="unique_pni_count">
+                <span class="field">{% trans "Unique PNI" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="unique_transit_count">
+                <span class="field">{% trans "Unique Transit" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="unique_customer_count">
+                <span class="field">{% trans "Unique Customer" %}:</span> <span class="value count">-</span>
+              </div>
             </div>
           </div>
         </div>

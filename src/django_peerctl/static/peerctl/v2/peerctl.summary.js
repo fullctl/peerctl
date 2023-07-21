@@ -431,17 +431,43 @@ $ctl.application.Peerctl.SummaryCountsPanel = $tc.extend(
       this.Component("summary-counts-panel");
       this.list = list;
 
+      this.widget("ixp_btn", ($e) => {
+        return new $ctl.application.Peerctl.CountsButton(this.$e.ixp_btn, this.list);
+      });
+
+      this.widget("pni_btn", ($e) => {
+        return new $ctl.application.Peerctl.CountsButton(this.$e.pni_btn, this.list);
+      });
+
+      this.widget("transit_btn", ($e) => {
+        return new $ctl.application.Peerctl.CountsButton(this.$e.transit_btn, this.list);
+      });
+
+      this.widget("customer_btn", ($e) => {
+        return new $ctl.application.Peerctl.CountsButton(this.$e.customer_btn, this.list);
+      });
+
+      this.widget("core_btn", ($e) => {
+        return new $ctl.application.Peerctl.CountsButton(this.$e.core_btn, this.list);
+      });
+
       $(this.list).on("load:after", () => {this.update()});
     },
 
     update : function() {
       const rows = this.get_list_rows();
       this.$e.total.text(rows.length);
-      this.$e.ixp_count.text(this.get_list_rows("ixp").length);
-      this.$e.pni_count.text(this.get_list_rows("pni").length);
-      this.$e.transit_count.text(this.get_list_rows("transit").length);
-      this.$e.customer_count.text(this.get_list_rows("customer").length);
-      this.$e.core_count.text(this.get_list_rows("core").length);
+      this.$w.ixp_btn.text(this.get_list_rows("ixp").length);
+      this.$w.pni_btn.text(this.get_list_rows("pni").length);
+      this.$w.transit_btn.text(this.get_list_rows("transit").length);
+      this.$w.customer_btn.text(this.get_list_rows("customer").length);
+      this.$w.core_btn.text(this.get_list_rows("core").length);
+
+      const unique_counts = this.get_unique_asn_session_type_counts();
+      this.$e.unique_ixp_count.find('.value').text(unique_counts.ixp);
+      this.$e.unique_pni_count.find('.value').text(unique_counts.pni);
+      this.$e.unique_transit_count.find('.value').text(unique_counts.transit);
+      this.$e.unique_customer_count.find('.value').text(unique_counts.customer);
     },
 
     /**
@@ -455,9 +481,50 @@ $ctl.application.Peerctl.SummaryCountsPanel = $tc.extend(
       if (type)
         return rows.filter('tr[data-peer-session-type="'+type+'"]');
       return rows;
+    },
+
+    get_unique_asn_session_type_counts : function() {
+      const asn_dict = {
+        ixp: new Set(),
+        pni: new Set(),
+        transit: new Set(),
+        customer: new Set(),
+        core: new Set()
+      };
+
+      this.list.list_body.find('tr').each(function() {
+        const session = $(this).data('apiobject');
+        asn_dict[session.peer_session_type].add(session.peer_asn);
+      })
+
+      return {
+        ixp: asn_dict.ixp.size,
+        pni: asn_dict.pni.size,
+        transit: asn_dict.transit.size,
+        customer: asn_dict.customer.size,
+        core: asn_dict.core.size
+      }
     }
   },
   $ctl.application.Component
+);
+
+$ctl.application.Peerctl.CountsButton = $tc.define(
+  "CountsButton",
+  {
+    CountsButton : function(jq, list) {
+      const element = this.element = jq;
+      this.element.find(".filter-btn").on("click", function() {
+        this.classList.toggle("active");
+        this.classList.toggle("inactive");
+        list.list_body.toggleClass("filter-out-" + element.data('element'));
+      });
+    },
+
+    text : function(text) {
+      this.element.find('.value').text(text);
+    }
+  },
 );
 
 $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
