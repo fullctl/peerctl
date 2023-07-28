@@ -494,7 +494,9 @@ $ctl.application.Peerctl.SummaryCountsPanel = $tc.extend(
 
       this.list.list_body.find('tr').each(function() {
         const session = $(this).data('apiobject');
-        asn_dict[session.peer_session_type].add(session.peer_asn);
+        if (asn_dict[session.peer_session_type]) {
+          asn_dict[session.peer_session_type].add(session.peer_asn);
+        }
       })
 
       return {
