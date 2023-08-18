@@ -9,6 +9,7 @@
 <script src="{% static "common/v2/graph.js" %}" type="text/javascript"></script>
 <script src="{% static "peerctl/v2/peerctl.js" %}" type="text/javascript"></script>
 <script src="{% static "peerctl/v2/peerctl.summary.js" %}" type="text/javascript"></script>
+<script src="{% static "peerctl/v2/peerctl.templates.js" %}" type="text/javascript"></script>
 
 <script>
 $(fullctl.application).on("initialized", function(e, peerctl, id) {
@@ -165,16 +166,16 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 
 {% block "error_content" %}
 {% if not net %}
-<div class="row">
-  <div class="col-4"></div>
-  <div class="col-4">
-    <div class="alert alert-warning marg-top-lg">
-{% blocktrans trimmed with app_id=request.app_id org_name=request.org.display_name_verbose %}
-{{ org_name }} is currently not permissioned to manage any ASNs. Please contact <a href="mailto:{{ support_email }}">{{ support_email }}</a> support for assistance or <a href="https://docs.fullctl.com/aaaCtl/Sign-up-for-PeeringDB/">connect your account to PeeringDB</a>.
-{% endblocktrans %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="alert alert-warning marg-top-lg">
+        {% blocktrans trimmed with app_id=request.app_id org_name=request.org.display_name_verbose %}
+        {{ org_name }} is currently not permissioned to manage any ASNs. Please contact <a href="mailto:{{ support_email }}">{{ support_email }}</a> support for assistance or <a href="https://docs.fullctl.com/aaaCtl/Sign-up-for-PeeringDB/">connect your account to PeeringDB</a>.
+        {% endblocktrans %}
+      </div>
     </div>
   </div>
-  <div class="col-4"></div>
 </div>
 {% endif %}
 {% endblock %}
