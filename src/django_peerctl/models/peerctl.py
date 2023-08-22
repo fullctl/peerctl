@@ -14,7 +14,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
+from django.db import IntegrityError, models
 from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
 from django_countries.fields import CountryField
@@ -342,6 +342,8 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             if not obj.org and org:
                 obj.org = org
                 obj.create_global_policy()
+            elif obj.org and org and (obj.org != org):
+                raise IntegrityError(f"ASN {asn} already claimed by another org")
 
         except cls.DoesNotExist:
             obj = cls.objects.create(asn=asn, org=org, status="ok")
