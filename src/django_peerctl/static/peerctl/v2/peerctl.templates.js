@@ -25,12 +25,31 @@ $ctl.application.Peerctl.TemplateEditor = $tc.extend(
       });
 
       this.widget("select_type", ($e) => {
-        return new twentyc.rest.Select(this.$w.form.element.find('#type'));
+        return new $ctl.application.Peerctl.TemplateTypeSelect(this.$w.form.element.find('#type'));
       });
 
       this.preview_client = new twentyc.rest.Client(
         this.$w.form.element.find("#preview").data("api-preview-default")
       );
+
+      if (
+        !grainy.check(`verified.asn.${fullctl.peerctl.network.asn}.?`, "c") &&
+        !grainy.check(`verified.asn.${fullctl.peerctl.network.asn}.?`, "u")
+      ) {
+        this.view_mode = true;
+
+        this.jquery.find('.template-read-only-permission').removeClass('hidden');
+
+        this.$e.editor_title.text("View template");
+        this.$e.menu.find(`[data-element="button_new_${this.tag}"]`).hide();
+
+        this.$w.form.element.find('a.btn.btn-secondary').hide();
+        this.$w.form.element.find('button.btn.submit').hide();
+        this.$w.form.element.find('input, textarea').prop('disabled', true);
+        this.$w.select_type.disable();
+
+        this.$w.list.element.find('.templates a .icon-edit').removeClass('icon-edit').addClass('icon-view');
+      }
 
       $(this.$w.select_type.element).on("change", ()=>{
         let val = this.$w.select_type.element.val();
@@ -51,12 +70,14 @@ $ctl.application.Peerctl.TemplateEditor = $tc.extend(
       this.edit_mode = false;
       this.active_changes = false;
       this.$w.list.local_actions.edit_template = (template)=>{
+        this.$w.form.fill(template);
+        this.preview();
+        if (this.view_mode) return
+
         this.$e.editor.removeClass("create");
         this.$w.form.form_action = template.id;
         this.$w.form.method = "put";
-        this.$w.form.fill(template);
         this.$e.editor_title.text("Edit template");
-        this.preview();
         this.edit_mode = true;
         this.$w.form.element.find(":input:not(#preview)").on("input", (e) => {
           // might be out of edit mode when the listener fires
@@ -98,6 +119,7 @@ $ctl.application.Peerctl.TemplateEditor = $tc.extend(
         }
         this.$w.list.load();
       });
+
       this.$w.form.element.find("#body").on("input", ()=>{
         this.preview();
       });
@@ -125,6 +147,7 @@ $ctl.application.Peerctl.TemplateEditor = $tc.extend(
           preview_textarea
             .val(response.first().body)
             .prop("disabled", false);
+        }).finally(() => {
           loading_shim.hide();
         });
       },500);
@@ -132,6 +155,39 @@ $ctl.application.Peerctl.TemplateEditor = $tc.extend(
   },
   $ctl.application.Tool
 );
+
+
+$ctl.application.Peerctl.TemplateTypeSelect = $tc.extend(
+  "TemplateTypeSelect",
+  {
+    TemplateTypeSelect : function(jq) {
+      this.Select(jq);
+    },
+
+    done_processing : function() {
+      if (this.is_disabled()) {
+        return
+      }
+
+      this.Select_done_processing();
+    },
+
+    disable : function() {
+      this.element.prop('disabled', true);
+      this.disabled = true;
+      this.element.find('option[value=""]').text('');
+      this.load().then(()=> {
+        this.element.find('option[value=""]').text('')
+      });
+    },
+
+    is_disabled : function() {
+      return this.disabled;
+    }
+  },
+  twentyc.rest.Select
+);
+
 
 $ctl.application.Peerctl.EmailTemplates = $tc.extend(
   "EmailTemplates",
