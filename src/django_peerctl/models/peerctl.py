@@ -14,7 +14,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import IntegrityError, models
+from django.db import models
 from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
 from django_countries.fields import CountryField
@@ -31,6 +31,7 @@ from netfields import InetAddressField, MACAddressField, NetManager
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
 from django_peerctl.exceptions import (
+    ASNClaimed,
     PolicyMissingError,
     TemplateRenderError,
     UsageLimitError,
@@ -343,7 +344,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
                 obj.org = org
                 obj.create_global_policy()
             elif obj.org and org and (obj.org != org):
-                raise IntegrityError(f"ASN {asn} already claimed by another org")
+                raise ASNClaimed()
 
         except cls.DoesNotExist:
             obj = cls.objects.create(asn=asn, org=org, status="ok")
