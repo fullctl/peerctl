@@ -331,3 +331,14 @@ div.peers-row div.loading-indicator-container {
   font-size: 11px;
   text-decoration: underline;
 }
+
+/* Networks tab */
+div.menu #network-search-result-name {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+#network-search-result-asn {
+  font-size: 1rem;
+}
