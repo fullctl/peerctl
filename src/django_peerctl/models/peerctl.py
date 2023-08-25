@@ -31,6 +31,7 @@ from netfields import InetAddressField, MACAddressField, NetManager
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
 from django_peerctl.exceptions import (
+    ASNClaimed,
     PolicyMissingError,
     TemplateRenderError,
     UsageLimitError,
@@ -342,6 +343,8 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             if not obj.org and org:
                 obj.org = org
                 obj.create_global_policy()
+            elif obj.org and org and (obj.org != org):
+                raise ASNClaimed()
 
         except cls.DoesNotExist:
             obj = cls.objects.create(asn=asn, org=org, status="ok")

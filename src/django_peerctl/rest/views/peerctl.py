@@ -5,6 +5,7 @@ import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from django.conf import settings
 from django.db.models.functions import Lower
+from django.http import HttpResponse
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
 from fullctl.django.rest.decorators import load_object
@@ -1401,9 +1402,10 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")
-    @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def preview_default(self, request, asn, net, *args, **kwargs):
-        return self._preview(request, asn, net, "0", *args, **kwargs)
+        if request.perms.check(f"verified.asn.{asn}.?", "r"):
+            return self._preview(request, asn, net, "0", *args, **kwargs)
+        return HttpResponse(status=403)
 
     @action(detail=True, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")
@@ -1506,9 +1508,10 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")
-    @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def preview_default(self, request, asn, net, *args, **kwargs):
-        return self._preview(request, asn, net, "0", *args, **kwargs)
+        if request.perms.check(f"verified.asn.{asn}.?", "r"):
+            return self._preview(request, asn, net, "0", *args, **kwargs)
+        return HttpResponse(status=403)
 
     @action(detail=True, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")

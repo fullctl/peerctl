@@ -1,6 +1,17 @@
 {% load i18n static %}
 <div class="tool" data-component="device_templates">
 
+  <div class="container hidden template-read-only-permission">
+    <div class="row justify-content-center">
+      <div class="col-auto">
+        <div class="alert alert-info">
+          You only have read permissions granted for the templates.<br>
+          Your Organization Administrator can add write privileges.
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div data-element="menu" class="row marg-top-lg">
     <div class="col-5 d-flex align-items-center">
       <h4>{% trans "Templates" %}</h4>
@@ -11,7 +22,7 @@
           <h4 data-element="editor_title">{% trans "Create new device template" %}</h4>
         </div>
         <div class="col-md-auto ms-auto">
-        <button type="button" class="primary btn d-flex" data-element="button_new_device_template">
+        <button type="button" class="primary btn" data-element="button_new_device_template">
           <div class="row align-items-center">
             <div class="col label pe-0">New Device Template</div>
             <div class="col-auto">

@@ -75,9 +75,14 @@
   <div class="row mb-3">
     <div class="col-12">
       <label for="preview" class="form-label">{% trans "Preview" %}</label>
-      <textarea class="form-control template-editor"
-        data-api-preview-default="{% url "peerctl_api:email_template-preview-default" asn=selected_asn %}"
-      name="preview" id="preview"></textarea>
+      <div class="row mx-0 position-relative">
+        <textarea class="form-control template-editor"
+          data-api-preview-default="{% url "peerctl_api:email_template-preview-default" asn=selected_asn %}"
+          name="preview" id="preview"
+        >
+        </textarea>
+        <div class="loading-shim" style="display: none;"></div>
+      </div>
     </div>
   </div>
 
