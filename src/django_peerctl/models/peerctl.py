@@ -58,21 +58,23 @@ EMAIL_TEMPLATE_TYPES = (
     ("peer-session-live", "Peering Session Live"),
 )
 
-DUMMY_PEER_DATA = {
-    "1": [
-        {
-            "name": "FooBar Inc",
-            "peer_as": 1111,
-            "peer_type": "external",
-            "neighbor_address": "2001:0db8:85a3::8a2e:0370:7334/64",
-            "local_as": 1234,
-            "auth_password": "",
-            "max_prefixes": 32,
-            "import_policy": "ImportPolicy",
-            "export_policy": "ExportPolicy",
-        }
-    ]
-}
+
+def get_dummy_peer_data(net):
+    return {
+        "1": [
+            {
+                "name": "FooBar Inc",
+                "peer_as": 1111,
+                "peer_type": "external",
+                "neighbor_address": "2001:0db8:85a3::8a2e:0370:7334/64",
+                "local_as": net.asn,
+                "auth_password": "",
+                "max_prefixes": 32,
+                "import_policy": "ImportPolicy",
+                "export_policy": "ExportPolicy",
+            }
+        ]
+    }
 
 
 class DescriptionField(models.CharField):
@@ -2508,7 +2510,7 @@ class DeviceTemplate(Base, TemplateBase):
 
         data.update(**device.peer_groups_netom0_data(net, members=member))
         if len(data["peer_groups"]) == 0:
-            data["peer_groups"] = DUMMY_PEER_DATA
+            data["peer_groups"] = get_dummy_peer_data(net)
         data["device"] = {"type": device.type}
         data["ports"] = [port for port in device.ports]
 
