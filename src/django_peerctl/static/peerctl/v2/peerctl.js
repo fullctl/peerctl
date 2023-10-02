@@ -1300,32 +1300,6 @@ $peerctl.PortPolicySelect = $tc.extend(
 )
 
 
-$peerctl.PeerSessionPolicySelect = $tc.extend(
-  "PeerSessionPolicySelect",
-  {
-    PeerSessionPolicySelect : function(jq, ip_version, port_id, peer_session_id) {
-      this.PortPolicySelect(jq, ip_version);
-      this.peer_session_id = peer_session_id;
-      this.port_id = port_id;
-    },
-    payload : function() {
-      return {
-        value: this.element.val(),
-        ipv: this.ip_version
-      }
-    },
-    format_request_url: function(url,method) {
-      if(method == "put") {
-        url = this.element.data("api-action");
-        return url.replace("port_id", this.port_id).replace("peer_session_id", this.peer_session_id);
-      }
-      return url;
-    }
-  },
-  $peerctl.PortPolicySelect
-)
-
-
 $peerctl.PeerSessionToggle = $tc.extend(
   "PeerSessionToggle",
   {
@@ -1334,35 +1308,34 @@ $peerctl.PeerSessionToggle = $tc.extend(
       this.peer_id = peer_id;
       this.through_id = through_id;
       this.port_id = port_id;
-      this.method = init_method;
+      this.mode = init_method;
 
-      if (this.method.toUpperCase() == "DELETE") {
+      if (this.mode.toUpperCase() == "DELETE") {
         jq.prop("checked", true);
-        this.base_url = jq.data("api-base-togl");
       }
 
       $(this).on("api-write:success", ()=>{
-        if (this.method.toUpperCase() == "POST") {
-          this.method = "DELETE";
-          this.base_url = jq.data("api-base-togl");
+        if (this.mode.toUpperCase() == "POST") {
+          this.mode = "DELETE";
         } else {
-          this.method = "POST";
-          this.base_url = jq.data("api-base");
+          this.mode = "POST";
         }
       })
     },
 
     format_request_url: function(url, method) {
-      var peer_session_id = this.element.data("peer_session-id")
-      var port = (this.port_id || fullctl.peerctl.port())
+      const peer_session_id = this.element.data("peer_session-id")
+      const port = (this.port_id || fullctl.peerctl.port())
+
       return url.replace("port_id", port).replace("peer_session_id", peer_session_id);
     },
 
     payload: function() {
-      return {
-        member: this.peer_id,
-        through: this.through_id
-      };
+      if (this.mode.toUpperCase() == "DELETE") {
+        return { status: "configured" }
+      }
+
+      return { status: "ok" };
     },
 
     render_non_field_errors: function(errors) {
@@ -1504,7 +1477,7 @@ $peerctl.PeerSessionList = $tc.extend(
       });
 
 
-      $(switch_add).on("api-post:success api-delete:success", (ev, endpoint, sent_data, response) => {
+      $(switch_add).on("api-put:success", (ev, endpoint, sent_data, response) => {
         fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(this.peer.id).then(() => {
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts()
         });
@@ -1513,28 +1486,106 @@ $peerctl.PeerSessionList = $tc.extend(
 
       switch_add.element.data("peer_session-id", data.peer_session);
 
-      if(data.peer_session_status == "ok") {
-        list.fill_policy_selects(port_row, data);
-      } else {
-        // add class to hide some elements via css
-        port_row.addClass('inactive-port');
-      }
+      list.fill_policy_selects(port_row, data);
 
     },
 
-    fill_policy_selects : function(port_row, data) {
-      new $peerctl.PeerSessionPolicySelect(
-        port_row.find('.peer_session-policy-4'), 4, $ctl.peerctl.port(), data.peer_session
-      ).element.val(data.policy4_id);
+    fill_policy_selects : function(port_row, peer_session_apiobj) {
+      new $peerctl.IPv4PeerSessionPolicySelect(
+        port_row.find('.peer_session-policy-4'),
+        $ctl.peerctl.port(),
+        peer_session_apiobj,
+        this.peer
+      ).element.val(peer_session_apiobj.policy4.id);
 
-      new $peerctl.PeerSessionPolicySelect(
-        port_row.find('.peer_session-policy-6'), 6, $ctl.peerctl.port(), data.peer_session
-      ).element.val(data.policy6_id);
+      new $peerctl.IPv6PeerSessionPolicySelect(
+        port_row.find('.peer_session-policy-6'),
+        $ctl.peerctl.port(),
+        peer_session_apiobj,
+        this.peer
+      ).element.val(peer_session_apiobj.policy6.id);
 
     }
   },
   twentyc.rest.List
 );
+
+$peerctl.PeerSessionPolicySelect = $tc.extend(
+  "PeerSessionPolicySelect",
+  {
+    PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
+      this.Select(jq);
+
+      this.port_id = port_id;
+      this.peer_session = peer_session;
+      this.peer = peer;
+
+
+      $(this).one("api-write:success", (e, endpoint, data)=>{
+        jq.parents('.list-body').find("input.peer_session-add").data('peer_session-id', data.id);
+      });
+    },
+
+    payload : function() {
+      const payload = {
+        peer_asn: this.peer.asn,
+        peer_ip4: this.peer_session.ipaddr4,
+        peer_ip6: this.peer_session.ipaddr6,
+        port: Number(this.port_id),
+        md5: this.peer.md5,
+        peer_maxprefix4: this.peer.info_prefixes4,
+        peer_maxprefix6: this.peer.info_prefixes6,
+        peer_session_type: "ixi",
+      }
+
+      if (this.peer_session.peer_session != 0) {
+        payload.id = this.peer_session.peer_session;
+      }
+
+      return payload;
+    },
+
+    format_request_url: function(url,method) {
+      return fullctl.peerctl.$t.peering_lists.$w.peers.peer_sesion_update_url;
+    }
+  },
+  twentyc.rest.Select
+)
+
+$peerctl.IPv4PeerSessionPolicySelect = $tc.extend(
+  "IPv4PeerSessionPolicySelect",
+  {
+    IPv4PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
+      this.PeerSessionPolicySelect(jq, port_id, peer_session, peer);
+    },
+
+    payload : function() {
+      const payload = this.PeerSessionPolicySelect_payload()
+      payload.policy4 = Number(this.element.val());
+
+      return payload;
+    },
+  },
+  $peerctl.PeerSessionPolicySelect
+);
+
+$peerctl.IPv6PeerSessionPolicySelect = $tc.extend(
+  "IPv6PeerSessionPolicySelect",
+  {
+    IPv6PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
+      this.PeerSessionPolicySelect(jq, port_id, peer_session, peer);
+    },
+
+    payload : function() {
+      const payload = this.PeerSessionPolicySelect_payload()
+      payload.policy6 = Number(this.element.val());
+
+      return payload;
+    },
+  },
+  $peerctl.PeerSessionPolicySelect
+);
+
 
 $peerctl.MutualLocations = $tc.extend(
   "MutualLocations",
@@ -1556,6 +1607,7 @@ $peerctl.PeerList = $tc.extend(
 
     PeerList : function(jq) {
       this.List(jq);
+      this.peer_sesion_update_url = this.element.data('api-update-url');
 
       this.formatters.peeringdb = (value, data) => {
 
@@ -1812,9 +1864,9 @@ $peerctl.PeerList = $tc.extend(
       peer_data.ipaddr.forEach((port) => {
         if (port.peer_session_status == "ok") {
           status_counts["complete"] += 1;
-        } else if(port.peer_session_status == "configured" || port.peer_session_status == "requested") {
+        } else if(port.peer_session_status != "ok" && peer_data.peer_request_status == "pending") {
           status_counts["incomplete"] += 1;
-        } else if(port.peer_session_status == null) {
+        } else {
           status_counts["todo"] += 1;
         }
       });

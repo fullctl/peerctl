@@ -604,7 +604,7 @@ class Peer(serializers.Serializer):
 
     def get_policy(self, obj, version):
         peer_session = getattr(obj, "peer_session", None)
-        if peer_session and peer_session.status == "ok":
+        if peer_session:
             policy = get_best_policy(obj.peer_session, version, raise_error=False)
             if policy:
                 return {
@@ -1137,7 +1137,7 @@ class UpdatePeerSession(serializers.Serializer):
             peer_port=peer_port,
             policy4_id=data.get("policy4") or None,
             policy6_id=data.get("policy6") or None,
-            status="ok",
+            status="configured",
             peer_session_type=data.get("peer_session_type"),
             meta4=data.get("meta4") or None,
             meta6=data.get("meta6") or None,

@@ -704,6 +704,17 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
             if row["asn"] not in unified:
                 unified[row["asn"]] = row
 
+        peer_requests = models.PeerRequest.objects.filter(peer_asn__in=unified.keys())
+        for peer_request in peer_requests:
+            if peer_request.peer_asn in unified:
+                unified[peer_request.peer_asn][
+                    "peer_request_status"
+                ] = peer_request.status
+
+        for row in unified.values():
+            if "peer_request_status" not in row:
+                row["peer_request_status"] = None
+
         # parse ordering
         #
         # we cannot use the existing ordering filters we have in fullctl
@@ -1083,6 +1094,17 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
             peer_session.set_policy(policy, ip_version)
         except Exception as exc:
             return BadRequest({"non_field_errors": [[str(exc)]]})
+
+        serializer = self.serializer_class(peer_session)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["put"])
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def set_status(self, request, pk, *args, **kwargs):
+        peer_session = models.PeerSession.objects.get(id=pk)
+
+        peer_session.status = request.data.get("status")
+        peer_session.save()
 
         serializer = self.serializer_class(peer_session)
         return Response(serializer.data)
