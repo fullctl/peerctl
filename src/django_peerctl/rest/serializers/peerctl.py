@@ -840,6 +840,16 @@ class UpdatePeerSession(serializers.Serializer):
         required=False,
         allow_null=True,
     )
+    status = serializers.ChoiceField(
+        help_text=_("Session status"),
+        required=False,
+        allow_blank=True,
+        choices=(
+            ("ok", "ok"),
+            ("requested", "requested"),
+            ("configured", "configured"),
+        ),
+    )
 
     meta4 = PeerSessionMeta(required=False, allow_null=True)
     meta6 = PeerSessionMeta(required=False, allow_null=True)
@@ -861,6 +871,7 @@ class UpdatePeerSession(serializers.Serializer):
             "peer_session_type",
             "port",
             "device",
+            "status",
         ]
 
     def validate_peer_maxprefix4(self, value):
@@ -1137,7 +1148,7 @@ class UpdatePeerSession(serializers.Serializer):
             peer_port=peer_port,
             policy4_id=data.get("policy4") or None,
             policy6_id=data.get("policy6") or None,
-            status="configured",
+            status=data.get("status") or "ok",
             peer_session_type=data.get("peer_session_type"),
             meta4=data.get("meta4") or None,
             meta6=data.get("meta6") or None,

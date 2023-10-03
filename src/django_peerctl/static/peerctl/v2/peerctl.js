@@ -1538,8 +1538,11 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
         peer_session_type: "ixi",
       }
 
+      // if already has a peer session
       if (this.peer_session.peer_session != 0) {
         payload.id = this.peer_session.peer_session;
+      } else {
+        payload.status = "configured";
       }
 
       return payload;

@@ -1928,7 +1928,7 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
             ("requested", "requested"),
             ("configured", "configured"),
         ),
-        default="configured",
+        default="ok",
     )
 
     meta4 = models.JSONField(null=True, blank=True)
