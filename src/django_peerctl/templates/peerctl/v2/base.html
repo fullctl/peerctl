@@ -19,7 +19,8 @@ $(fullctl.application).on("initialized", function(e, peerctl, id) {
     id: {{ net.id }},
     as_set: "{{ net.as_set }}",
     asn: {{ net.asn }},
-    name : "{{ net.name }}"
+    name : "{{ net.name }}",
+    ref_id: "{{ net.ref.id }}"
   }
 {% else %}
   peerctl.network = {};

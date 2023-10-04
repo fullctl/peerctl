@@ -201,16 +201,38 @@ $peerctl.NetworkSettings = $tc.extend(
           "irr_as_set": data["as_set_override"] || data["as_set_peeringdb"],
           "info_prefixes4": data["prefix4_override"] || data["prefix4_peeringdb"],
           "info_prefixes6": data["prefix6_override"] || data["prefix6_peeringdb"],
-          "info_type": data["network_type_override"] || data["network_type_peeringdb"],
-          "info_ratio": data["ratio_override"] || data["ratio_peeringdb"],
-          "info_traffic": data["traffic_override"] || data["traffic_peeringdb"],
-          "info_scope": data["scope_override"] || data["scope_peeringdb"],
+          "info_type": data["network_type_override"] || data["network_type_peeringdb"] || "Not Disclosed",
+          "info_ratio": data["ratio_override"] || data["ratio_peeringdb"] || "Not Disclosed",
+          "info_traffic": data["traffic_override"] || data["traffic_peeringdb"] || "Not Disclosed",
+          "info_scope": data["scope_override"] || data["scope_peeringdb"] || "Not Disclosed",
           "info_unicast": data["unicast_override"] || data["unicast_peeringdb"] === "Yes",
           "info_multicast": data["multicast_override"] || data["multicast_peeringdb"] === "Yes",
           "info_never_via_route_servers": data["never_via_route_servers_override"] || data["never_via_route_servers_peeringdb"] === "Yes",
         };
-        // Redirect user to PeeringDB update verification page
-        window.location.href = this.button_update_peeringdb.data('target')+"?source=peerCtl&"+$.param(dataDict);
+
+        // prepare verified update payload
+
+        let payload = {
+          "source": "peerCtl",
+          "reason": "Synchronize from peerCtl network settings",
+          "updates": [
+            {
+              ref_tag:"net", 
+              obj_id: parseInt(fullctl.peerctl.network.ref_id), 
+              data:dataDict
+            }
+          ]
+        }
+        //console.log("PAYLOAD", payload);
+
+        // json+base64 encode payload
+        payload = btoa(JSON.stringify(payload));
+        let redirect_url = this.button_update_peeringdb.data('target')+"?p="+payload;
+
+        //console.log("REDIRECT", redirect_url);
+        
+        // redirect to peeringdb
+        window.location.href = redirect_url;
       });
 
       // wire network type select input

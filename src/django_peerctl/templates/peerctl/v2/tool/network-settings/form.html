@@ -332,20 +332,20 @@
           </button>
 
       </div>
+      {% if net.ref.id %}
       <div class="col-4 right">
-          <!-- disabled until PeeringDB verified update is implemented
-	        <button class="primary btn" data-element="export_network" data-target="{{ settings.peeringdb.url }}verify-update/net/{{ net.ref.id }}">
-            <div class="row align-items-center">
-              <div class="col label pe-0 ok">
-                {% trans "Update PeeringDB" %}
-              </div>
-              <div class="col-auto">
-                <span class="icon fullctl icon-logout"></span>
-              </div>
+        <button class="primary btn" data-element="export_network" data-target="{{ settings.peeringdb.url }}/verified-update/">
+          <div class="row align-items-center">
+            <div class="col label pe-0 ok">
+              {% trans "Update PeeringDB" %}
             </div>
-          </button>
-          -->
+            <div class="col-auto">
+              <span class="icon fullctl icon-logout"></span>
+            </div>
+          </div>
+        </button>
       </div>
+      {% endif %}
     </div>
   </div>
 </div>
