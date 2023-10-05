@@ -113,6 +113,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       var i, app = this;
       for(i in this.$t) {
         if(this.$t[i].active && this.$t[i] != tool) {
+          console.log("Syncing", this.$t[i]);
           this.$t[i].sync();
         }
       }
@@ -1303,39 +1304,57 @@ $peerctl.PortPolicySelect = $tc.extend(
 $peerctl.PeerSessionToggle = $tc.extend(
   "PeerSessionToggle",
   {
-    PeerSessionToggle: function(jq, peer_id, through_id, port_id, init_method) {
+    PeerSessionToggle: function(jq, peer_port, peer, init_method) {
       this.Checkbox(jq);
-      this.peer_id = peer_id;
-      this.through_id = through_id;
-      this.port_id = port_id;
+      this.peer_id = peer_port.id;
+      this.through_id = peer_port.origin_id;
+      this.port_id = peer_port.port_id;
+      this.peer = peer;
+      this.peer_port = peer_port;
       this.mode = init_method;
 
       if (this.mode.toUpperCase() == "DELETE") {
         jq.prop("checked", true);
       }
-
-      $(this).on("api-write:success", ()=>{
-        if (this.mode.toUpperCase() == "POST") {
-          this.mode = "DELETE";
-        } else {
-          this.mode = "POST";
-        }
-      })
     },
 
     format_request_url: function(url, method) {
-      const peer_session_id = this.element.data("peer_session-id")
-      const port = (this.port_id || fullctl.peerctl.port())
 
-      return url.replace("port_id", port).replace("peer_session_id", peer_session_id);
+      // if there is no session id then we need to POST to update_session
+      // otherwise just replace port_id and peer_session_id
+      const peer_session_id = this.element.data("peer_session-id")
+
+      if(peer_session_id) {
+
+        const port = (this.port_id || fullctl.peerctl.port())
+        return url.replace("port_id", port).replace("peer_session_id", peer_session_id);
+
+      } else {
+
+        return fullctl.peerctl.$t.peering_lists.$w.peers.peer_sesion_update_url;
+      
+      }
+
     },
 
     payload: function() {
-      if (this.mode.toUpperCase() == "DELETE") {
-        return { status: "configured" }
+      let payload = {
+        status : "ok",
+        peer_asn: this.peer.asn,
+        peer_ip4: this.peer_port.ipaddr4,
+        peer_ip6: this.peer_port.ipaddr6,
+        md5: this.peer.md5,
+        peer_maxprefix4: this.peer.info_prefixes4,
+        peer_maxprefix6: this.peer.info_prefixes6,
+        peer_session_type: "ixi",
+        port: Number($ctl.peerctl.port()),
       }
 
-      return { status: "ok" };
+      if (this.mode.toUpperCase() == "DELETE") {
+        payload.status = "configured";
+      }
+
+      return payload
     },
 
     render_non_field_errors: function(errors) {
@@ -1464,9 +1483,8 @@ $peerctl.PeerSessionList = $tc.extend(
       const switch_init_method = data.peer_session_status == "ok" ? "delete" : "post";
       const switch_add = new $peerctl.PeerSessionToggle(
         port_row.find("input.peer_session-add"),
-        data.id,
-        data.origin_id,
-        data.port_id,
+        data,
+        this.peer,
         switch_init_method
       );
 
@@ -1477,11 +1495,11 @@ $peerctl.PeerSessionList = $tc.extend(
       });
 
 
-      $(switch_add).on("api-put:success", (ev, endpoint, sent_data, response) => {
+      $(switch_add).on("api-write:success", (ev, endpoint, sent_data, response) => {
         fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(this.peer.id).then(() => {
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts()
         });
-        fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
+        //fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
       });
 
       switch_add.element.data("peer_session-id", data.peer_session);
@@ -1490,20 +1508,50 @@ $peerctl.PeerSessionList = $tc.extend(
 
     },
 
+    /**
+     * Fill policy selects and set the selected value to the policy id
+     * 
+     * @method fill_policy_selects
+     * @param {jQuery} port_row - The row of the port (jQuery object)
+     * @param {Object} peer_session_apiobj - The peer session api object
+     */
+
     fill_policy_selects : function(port_row, peer_session_apiobj) {
+
+      // default policy id selection to 0, which will set it to "Inherit Policy"
+      // this is true when we dont have a session yet, or when we have a session that
+      // is specifically configured to inherit the policy
+
+      var policy_4_id = 0;
+      var policy_6_id = 0;
+
+      // if we have a session that is not configured to inherit the policy, then
+      // set the policy id to the policy id of the session
+
+
+      if(peer_session_apiobj.policy4.id && !peer_session_apiobj.policy4.inherited) {
+        policy_4_id = peer_session_apiobj.policy4.id;
+      }
+
+      if(peer_session_apiobj.policy6.id && !peer_session_apiobj.policy6.inherited) {
+        policy_6_id = peer_session_apiobj.policy6.id;
+      }
+
+      // create the policy selects and set the selected value to the policy id
+
       new $peerctl.IPv4PeerSessionPolicySelect(
         port_row.find('.peer_session-policy-4'),
         $ctl.peerctl.port(),
         peer_session_apiobj,
         this.peer
-      ).element.val(peer_session_apiobj.policy4.id);
+      ).element.val(policy_4_id);
 
       new $peerctl.IPv6PeerSessionPolicySelect(
         port_row.find('.peer_session-policy-6'),
         $ctl.peerctl.port(),
         peer_session_apiobj,
         this.peer
-      ).element.val(peer_session_apiobj.policy6.id);
+      ).element.val(policy_6_id);
 
     }
   },
@@ -1519,14 +1567,19 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
       this.port_id = port_id;
       this.peer_session = peer_session;
       this.peer = peer;
+      this.peer_session_id = peer_session.peer_session || null;
 
 
-      $(this).one("api-write:success", (e, endpoint, data)=>{
-        jq.parents('.list-body').find("input.peer_session-add").data('peer_session-id', data.id);
+      $(this).on("api-write:success", (e, endpoint, data, response)=>{
+        let session_data = response.first();
+        let on_off_toggle = jq.closest('.list-body').find("input.peer_session-add");
+        on_off_toggle.data('peer_session-id', session_data.id);
+        this.peer_session_id = data.id;
       });
     },
 
     payload : function() {
+
       const payload = {
         peer_asn: this.peer.asn,
         peer_ip4: this.peer_session.ipaddr4,
@@ -1539,8 +1592,9 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
       }
 
       // if already has a peer session
-      if (this.peer_session.peer_session != 0) {
+      if (this.peer_session_id) {
         payload.id = this.peer_session.peer_session;
+        payload.status = this.peer_session.status;
       } else {
         payload.status = "configured";
       }

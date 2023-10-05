@@ -1098,7 +1098,7 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         serializer = self.serializer_class(peer_session)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["put"])
+    @action(detail=True, methods=["post"])
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def set_status(self, request, pk, *args, **kwargs):
         peer_session = models.PeerSession.objects.get(id=pk)
@@ -1244,9 +1244,9 @@ class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
 
         serializer.is_valid(raise_exception=True)
 
-        serializer.save()
+        session = serializer.save()
 
-        return Response(serializer.data)
+        return Response(Serializers.update_peer_session(instance=session).data)
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")

@@ -251,7 +251,7 @@
                   class="peer_session-add solid-inactive"
                   data-api-base="{% url "peerctl_api:peer_session-set-status" asn=selected_asn port_pk="port_id"  pk="peer_session_id" %}"
                   data-confirm-off="{% trans "Remove this peering session?" %}"
-                  data-api-method="put"
+                  data-api-method="post"
                 >
                 <span class="slider round"></span>
               </label>

@@ -589,8 +589,8 @@ class Peer(serializers.Serializer):
             peer_session = self.get_peer_session(member)
             result.append(
                 {
-                    "ipaddr4": str(member.ipaddr4),
-                    "ipaddr6": str(member.ipaddr6),
+                    "ipaddr4": str(member.ipaddr4) if member.ipaddr4 else None,
+                    "ipaddr6": str(member.ipaddr6) if member.ipaddr6 else None,
                     "policy4": self.get_policy(member, 4),
                     "policy6": self.get_policy(member, 6),
                     "peer_session": peer_session,
