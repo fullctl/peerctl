@@ -704,17 +704,6 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
             if row["asn"] not in unified:
                 unified[row["asn"]] = row
 
-        peer_requests = models.PeerRequest.objects.filter(peer_asn__in=unified.keys())
-        for peer_request in peer_requests:
-            if peer_request.peer_asn in unified:
-                unified[peer_request.peer_asn][
-                    "peer_request_status"
-                ] = peer_request.status
-
-        for row in unified.values():
-            if "peer_request_status" not in row:
-                row["peer_request_status"] = None
-
         # parse ordering
         #
         # we cannot use the existing ordering filters we have in fullctl

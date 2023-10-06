@@ -417,6 +417,7 @@ class Peer(serializers.Serializer):
     mutual_locations_count = serializers.SerializerMethodField()
     ref_tag = "peer"
     id = serializers.CharField(source="ref_id")
+    peer_request_status = serializers.SerializerMethodField()
 
     class Meta:
         fields = [
@@ -444,6 +445,7 @@ class Peer(serializers.Serializer):
             "ipaddr",
             "ref_id",
             "device_id",
+            "peer_request_status",
         ]
 
     @property
@@ -526,6 +528,28 @@ class Peer(serializers.Serializer):
         self._peer_sessions = port.peer_sessions
 
         return self._peer_sessions
+
+    @property
+    def peer_requests(self):
+        """
+        Cached peer requests
+        """
+
+        if hasattr(self, "_peer_requests"):
+            return self._peer_requests
+
+        # if serializer is containing a single element turn it into a list
+        peers = (
+            [self.instance] if not isinstance(self.instance, list) else self.instance
+        )
+        peer_requests = models.PeerRequest.objects.filter(
+            peer_asn__in=[i.asn for i in peers]
+        )
+
+        # dict by asn
+        self._peer_requests = {i.peer_asn: i for i in peer_requests}
+
+        return self._peer_requests
 
     def get_mutual_locations_count(self, obj):
         """
@@ -670,6 +694,12 @@ class Peer(serializers.Serializer):
         if "device" not in self.context:
             self.context["device"] = self.context["port"].devices[0]
         return self.context["device"].id
+
+    def get_peer_request_status(self, obj):
+        peer_request = self.peer_requests.get(obj.asn)
+        if peer_request:
+            return peer_request.status
+        return None
 
     @models.ref_fallback(0)
     def get_info_prefixes4(self, obj):
