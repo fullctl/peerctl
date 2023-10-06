@@ -113,7 +113,6 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       var i, app = this;
       for(i in this.$t) {
         if(this.$t[i].active && this.$t[i] != tool) {
-          console.log("Syncing", this.$t[i]);
           this.$t[i].sync();
         }
       }
