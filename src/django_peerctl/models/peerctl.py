@@ -1939,6 +1939,15 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
         ),
         default="ixp",
     )
+    status = models.CharField(
+        max_length=32,
+        choices=(
+            ("ok", "ok"),
+            ("requested", "requested"),
+            ("configured", "configured"),
+        ),
+        default="ok",
+    )
 
     meta4 = models.JSONField(null=True, blank=True)
     meta6 = models.JSONField(null=True, blank=True)

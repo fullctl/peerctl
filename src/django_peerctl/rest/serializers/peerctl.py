@@ -589,8 +589,8 @@ class Peer(serializers.Serializer):
             peer_session = self.get_peer_session(member)
             result.append(
                 {
-                    "ipaddr4": str(member.ipaddr4),
-                    "ipaddr6": str(member.ipaddr6),
+                    "ipaddr4": str(member.ipaddr4) if member.ipaddr4 else None,
+                    "ipaddr6": str(member.ipaddr6) if member.ipaddr6 else None,
                     "policy4": self.get_policy(member, 4),
                     "policy6": self.get_policy(member, 6),
                     "peer_session": peer_session,
@@ -604,7 +604,7 @@ class Peer(serializers.Serializer):
 
     def get_policy(self, obj, version):
         peer_session = getattr(obj, "peer_session", None)
-        if peer_session and peer_session.status == "ok":
+        if peer_session:
             policy = get_best_policy(obj.peer_session, version, raise_error=False)
             if policy:
                 return {
@@ -840,6 +840,16 @@ class UpdatePeerSession(serializers.Serializer):
         required=False,
         allow_null=True,
     )
+    status = serializers.ChoiceField(
+        help_text=_("Session status"),
+        required=False,
+        allow_blank=True,
+        choices=(
+            ("ok", "ok"),
+            ("requested", "requested"),
+            ("configured", "configured"),
+        ),
+    )
 
     meta4 = PeerSessionMeta(required=False, allow_null=True)
     meta6 = PeerSessionMeta(required=False, allow_null=True)
@@ -861,6 +871,7 @@ class UpdatePeerSession(serializers.Serializer):
             "peer_session_type",
             "port",
             "device",
+            "status",
         ]
 
     def validate_peer_maxprefix4(self, value):
@@ -1137,7 +1148,7 @@ class UpdatePeerSession(serializers.Serializer):
             peer_port=peer_port,
             policy4_id=data.get("policy4") or None,
             policy6_id=data.get("policy6") or None,
-            status="ok",
+            status=data.get("status") or "ok",
             peer_session_type=data.get("peer_session_type"),
             meta4=data.get("meta4") or None,
             meta6=data.get("meta6") or None,

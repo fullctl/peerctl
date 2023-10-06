@@ -49,7 +49,7 @@
       class="peer-list"
       data-template="peers"
       data-api-base="{% url "peerctl_api:peer-list" asn=selected_asn port_pk=0 %}"
-      data-api-action=""
+      data-api-update-url="{% url "peerctl_api:update_peer_session-list" asn=selected_asn %}"
     >
       <div class="list-header marg-top-lg">
         <div class="row">
@@ -249,8 +249,7 @@
               <label class="switch col-auto">
                 <input type="checkbox"
                   class="peer_session-add solid-inactive"
-                  data-api-base="{% url "peerctl_api:peer_session-list" asn=selected_asn port_pk="port_id" %}"
-                  data-api-base-togl="{% url "peerctl_api:peer_session-detail" asn=selected_asn port_pk="port_id"  pk="peer_session_id" %}"
+                  data-api-base="{% url "peerctl_api:peer_session-set-status" asn=selected_asn port_pk="port_id"  pk="peer_session_id" %}"
                   data-confirm-off="{% trans "Remove this peering session?" %}"
                   data-api-method="post"
                 >
@@ -266,7 +265,7 @@
             <span data-field="ipaddr4"></span>
 
             <select data-api-base="/"
-              data-api-method="put"
+              data-api-method="post"
               data-api-load="yes"
               data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
               class="peer_session-policy-4 peer_session-active-toggled"
@@ -280,7 +279,7 @@
 
             <select
               data-api-base="/"
-              data-api-method="put"
+              data-api-method="post"
               data-api-load="yes"
               data-api-action="{% url "peerctl_api:peer_session-set-policy" asn=selected_asn port_pk="port_id" pk="peer_session_id" %}"
               class="peer_session-policy-6 peer_session-active-toggled"
