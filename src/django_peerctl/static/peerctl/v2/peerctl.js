@@ -10,41 +10,38 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return;
       }
 
-      this.autoload_page();
-
       // init home page tool
-
       this.tool("home", () => {
         return new $peerctl.Home();
       });
 
-      // init peering lists tool
+      // return if no asn selected
+      if (!selected_asn) {
+        return;
+      }
 
+      // init peering lists tool
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();
       });
 
       // init network search tool
-
       this.tool("networks", () => {
         return new $peerctl.Networks();
       });
 
       // init network settings tool
-
       this.tool("network_settings", () => {
         return new $peerctl.NetworkSettings();
       });
 
       // init ix tool
-
       this.tool("ix", () => {
         return new $peerctl.Ix();
       });
 
 
       // init policies management tool
-
       this.tool("policies", ()=> {
         return new $peerctl.Policies();
       });
