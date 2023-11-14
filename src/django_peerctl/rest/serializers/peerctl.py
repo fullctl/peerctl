@@ -527,7 +527,12 @@ class Peer(serializers.Serializer):
 
         net = self.context.get("net")
 
-        for member in sot.InternetExchangeMember().objects(mutual=net.asn):
+        peers = (
+            [self.instance] if not isinstance(self.instance, list) else self.instance
+        )
+
+
+        for member in sot.InternetExchangeMember().objects(mutual=net.asn, asns=[peer.asn for peer in peers]):
             location_id = f"{member.source}:{member.ix_id}"
             mutual_locations.setdefault(member.asn, set())
             mutual_locations[member.asn].add(location_id)
