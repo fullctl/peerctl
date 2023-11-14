@@ -4,7 +4,7 @@ import re
 import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
 from fullctl.django.models.concrete.tasks import TaskLimitError
 from fullctl.django.rest.decorators import serializer_registry
@@ -217,8 +217,29 @@ class Port(serializers.Serializer):
     def get_is_route_server_peer(self, instance):
         return instance.is_route_server_peer
 
+    def get_batched_peer_counts(self):
+        """
+        Count peer sessions for all ports in this serializer
+        """
+
+        if hasattr(self, "_batched_peer_counts"):
+            return self._batched_peer_counts
+
+        if not isinstance(self.instance, list):
+            ports = [self.instance]
+        else:
+            ports = self.instance
+
+        peer_sessions = models.PeerSession.objects.filter(
+            port__in=[i.id for i in ports]
+        ).values("port").annotate(count=Count("port"))
+
+        self._batched_peer_counts = {i["port"]: i["count"] for i in peer_sessions}
+
+        return self._batched_peer_counts
+
     def get_peers(self, instance):
-        return models.PeerSession.objects.filter(port=instance).count()
+        return self.get_batched_peer_counts().get(instance.id, 0)
 
     @models.ref_fallback(0)
     def get_maxprefix4(self, instance):

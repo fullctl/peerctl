@@ -217,7 +217,7 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
         port_ids = [int(obj.port) for obj in qset]
 
         instances = models.Port.preload(
-            request.org, asn, port_ids, filter_device=filter_device
+            request.org, asn, port_ids, filter_device=filter_device, load_policies=True
         )
 
         if ixi:
