@@ -241,11 +241,6 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
         else:
             data = sorted(data, key=lambda x: x["ix_name"])
 
-        # print django db queries
-        from django.db import connection
-        for query in connection.queries:
-            print(query["sql"])
-
         return Response(data)
 
     @grainy_endpoint(namespace="verified.asn.{asn}.?")

@@ -1300,6 +1300,8 @@ class Port(devicectl.Port):
                 if port.port_info_object.ref_id == member.ref_id:
                     port.port_info_object._ref = member
 
+        # prefetch networks
+
         networks = Network.objects.filter(
             port_info_qs__port__in=[port.id for port in instances]
         )
