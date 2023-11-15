@@ -581,6 +581,8 @@ class Peer(serializers.Serializer):
         """
         Returns the number of mutual locations
         """
+        # TODO: This is slow, we should cache it somehow
+        # it will run expensive query against pdbctl and ixctl
         return len(self.mutual_locations.get(obj.asn, []))
 
     def get_scope(self, obj):

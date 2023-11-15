@@ -1264,9 +1264,14 @@ class Port(devicectl.Port):
 
         # load ports
 
+        filters = dict(org=org.remote_id, join="device", status="ok", has_ips=1)
+
+        if port_ids:
+            filters["ids"] = port_ids
+        
         instances = [
             port
-            for port in Port().objects(org=org.remote_id, join="device", status="ok", has_ips=1)
+            for port in Port().objects(**filters)
             if (filter_device or port.id in port_ids)
             and (not filter_device or port.device_id == int(filter_device))
             # and (not port.name or not port.name.startswith("peerctl:"))
