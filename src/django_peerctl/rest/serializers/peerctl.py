@@ -150,7 +150,7 @@ class Port(serializers.Serializer):
     id = serializers.IntegerField(source="pk")
 
     net = serializers.IntegerField(read_only=True)
-    asn = serializers.IntegerField(read_only=True)
+    asn = serializers.SerializerMethodField()
     peers = serializers.SerializerMethodField()
     display_name = serializers.SerializerMethodField()
 
@@ -248,6 +248,9 @@ class Port(serializers.Serializer):
         return self._batched_peer_counts
 
     # serializers.SerializerMethodField
+
+    def get_asn(self, instance):
+        return instance.port_info_object.net.asn
 
     def get_ip4(self, instance):
         return instance.ip_address_4
