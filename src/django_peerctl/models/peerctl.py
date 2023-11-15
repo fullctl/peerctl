@@ -1245,7 +1245,15 @@ class Port(devicectl.Port):
         return candidates
 
     @classmethod
-    def preload(cls, org, asn, port_ids, filter_device=None, load_policies=False, port_infos=None):
+    def preload(
+        cls,
+        org,
+        asn,
+        port_ids,
+        filter_device=None,
+        load_policies=False,
+        port_infos=None,
+    ):
         """
         Preloads ixctl and pdbctl member reference (port_info ref)
 
@@ -1268,7 +1276,7 @@ class Port(devicectl.Port):
 
         if port_ids:
             filters["ids"] = port_ids
-        
+
         instances = [
             port
             for port in Port().objects(**filters)
@@ -1282,12 +1290,14 @@ class Port(devicectl.Port):
             port_info_qset = PortInfo.objects.filter(
                 port__in=[port.id for port in instances]
             ).select_related("net")
-            port_infos = {int(port_info.port): port_info for port_info in port_info_qset}
+            port_infos = {
+                int(port_info.port): port_info for port_info in port_info_qset
+            }
 
         for port in instances:
             port._port_info = port_infos.get(int(port.id))
             port._port_info.port._object = port
-            
+
         # prefetch netixlans/ixctl members
 
         for member in sot.InternetExchangeMember().objects(asn=asn):

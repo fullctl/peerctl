@@ -4,7 +4,7 @@ import re
 import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
-from django.db.models import Q, Count
+from django.db.models import Count, Q
 from django.utils.translation import ugettext_lazy as _
 from fullctl.django.models.concrete.tasks import TaskLimitError
 from fullctl.django.rest.decorators import serializer_registry
@@ -237,16 +237,18 @@ class Port(serializers.Serializer):
         else:
             ports = self.instance
 
-        peer_sessions = models.PeerSession.objects.filter(
-            port__in=[i.id for i in ports]
-        ).values("port").annotate(count=Count("port"))
+        peer_sessions = (
+            models.PeerSession.objects.filter(port__in=[i.id for i in ports])
+            .values("port")
+            .annotate(count=Count("port"))
+        )
 
         self._batched_peer_counts = {i["port"]: i["count"] for i in peer_sessions}
 
         return self._batched_peer_counts
 
-    # serializers.SerializerMethodField    
-    
+    # serializers.SerializerMethodField
+
     def get_ip4(self, instance):
         return instance.ip_address_4
 
@@ -545,8 +547,9 @@ class Peer(serializers.Serializer):
             [self.instance] if not isinstance(self.instance, list) else self.instance
         )
 
-
-        for member in sot.InternetExchangeMember().objects(mutual=net.asn, asns=[peer.asn for peer in peers]):
+        for member in sot.InternetExchangeMember().objects(
+            mutual=net.asn, asns=[peer.asn for peer in peers]
+        ):
             location_id = f"{member.source}:{member.ix_id}"
             mutual_locations.setdefault(member.asn, set())
             mutual_locations[member.asn].add(location_id)
