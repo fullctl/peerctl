@@ -212,12 +212,16 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
             qset = qset.filter(ref_id__gt=0)
 
+        qset = qset.select_related("net")
+
         # collect port ids
 
-        port_ids = [int(obj.port) for obj in qset]
+        port_infos = {int(port_info.port): port_info for port_info in qset}
+
+        port_ids = [int(obj.port) for obj in port_infos.values()]
 
         instances = models.Port.preload(
-            request.org, asn, port_ids, filter_device=filter_device, load_policies=True
+            request.org, asn, port_ids, filter_device=filter_device, load_policies=True, port_infos=port_infos
         )
 
         if ixi:
@@ -236,6 +240,11 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
             data = sorted(data, key=lambda x: x["ix_simple_name"])[::-1]
         else:
             data = sorted(data, key=lambda x: x["ix_name"])
+
+        # print django db queries
+        from django.db import connection
+        for query in connection.queries:
+            print(query["sql"])
 
         return Response(data)
 
