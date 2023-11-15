@@ -201,23 +201,30 @@ class Port(serializers.Serializer):
             "maxprefix6",
         ]
 
-    def get_ip4(self, instance):
-        return instance.ip_address_4
+    # caching
 
-    def get_ip6(self, instance):
-        return instance.ip_address_6
+    @property
+    def ix_objects(self):
+        """
+        cache ix objects
+        """
 
-    @models.ref_fallback(None)
-    def get_mac_address(self, instance):
-        if instance.mac_address:
-            return f"{instance.mac_address}"
-        return None
+        if hasattr(self, "_ix_objects"):
+            return self._ix_objects
 
-    @models.ref_fallback(False)
-    def get_is_route_server_peer(self, instance):
-        return instance.is_route_server_peer
+        ports = self.instance if isinstance(self.instance, list) else [self.instance]
 
-    def get_batched_peer_counts(self):
+        self._ix_objects = {
+            ix.ref_id: ix
+            for ix in models.InternetExchange.objects.filter(
+                ref_id__in=[i.port_info_object.ref_ix_id for i in ports]
+            )
+        }
+
+        return self._ix_objects
+
+    @property
+    def batched_peer_counts(self):
         """
         Count peer sessions for all ports in this serializer
         """
@@ -238,8 +245,26 @@ class Port(serializers.Serializer):
 
         return self._batched_peer_counts
 
+    # serializers.SerializerMethodField    
+    
+    def get_ip4(self, instance):
+        return instance.ip_address_4
+
+    def get_ip6(self, instance):
+        return instance.ip_address_6
+
+    @models.ref_fallback(None)
+    def get_mac_address(self, instance):
+        if instance.mac_address:
+            return f"{instance.mac_address}"
+        return None
+
+    @models.ref_fallback(False)
+    def get_is_route_server_peer(self, instance):
+        return instance.is_route_server_peer
+
     def get_peers(self, instance):
-        return self.get_batched_peer_counts().get(instance.id, 0)
+        return self.batched_peer_counts.get(instance.id, 0)
 
     @models.ref_fallback(0)
     def get_maxprefix4(self, instance):
@@ -271,19 +296,8 @@ class Port(serializers.Serializer):
 
     @models.ref_fallback(None)
     def get_ix_object(self, instance):
-        if not hasattr(self, "_ix_obj"):
-            self._ix_obj = {}
-
         ref_id = instance.port_info_object.ref_ix_id
-
-        if ref_id in self._ix_obj:
-            return self._ix_obj[ref_id]
-
-        self._ix_obj[ref_id] = models.InternetExchange.objects.get(
-            ref_id=instance.port_info_object.ref_ix_id
-        )
-
-        return self._ix_obj[ref_id]
+        return self.ix_objects.get(ref_id)
 
     @models.ref_fallback(None)
     def get_ref_ix_id(self, instance):
