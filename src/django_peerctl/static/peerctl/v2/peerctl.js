@@ -1561,6 +1561,10 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
       this.Select(jq);
 
       jq.select2();
+      $(this).on("load:after", (e, endpoint, data, response) => {
+        jq.trigger('change.select2');
+      });
+
       this.port_id = port_id;
       this.peer_session = peer_session;
       this.peer = peer;
@@ -1577,7 +1581,6 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
 
     load : function() {
       this.Select_load();
-      this.element.trigger('change.select2');
     },
 
     payload : function() {
