@@ -121,8 +121,11 @@ $ctl.application.Peerctl.Networks = $tc.extend(
         }
 
         row.find('.our-locations').append(cont_us);
+        new $ctl.application.Peerctl.SelectAllNetworks(row.find('#our-locations-select-all'), cont_us);
         row.find('.their-locations').append(cont_them);
+        new $ctl.application.Peerctl.SelectAllNetworks(row.find('#their-locations-select-all'), cont_them);
         row.find('.mutual-locations').append(cont_mutual);
+        new $ctl.application.Peerctl.SelectAllNetworks(row.find('#mutual-locations-select-all'), cont_mutual);
       }
 
       $(this.$w.list).on("load:after", (ev,response) => {
@@ -240,6 +243,51 @@ $ctl.application.Peerctl.Networks = $tc.extend(
   },
   $ctl.application.Tool
 )
+
+$ctl.application.Peerctl.SelectAllNetworks = $tc.define(
+  "SelectAllNetworks",
+  {
+    SelectAllNetworks : function(jq, container) {
+      this.element = jq;
+      this.container = container;
+
+      if (container.find('input[type=checkbox]').length == 0) {
+        this.element.parent().hide();
+        return
+      }
+
+      this.element.on("change", () => {
+        if(this.element.is(":checked")) {
+          this.select_all();
+        } else {
+          this.unselect_all();
+        }
+      });
+
+      this.monitor_selects();
+    },
+
+    select_all : function() {
+      this.container.find('input[type=checkbox]').prop("checked", true).trigger("change");
+    },
+
+    unselect_select_all : function() {
+      this.element.prop("checked", false);
+    },
+
+    unselect_all : function() {
+      this.container.find('input[type=checkbox]').prop("checked", false);
+    },
+
+    monitor_selects : function() {
+      this.container.find('input[type=checkbox]').on("change", () => {
+        if(this.container.find('input[type=checkbox]:checked').length !== this.container.find('input[type=checkbox]').length) {
+          this.element.prop("checked", false);
+        }
+      });
+    }
+  }
+);
 
 $($ctl).on("init_tools", (e, app) => {
   // init networks tool
