@@ -121,11 +121,11 @@ $ctl.application.Peerctl.Networks = $tc.extend(
         }
 
         row.find('.our-locations').append(cont_us);
-        new $ctl.application.Peerctl.SelectAllNetworks(row.find('#our-locations-select-all'), cont_us);
+        new $ctl.application.Peerctl.NetworksSelectAll(row.find('#our-locations-select-all'), cont_us);
         row.find('.their-locations').append(cont_them);
-        new $ctl.application.Peerctl.SelectAllNetworks(row.find('#their-locations-select-all'), cont_them);
+        new $ctl.application.Peerctl.NetworksSelectAll(row.find('#their-locations-select-all'), cont_them);
         row.find('.mutual-locations').append(cont_mutual);
-        new $ctl.application.Peerctl.SelectAllNetworks(row.find('#mutual-locations-select-all'), cont_mutual);
+        new $ctl.application.Peerctl.NetworksSelectAll(row.find('#mutual-locations-select-all'), cont_mutual);
       }
 
       $(this.$w.list).on("load:after", (ev,response) => {
@@ -244,10 +244,10 @@ $ctl.application.Peerctl.Networks = $tc.extend(
   $ctl.application.Tool
 )
 
-$ctl.application.Peerctl.SelectAllNetworks = $tc.define(
-  "SelectAllNetworks",
+$ctl.application.Peerctl.NetworksSelectAll = $tc.define(
+  "NetworksSelectAll",
   {
-    SelectAllNetworks : function(jq, container) {
+    NetworksSelectAll : function(jq, container) {
       this.element = jq;
       this.container = container;
 
@@ -276,7 +276,7 @@ $ctl.application.Peerctl.SelectAllNetworks = $tc.define(
     },
 
     unselect_all : function() {
-      this.container.find('input[type=checkbox]').prop("checked", false);
+      this.container.find('input[type=checkbox]').prop("checked", false).trigger("change");
     },
 
     monitor_selects : function() {
