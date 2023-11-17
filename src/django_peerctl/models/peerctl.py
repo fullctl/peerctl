@@ -39,7 +39,7 @@ from django_peerctl.exceptions import (
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.meta import PeerSessionSchema
 from django_peerctl.models.tasks import SyncIsRsPeer, SyncMacAddress, SyncRouteServerMD5
-from django_peerctl.templating import make_variable_name
+from django_peerctl.templating import make_variable_name, ip_version
 
 # naming::
 # handleref tag $model_$model
@@ -2455,6 +2455,7 @@ class TemplateBase(models.Model):
         env = Environment(trim_blocks=True, loader=loader, autoescape=True)
 
         env.filters["make_variable_name"] = make_variable_name
+        env.filters["ip_version"] = ip_version
 
         return env
 
