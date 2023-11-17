@@ -101,7 +101,8 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
           <span class="inner-icon icon-list dropdown-icon"></span>
         </span>
         <button data-element="button_asn" class="button" type="button"  id="asn-menu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        AS{{ selected_asn }}
+        {% if selected_asn%}
+          AS{{ selected_asn }}
         </button>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="asn-menu">
           {% for asn,net in asns.items %}
@@ -110,6 +111,10 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
           {% endfor %}
         </div>
         <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+        {% else %}
+          No ASNs
+        </button>
+        {% endif %}
       </span>
 
 

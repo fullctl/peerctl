@@ -10,41 +10,38 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return;
       }
 
-      this.autoload_page();
-
       // init home page tool
-
       this.tool("home", () => {
         return new $peerctl.Home();
       });
 
-      // init peering lists tool
+      // return if no asn selected
+      if (!selected_asn) {
+        return;
+      }
 
+      // init peering lists tool
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();
       });
 
       // init network search tool
-
       this.tool("networks", () => {
         return new $peerctl.Networks();
       });
 
       // init network settings tool
-
       this.tool("network_settings", () => {
         return new $peerctl.NetworkSettings();
       });
 
       // init ix tool
-
       this.tool("ix", () => {
         return new $peerctl.Ix();
       });
 
 
       // init policies management tool
-
       this.tool("policies", ()=> {
         return new $peerctl.Policies();
       });
@@ -1543,14 +1540,14 @@ $peerctl.PeerSessionList = $tc.extend(
         $ctl.peerctl.port(),
         peer_session_apiobj,
         this.peer
-      ).element.val(policy_4_id);
+      ).element.val(policy_4_id).trigger("change.select2");
 
       new $peerctl.IPv6PeerSessionPolicySelect(
         port_row.find('.peer_session-policy-6'),
         $ctl.peerctl.port(),
         peer_session_apiobj,
         this.peer
-      ).element.val(policy_6_id);
+      ).element.val(policy_6_id).trigger("change.select2");
 
     }
   },
@@ -1562,6 +1559,11 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
   {
     PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
       this.Select(jq);
+
+      jq.select2();
+      $(this).on("load:after", (e, endpoint, data, response) => {
+        jq.trigger('change.select2');
+      });
 
       this.port_id = port_id;
       this.peer_session = peer_session;
@@ -1575,6 +1577,10 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
         on_off_toggle.data('peer_session-id', session_data.id);
         this.peer_session_id = data.id;
       });
+    },
+
+    load : function() {
+      this.Select_load();
     },
 
     payload : function() {
