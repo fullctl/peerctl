@@ -453,7 +453,7 @@ $peerctl.Ix = $tc.extend(
 
       this.$w.list.load();
     },
-    
+
     // Function to indicate loading
     indicate_loading : function(row) {
       let graph_container = row.find("[data-element=graph_container]");
@@ -462,7 +462,7 @@ $peerctl.Ix = $tc.extend(
         fullctl.template("graph_placeholder")
       );
       return this;
-    },  
+    },
 
     show_graph_controls(row, port) {
       fullctl.graphs.init_controls(row, this, (end_date, duration)=>{
@@ -1265,6 +1265,10 @@ $peerctl.Policies = $tc.extend(
         fullctl.peerctl.sync();
       });
 
+      $(this.$w.list).on("api-write:success", ()=>{
+        fullctl.peerctl.sync();
+      });
+
     },
 
     sync : function() {
@@ -1331,7 +1335,7 @@ $peerctl.PeerSessionToggle = $tc.extend(
       } else {
 
         return fullctl.peerctl.$t.peering_lists.$w.peers.peer_sesion_update_url;
-      
+
       }
 
     },
@@ -1509,7 +1513,7 @@ $peerctl.PeerSessionList = $tc.extend(
 
     /**
      * Fill policy selects and set the selected value to the policy id
-     * 
+     *
      * @method fill_policy_selects
      * @param {jQuery} port_row - The row of the port (jQuery object)
      * @param {Object} peer_session_apiobj - The peer session api object
