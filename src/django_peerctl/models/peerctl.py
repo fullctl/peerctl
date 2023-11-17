@@ -39,7 +39,7 @@ from django_peerctl.exceptions import (
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.meta import PeerSessionSchema
 from django_peerctl.models.tasks import SyncIsRsPeer, SyncMacAddress, SyncRouteServerMD5
-from django_peerctl.templating import make_variable_name, ip_version
+from django_peerctl.templating import ip_version, make_variable_name
 
 # naming::
 # handleref tag $model_$model
