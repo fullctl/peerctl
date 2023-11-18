@@ -9,17 +9,115 @@ $ctl.application.Peerctl.Networks = $tc.extend(
     },
 
     init : function() {
+
+      this.select_network_search = $ctl.peerctl.$c.toolbar.$e.network_search_asn;
+
+      this.select_network_search.select2({
+        ajax: {
+          url : '/autocomplete/pdb/net',
+          dataType: 'json',
+          processResults : function(data, params) {
+
+            var term = params.term;
+            if(!isNaN(parseInt(term))) {
+              var exact_found = data.results.find((obj) => { return obj.id == parseInt(term) });
+              if(!exact_found) {
+                data.results.unshift({
+                  id: parseInt(term),
+                  text: "AS"+term,
+                  selected_text: "AS"+term
+                });
+              }
+            }
+            console.log("DATA", data.results, exact_found);
+            return {
+              results: data.results
+            }
+          }
+        },
+        placeholder: "Search by ASN"
+      });
+
+      this.select_network_search.on('select2:select', (e)=> {
+        this.sync();
+      });
+
+      $(document).on('select2:open', () => {
+        document.querySelector('.select2-search__field').focus();
+      });
+
       this.widget("list", ($e) => {
-        return new twentyc.rest.List(
+        return new $ctl.application.Peerctl.LocationList(
           this.template("list", this.$e.body)
         );
       })
 
-      this.$w.list.format_request_url = (url) => {
-        return url.replace(/other_asn/, this.select_network_search.val());
+
+
+      this.$w.list.element.find("[data-element=request_peering]").on("click", () => {
+        this.request_peering();
+      });
+
+      this.request_peering_btn = new fullctl.application.DropdownBtn(this.$w.list.element.find(".dropdown-btn"));
+
+    },
+
+    sync : function() {
+      if(this.select_network_search.val())
+        this.$w.list.load(this.select_network_search.val());
+    },
+
+    request_peering : function(type) {
+
+      if(!this.peer) {
+        return alert("No network in results");
       }
 
-      $(this.$w.list).on("api-read:success", (ev, endpoint, payload, response) => {
+      var selected = this.$w.list.element.find('input[type=checkbox]:checked').parent()
+      var ix_ids = []
+
+      selected.each(function() {
+        ix_ids.push($(this).data("ix-id"));
+      });
+
+      new $peerctl.modals.RequestPeering(
+        this.peer,
+        this.peer_request_data,
+        ix_ids,
+      );
+    }
+
+
+  },
+  $ctl.application.Tool
+)
+
+$ctl.application.Peerctl.LocationList = $tc.extend(
+  "LocationList",
+  {
+    LocationList : function(jq) {
+      this.List(jq);
+
+      this.request_peering_row = jq.find('[data-element="request_peering_tr"]');
+
+      this.formatters.row = this.format_row;
+
+      $(this).on("load:after", (ev,response) => {
+        let request_peering = this.element.find('[data-element=request_peering]');
+        request_peering.show().prop("disabled", false).children('.label').hide().filter('.ok').show();
+
+        this.element.find('input[type=checkbox]:not(.select-all)').on("change", (ev) => {
+          if(this.get_number_of_selected_networks() > 0) {
+            request_peering.prop("disabled", false)
+            this.request_peering_row.show();
+          } else {
+            request_peering.prop("disabled", true)
+            this.request_peering_row.hide();
+          }
+        });
+      });
+
+      $(this).on("api-read:success", (ev, endpoint, payload, response) => {
 
         if(!response.first()) {
           $('#network-search-result-name').text("");
@@ -79,40 +177,60 @@ $ctl.application.Peerctl.Networks = $tc.extend(
         });
       });
 
-      this.$w.list.formatters.row = (row, data) => {
+    },
+
+    format_request_url : function(url) {
+      return url.replace(/other_asn/, this.network_asn);
+    },
+
+    load : function(network_asn) {
+      this.network_asn = network_asn;
+      this.reset_request_peering_row();
+
+      this.List_load();
+    },
+
+    get_number_of_selected_networks() {
+      return this.element.find('input[type=checkbox]:checked').length;
+    },
+
+    format_row : function(row, data) {
         row.data("ix-id", data.ix_id);
 
         const cont_us = $('<div>');
         const cont_them = $('<div>');
         const cont_mutual = $('<div>');
         const session_icon = $('<img>').attr('src', fullctl.util.static('common/icons/Indicator/Check-Ind/Check.svg')).addClass("indicator").attr("title", "Peering session(s) configured")
-        let loc,i, node;
+        let loc, i, node;
 
 
         for(i=0; i< data.our_locations.length; i++) {
           loc = data.our_locations[i];
+          const id = `${i}-our-location`;
           $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
-            $('<input type="checkbox">')
+            $(`<input type="checkbox" id="${id}">`)
           ).append(
-            $('<span>').text(loc.ix_name)
+            $(`<label class="ms-1" for="${id}">`).text(loc.ix_name)
           ).appendTo(cont_us);
         }
 
         for(i=0; i< data.their_locations.length; i++) {
           loc = data.their_locations[i];
+          const id = `${i}-their-location`;
           $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
-            $('<input type="checkbox">')
+            $(`<input type="checkbox" id="${id}">`)
           ).append(
-            $('<span>').text(loc.ix_name)
+            $(`<label class="ms-1" for="${id}">`).text(loc.ix_name)
           ).appendTo(cont_them);
         }
 
         for(i=0; i< data.mutual_locations.length; i++) {
           loc = data.mutual_locations[i];
+          const id = `${i}-mutual-location`;
           node = $('<div class="compact-row field">').data("ix-id", loc.ix_id).append(
-            $('<input type="checkbox">')
+            $(`<input type="checkbox" id="${id}">`)
           ).append(
-            $('<span>').text(loc.ix_name).addClass((loc.session ? "session-active" : ""))
+            $(`<label class="ms-1" for="${id}">`).text(loc.ix_name).addClass((loc.session ? "session-active" : ""))
           ).appendTo(cont_mutual);
 
           if(loc.session) {
@@ -126,123 +244,14 @@ $ctl.application.Peerctl.Networks = $tc.extend(
         new $ctl.application.Peerctl.NetworksSelectAll(row.find('#their-locations-select-all'), cont_them);
         row.find('.mutual-locations').append(cont_mutual);
         new $ctl.application.Peerctl.NetworksSelectAll(row.find('#mutual-locations-select-all'), cont_mutual);
-      }
-
-      $(this.$w.list).on("load:after", (ev,response) => {
-        let request_peering = this.$w.list.element.find('[data-element=request_peering]');
-        request_peering.show().prop("disabled", false).children('.label').hide().filter('.ok').show();
-
-        let request_peering_tr = this.$w.list.element.find('[data-element=request_peering_tr]');
-
-        this.$w.list.element.find('input[type=checkbox]:not(.select-all)').on("change", (ev) => {
-          if(this.get_number_of_selected_networks() > 0) {
-            request_peering.prop("disabled", false)
-            request_peering_tr.show();
-          } else {
-            request_peering.prop("disabled", true)
-            request_peering_tr.hide();
-          }
-        });
-
-      });
-
-      this.select_network_search = $ctl.peerctl.$c.toolbar.$e.network_search_asn;
-
-      this.select_network_search.select2({
-        ajax: {
-          url : '/autocomplete/pdb/net',
-          dataType: 'json',
-          processResults : function(data, params) {
-
-            var term = params.term;
-            if(!isNaN(parseInt(term))) {
-              var exact_found = data.results.find((obj) => { return obj.id == parseInt(term) });
-              if(!exact_found) {
-                data.results.unshift({
-                  id: parseInt(term),
-                  text: "AS"+term,
-                  selected_text: "AS"+term
-                });
-              }
-            }
-            console.log("DATA", data.results, exact_found);
-            return {
-              results: data.results
-            }
-          }
-        },
-        placeholder: "Search by ASN"
-      });
-
-      this.select_network_search.on('select2:select', ()=> {
-        this.sync();
-      });
-
-      $(document).on('select2:open', () => {
-        document.querySelector('.select2-search__field').focus();
-      });
-
-      /*
-      $(this.$w.list).on("load:after", () => {
-        this.$e.request_peering.show();
-      });
-
-      this.input_network_search = $ctl.peerctl.$c.toolbar.$e.network_search;
-
-      this.input_network_search.on("keydown", function(ev){
-        if(ev.which == 13) {
-          this.sync();
-        }
-      }.bind(this));
-
-      this.btn_network_search = $ctl.peerctl.$c.toolbar.$e.network_search_submit;
-
-      $(this.btn_network_search).click(function() {
-        this.sync();
-      }.bind(this));
-      */
-
-      this.$w.list.element.find("[data-element=request_peering]").on("click", () => {
-        this.request_peering();
-      });
-
-      this.request_peering_btn = new fullctl.application.DropdownBtn(this.$w.list.element.find(".dropdown-btn"));
-
     },
 
-    sync : function() {
-      if(this.select_network_search.val())
-        this.$w.list.load();
-    },
-
-    get_number_of_selected_networks() {
-      return this.$w.list.element.find('input[type=checkbox]:checked').length;
-    },
-
-    request_peering : function(type) {
-
-      if(!this.peer) {
-        return alert("No network in results");
-      }
-
-      var selected = this.$w.list.element.find('input[type=checkbox]:checked').parent()
-      var ix_ids = []
-
-      selected.each(function() {
-        ix_ids.push($(this).data("ix-id"));
-      });
-
-      new $peerctl.modals.RequestPeering(
-        this.peer,
-        this.peer_request_data,
-        ix_ids,
-      );
+    reset_request_peering_row : function() {
+      this.request_peering_row.hide();
     }
-
-
   },
-  $ctl.application.Tool
-)
+  twentyc.rest.List
+);
 
 $ctl.application.Peerctl.NetworksSelectAll = $tc.define(
   "NetworksSelectAll",
