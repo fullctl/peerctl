@@ -51,6 +51,16 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return new $peerctl.PeeringRequestsList();
       });
 
+      const button_make_default = new twentyc.rest.Button(
+        this.$c.header.$e.button_set_default_network
+      );
+      button_make_default.format_request_url = (url) => {
+        return url.replace("network_asn", selected_asn);
+      };
+      $(button_make_default).on("api-write:success", (ev, response) => {
+        alert("Default Network set successfully");
+      });
+
       this.$t.peering_lists.activate();
       this.$t.policies.activate();
       this.$t.networks.activate();

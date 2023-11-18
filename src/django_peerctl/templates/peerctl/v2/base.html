@@ -166,8 +166,18 @@ const selected_asn = "{{ selected_asn }}";
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="asn-menu">
           {% for asn,net in asns.items %}
           <a class="asn dropdown-item action" data-select-asn="{{ asn }}">
-            <span class="inner-icon icon-list dropdown-icon"></span><span>AS{{ asn }}</span></a>
+            <span class="inner-icon icon-list dropdown-icon"></span><span>AS{{ asn }}</span>
+          </a>
           {% endfor %}
+          <div
+            class="dropdown-item text-body"
+            type="button"
+            {% if not asns_count > 1 %}style="display: none;"{% endif %}
+            data-element="button_set_default_network"
+            data-api-base="{% url "peerctl_api:net-set-as-default" asn="network_asn" %}"
+          >
+            <span class="icon icon-settings"></span> {% trans "Set as default" %}
+          </div>
         </div>
       </div>
 
