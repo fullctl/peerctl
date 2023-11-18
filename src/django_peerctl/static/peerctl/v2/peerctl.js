@@ -61,7 +61,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       });
 
       $('a[data-select-asn]').click(function(){
-        window.location.href = "?asn="+$(this).data("select-asn");
+        window.location.href = "?asn=" + $(this).data("select-asn") + window.location.hash;
       });
 
       $('#tab-peering-lists').on('show.bs.tab', () => {
