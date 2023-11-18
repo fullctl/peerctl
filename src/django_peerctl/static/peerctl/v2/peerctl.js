@@ -2167,10 +2167,17 @@ $peerctl.PeeringRequestsList = $tc.extend(
 
         w.formatters.type = (value, data) => {
           let icon = "mail";
-          if(value == "autopeer")
+          let text = "Email"
+          if(value == "autopeer") {
             icon = "api";
+            text = "Autopeer";
+          }
 
-          return $("<span>").addClass("icon").addClass("icon-"+icon).text(value).attr("title", value);
+          const jq = $('<div class="d-flex justify-content-center align-items-center">');
+          jq.append($(`<span class="icon icon-${icon} me-1" title="${value}">`))
+          jq.append($("<span>").text(text))
+
+          return jq;
         };
 
         w.formatters.date = fullctl.formatters.datetime;
