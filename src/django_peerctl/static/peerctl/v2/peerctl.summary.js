@@ -542,8 +542,8 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
       this.session = session;
 
       this.select_port = this.form.element.find('#port');
-      this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
-      this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
+      this.select_policy_4 = new $ctl.application.Peerctl.SummaryPeerSessionPolicySelect(this.form.element.find('#policy-4'));
+      this.select_policy_6 = new $ctl.application.Peerctl.SummaryPeerSessionPolicySelect(this.form.element.find('#policy-6'));
 
       if(port == "all")
         port = null;
@@ -638,6 +638,29 @@ $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
   },
   $ctl.application.Modal
 );
+
+$ctl.application.Peerctl.SummaryPeerSessionPolicySelect = $tc.extend(
+  "SummaryPeerSessionPolicySelect",
+  {
+    SummaryPeerSessionPolicySelect : function(jq) {
+      this.Select(jq);
+      jq.select2({
+        dropdownParent: jq.parent()
+      });
+      // fixing not being able to scroll modal when select2 opened
+      $(jq).on('select2:open', function (e) {
+        const evt = "scroll.select2";
+        $(e.target).parents().off(evt);
+        $(window).off(evt);
+      });
+
+      $(this).on("load:after", (e, endpoint, data, response) => {
+        jq.trigger('change.select2');
+      });
+    },
+  },
+  twentyc.rest.Select
+)
 
 $($ctl).on("init_tools", (e, app) => {
   // init sessions summary tool

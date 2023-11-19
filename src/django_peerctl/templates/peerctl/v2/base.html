@@ -14,26 +14,31 @@
 
 <script>
 $(fullctl.application).on("initialized", function(e, peerctl, id) {
+  {% if net %}
+    peerctl.network = {
+      id: {{ net.id }},
+      as_set: "{{ net.as_set }}",
+      asn: {{ net.asn }},
+      name : "{{ net.name }}"
+    }
+  {% else %}
+    peerctl.network = {};
+  {% endif %}
 
-{% if net %}
-  peerctl.network = {
-    id: {{ net.id }},
-    as_set: "{{ net.as_set }}",
-    asn: {{ net.asn }},
-    name : "{{ net.name }}"
-  }
+  $('[data-second-tab]').on('show.bs.tab', function(e) {
+    let target = $(e.target).data('second-tab');
+    $(target)
+      .addClass('active show')
+      .siblings('.tab-pane.active')
+      .removeClass('active show')
+  });
+});
+
+{% if not selected_asn %}
+const selected_asn = null;
 {% else %}
-  peerctl.network = {};
+const selected_asn = "{{ selected_asn }}";
 {% endif %}
-
-$('[data-second-tab]').on('show.bs.tab', function(e) {
-  let target = $(e.target).data('second-tab');
-  $(target)
-    .addClass('active show')
-    .siblings('.tab-pane.active')
-    .removeClass('active show')
-});
-});
 </script>
 {% endblock %}
 
@@ -151,13 +156,29 @@ $('[data-second-tab]').on('show.bs.tab', function(e) {
 
       <div class="header-control d-flex align-items-center h-100">
         <div id="asn-menu" data-element="button_asn" class="d-flex align-items-center px-3 ms-2 h-100" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          <span class="icon icon-list"></span><span class="ps-2 pe-4">AS{{ selected_asn }}</span><span class="icon icon-caret-down"></span>
+          <span class="icon icon-list"></span>
+          {% if selected_asn %}
+          <span class="ps-2 pe-4">AS{{ selected_asn }}</span>
+          <span class="icon icon-caret-down"></span>
+          {% else %}
+          <span class="ps-2 pe-4">No ASNs</span>
+          {% endif %}
         </div>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="asn-menu">
           {% for asn,net in asns.items %}
           <a class="asn dropdown-item action" data-select-asn="{{ asn }}">
-            <span class="inner-icon icon-list dropdown-icon"></span><span>AS{{ asn }}</span></a>
+            <span class="inner-icon icon-list dropdown-icon"></span><span>AS{{ asn }}</span>
+          </a>
           {% endfor %}
+          <div
+            class="dropdown-item text-body"
+            type="button"
+            {% if not asns_count > 1 %}style="display: none;"{% endif %}
+            data-element="button_set_default_network"
+            data-api-base="{% url "peerctl_api:net-set-as-default" asn="network_asn" %}"
+          >
+            <span class="icon icon-settings"></span> {% trans "Set as default" %}
+          </div>
         </div>
       </div>
 

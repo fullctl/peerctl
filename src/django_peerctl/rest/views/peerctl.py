@@ -93,6 +93,26 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(entities, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["POST"], serializer_class=Serializers.default_network)
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def set_as_default(self, request, asn, net, *args, **kwargs):
+        """
+        Set the Network as the default Network for the organization
+        """
+
+        org = request.org
+        serializer = Serializers.default_network(
+            instance=models.OrganizationDefaultNetwork.objects.filter(org=org).first(),
+            data={"network": net.id, "org": org.id},
+        )
+
+        if not serializer.is_valid():
+            return BadRequest(serializer.errors)
+
+        serializer.save()
+        return Response(serializer.data)
+
 
 # policy view
 # list all Polciy for a network

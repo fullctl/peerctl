@@ -370,6 +370,44 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
         return obj
 
+    @classmethod
+    def get_default_network_for_org(cls, org):
+        """
+        Returns the default Network for an organization
+
+        Will return the default network for the organization if
+        specified, otherwise will return the first network in the
+        organization's instance.
+
+        If the organization has no networks in its instance, will
+        return None
+        """
+
+        try:
+            return OrganizationDefaultNetwork.objects.get(org=org)
+        except OrganizationDefaultNetwork.DoesNotExist:
+            return cls.objects.filter(org=org).first()
+
+    @classmethod
+    def set_default_network_for_org(cls, org, network):
+        """
+        Will take an Organization object and make the specified
+        Network the default network for that organization
+        """
+
+        # check that Network belongs to org
+
+        if network.org != org:
+            raise ValueError("Network does not belong to Organization")
+
+        try:
+            default = OrganizationDefaultNetwork.objects.get(org=org)
+        except OrganizationDefaultNetwork.DoesNotExist:
+            default = OrganizationDefaultNetwork(org=org)
+
+        default.network = network
+        default.save()
+
     def create_global_policy(self):
         # create global policy owned by network
         global_policy = Policy.objects.create(name="Global", status="ok", net=self)
@@ -641,6 +679,35 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     def set_as_set(self, as_set):
         self.as_set_override = as_set
         self.save()
+
+
+class OrganizationDefaultNetwork(models.Model):
+    """
+    Describes the default network for an organization
+
+    This is used to determine which network to use when
+    no network is specified in the url.
+    """
+
+    org = models.OneToOneField(
+        Organization,
+        related_name="default_network",
+        on_delete=models.CASCADE,
+        primary_key=True,
+    )
+    network = models.OneToOneField(
+        Network,
+        related_name="default_for_org",
+        on_delete=models.CASCADE,
+    )
+
+    class Meta:
+        db_table = "peerctl_default_network"
+        verbose_name = _("Organization Default Network")
+        verbose_name_plural = _("Organization Default Network")
+
+    def __str__(self):
+        return f"{self.org.name} -> {self.network.name}"
 
 
 @reversion.register

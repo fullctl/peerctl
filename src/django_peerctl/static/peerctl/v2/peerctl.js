@@ -10,35 +10,33 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return;
       }
 
-      this.autoload_page();
-
       // init home page tool
-
       this.tool("home", () => {
         return new $peerctl.Home();
       });
 
-      // init peering lists tool
+      // return if no asn selected
+      if (!selected_asn) {
+        return;
+      }
 
+      // init peering lists tool
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();
       });
 
       // init network settings tool
-
       this.tool("network_settings", () => {
         return new $peerctl.NetworkSettings();
       });
 
       // init ix tool
-
       this.tool("ix", () => {
         return new $peerctl.Ix();
       });
 
 
       // init policies management tool
-
       this.tool("policies", ()=> {
         return new $peerctl.Policies();
       });
@@ -46,6 +44,16 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       // init peering requests tool
       this.tool("peering_requests_list", ()=> {
         return new $peerctl.PeeringRequestsList();
+      });
+
+      const button_make_default = new twentyc.rest.Button(
+        this.$c.header.$e.button_set_default_network
+      );
+      button_make_default.format_request_url = (url) => {
+        return url.replace("network_asn", selected_asn);
+      };
+      $(button_make_default).on("api-write:success", (ev, response) => {
+        alert("Default Network set successfully");
       });
 
       this.$t.peering_lists.activate();
@@ -1298,14 +1306,14 @@ $peerctl.PeerSessionList = $tc.extend(
         $ctl.peerctl.port(),
         peer_session_apiobj,
         this.peer
-      ).element.val(policy_4_id);
+      ).element.val(policy_4_id).trigger("change.select2");
 
       new $peerctl.IPv6PeerSessionPolicySelect(
         port_row.find('.peer_session-policy-6'),
         $ctl.peerctl.port(),
         peer_session_apiobj,
         this.peer
-      ).element.val(policy_6_id);
+      ).element.val(policy_6_id).trigger("change.select2");
 
     }
   },
@@ -1317,6 +1325,11 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
   {
     PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
       this.Select(jq);
+
+      jq.select2();
+      $(this).on("load:after", (e, endpoint, data, response) => {
+        jq.trigger('change.select2');
+      });
 
       this.port_id = port_id;
       this.peer_session = peer_session;
@@ -1330,6 +1343,10 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
         on_off_toggle.data('peer_session-id', session_data.id);
         this.peer_session_id = data.id;
       });
+    },
+
+    load : function() {
+      this.Select_load();
     },
 
     payload : function() {
