@@ -1257,9 +1257,24 @@ $peerctl.PeerSessionList = $tc.extend(
       });
 
 
+      const row = this.find_row(this.peer.id);
       $(switch_add).on("api-write:success", (ev, endpoint, sent_data, response) => {
-        fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(this.peer.id).then(() => {
+        const loading_shim = fullctl.peerctl.$t.peering_lists.$w.peers.loading_shim;
+
+        const offset_top = row.first().position().top;
+        const offset_height = row.first().height();
+
+        loading_shim.height(offset_height);
+        loading_shim.css('top', offset_top);
+        loading_shim.show();
+
+        fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(this.peer.id)
+        .then(() => {
           fullctl.peerctl.$t.peering_lists.$w.peers.update_counts()
+        })
+        .finally(() => {
+          loading_shim.height('');
+          loading_shim.css('top', 0);
         });
         //fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
       });
@@ -1326,7 +1341,9 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
     PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
       this.Select(jq);
 
-      jq.select2();
+      jq.select2({
+        dropdownParent: jq.parent()
+      });
       $(this).on("load:after", (e, endpoint, data, response) => {
         jq.trigger('change.select2');
       });
