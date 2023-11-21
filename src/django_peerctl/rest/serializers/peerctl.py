@@ -4,7 +4,7 @@ import re
 import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils.translation import ugettext_lazy as _
 from fullctl.django.models.concrete.tasks import TaskLimitError
 from fullctl.django.rest.decorators import serializer_registry
@@ -150,7 +150,7 @@ class Port(serializers.Serializer):
     id = serializers.IntegerField(source="pk")
 
     net = serializers.IntegerField(read_only=True)
-    asn = serializers.IntegerField(read_only=True)
+    asn = serializers.SerializerMethodField()
     peers = serializers.SerializerMethodField()
     display_name = serializers.SerializerMethodField()
 
@@ -201,6 +201,57 @@ class Port(serializers.Serializer):
             "maxprefix6",
         ]
 
+    # caching
+
+    @property
+    def ix_objects(self):
+        """
+        cache ix objects
+        """
+
+        if hasattr(self, "_ix_objects"):
+            return self._ix_objects
+
+        ports = self.instance if isinstance(self.instance, list) else [self.instance]
+
+        self._ix_objects = {
+            ix.ref_id: ix
+            for ix in models.InternetExchange.objects.filter(
+                ref_id__in=[i.port_info_object.ref_ix_id for i in ports]
+            )
+        }
+
+        return self._ix_objects
+
+    @property
+    def batched_peer_counts(self):
+        """
+        Count peer sessions for all ports in this serializer
+        """
+
+        if hasattr(self, "_batched_peer_counts"):
+            return self._batched_peer_counts
+
+        if not isinstance(self.instance, list):
+            ports = [self.instance]
+        else:
+            ports = self.instance
+
+        peer_sessions = (
+            models.PeerSession.objects.filter(port__in=[i.id for i in ports])
+            .values("port")
+            .annotate(count=Count("port"))
+        )
+
+        self._batched_peer_counts = {i["port"]: i["count"] for i in peer_sessions}
+
+        return self._batched_peer_counts
+
+    # serializers.SerializerMethodField
+
+    def get_asn(self, instance):
+        return instance.port_info_object.net.asn
+
     def get_ip4(self, instance):
         return instance.ip_address_4
 
@@ -218,7 +269,7 @@ class Port(serializers.Serializer):
         return instance.is_route_server_peer
 
     def get_peers(self, instance):
-        return models.PeerSession.objects.filter(port=instance).count()
+        return self.batched_peer_counts.get(instance.id, 0)
 
     @models.ref_fallback(0)
     def get_maxprefix4(self, instance):
@@ -250,19 +301,8 @@ class Port(serializers.Serializer):
 
     @models.ref_fallback(None)
     def get_ix_object(self, instance):
-        if not hasattr(self, "_ix_obj"):
-            self._ix_obj = {}
-
         ref_id = instance.port_info_object.ref_ix_id
-
-        if ref_id in self._ix_obj:
-            return self._ix_obj[ref_id]
-
-        self._ix_obj[ref_id] = models.InternetExchange.objects.get(
-            ref_id=instance.port_info_object.ref_ix_id
-        )
-
-        return self._ix_obj[ref_id]
+        return self.ix_objects.get(ref_id)
 
     @models.ref_fallback(None)
     def get_ref_ix_id(self, instance):
@@ -506,7 +546,13 @@ class Peer(serializers.Serializer):
 
         net = self.context.get("net")
 
-        for member in sot.InternetExchangeMember().objects(mutual=net.asn):
+        peers = (
+            [self.instance] if not isinstance(self.instance, list) else self.instance
+        )
+
+        for member in sot.InternetExchangeMember().objects(
+            mutual=net.asn, asns=[peer.asn for peer in peers]
+        ):
             location_id = f"{member.source}:{member.ix_id}"
             mutual_locations.setdefault(member.asn, set())
             mutual_locations[member.asn].add(location_id)
@@ -555,6 +601,8 @@ class Peer(serializers.Serializer):
         """
         Returns the number of mutual locations
         """
+        # TODO: This is slow, we should cache it somehow
+        # it will run expensive query against pdbctl and ixctl
         return len(self.mutual_locations.get(obj.asn, []))
 
     def get_scope(self, obj):

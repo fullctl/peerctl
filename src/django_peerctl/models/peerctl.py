@@ -1245,7 +1245,15 @@ class Port(devicectl.Port):
         return candidates
 
     @classmethod
-    def preload(cls, org, asn, port_ids, filter_device=None):
+    def preload(
+        cls,
+        org,
+        asn,
+        port_ids,
+        filter_device=None,
+        load_policies=False,
+        port_infos=None,
+    ):
         """
         Preloads ixctl and pdbctl member reference (port_info ref)
 
@@ -1255,6 +1263,7 @@ class Port(devicectl.Port):
             asn: asn
             port_ids: list of port ids - only include ports with these ids
             filter_device: device id to filter on, will ignore port_ids if set
+            load_policies: load policies for ports
 
         Returns:
 
@@ -1263,14 +1272,31 @@ class Port(devicectl.Port):
 
         # load ports
 
+        filters = dict(org=org.remote_id, join="device", status="ok", has_ips=1)
+
+        if port_ids:
+            filters["ids"] = port_ids
+
         instances = [
             port
-            for port in Port().objects(org=org.remote_id, join="device", status="ok")
+            for port in Port().objects(**filters)
             if (filter_device or port.id in port_ids)
             and (not filter_device or port.device_id == int(filter_device))
-            and (port.ip_address_4 or port.ip_address_6)
             # and (not port.name or not port.name.startswith("peerctl:"))
         ]
+
+        # prefetch port infos
+        if not port_infos:
+            port_info_qset = PortInfo.objects.filter(
+                port__in=[port.id for port in instances]
+            ).select_related("net")
+            port_infos = {
+                int(port_info.port): port_info for port_info in port_info_qset
+            }
+
+        for port in instances:
+            port._port_info = port_infos.get(int(port.id))
+            port._port_info.port._object = port
 
         # prefetch netixlans/ixctl members
 
@@ -1283,6 +1309,33 @@ class Port(devicectl.Port):
 
                 if port.port_info_object.ref_id == member.ref_id:
                     port.port_info_object._ref = member
+
+        # prefetch networks
+
+        networks = Network.objects.filter(
+            port_info_qs__port__in=[port.id for port in instances]
+        )
+
+        for port in instances:
+            if not hasattr(port, "port_info_object") or not port.port_info_object:
+                continue
+
+            for net in networks:
+                if port.port_info_object.net_id == net.id:
+                    port.port_info_object.net = net
+
+        # prefetch policies
+
+        if load_policies:
+            policies = {
+                policy.port: policy
+                for policy in PortPolicy.objects.filter(port__in=port_ids)
+            }
+
+            for port in instances:
+                if port.id in policies:
+                    port._port_policy = policies[port.id]
+                    port._port_policy._object = port
 
         return instances
 
