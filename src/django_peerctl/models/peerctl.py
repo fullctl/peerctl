@@ -408,6 +408,8 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         default.network = network
         default.save()
 
+        return default
+
     def create_global_policy(self):
         # create global policy owned by network
         global_policy = Policy.objects.create(name="Global", status="ok", net=self)

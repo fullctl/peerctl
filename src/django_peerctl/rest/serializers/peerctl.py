@@ -1918,4 +1918,4 @@ class DefaultNetwork(ModelSerializer):
         org = self.validated_data["org"]
         network = self.validated_data["network"]
 
-        models.Network.set_default_network_for_org(org, network)
+        return models.Network.set_default_network_for_org(org, network)

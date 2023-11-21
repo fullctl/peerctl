@@ -52,8 +52,16 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       button_make_default.format_request_url = (url) => {
         return url.replace("network_asn", selected_asn);
       };
-      $(button_make_default).on("api-write:success", (ev, response) => {
+      $(button_make_default).on("api-write:success", (e, ev, d, response) => {
         alert("Default Network set successfully");
+        if (!response.content.data[0]){
+          return
+        }
+
+        const default_network = response.content.data[0].network
+        this.$c.header.$e.select_network.find(`a[data-network-id="${default_network}"]`).append(
+          this.$c.header.$e.default_network_label
+        );
       });
 
       this.$t.peering_lists.activate();

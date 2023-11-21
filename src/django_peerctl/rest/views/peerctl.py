@@ -102,16 +102,17 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
         """
 
         org = request.org
+        default_network = models.OrganizationDefaultNetwork.objects.filter(org=org).first()
         serializer = Serializers.default_network(
-            instance=models.OrganizationDefaultNetwork.objects.filter(org=org).first(),
+            instance=default_network,
             data={"network": net.id, "org": org.id},
         )
 
         if not serializer.is_valid():
             return BadRequest(serializer.errors)
 
-        serializer.save()
-        return Response(serializer.data)
+        default_network = serializer.save()
+        return Response(Serializers.default_network(default_network).data)
 
 
 # policy view

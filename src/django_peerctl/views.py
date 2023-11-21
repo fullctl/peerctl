@@ -23,9 +23,13 @@ def view_instance(request, instance, **kwargs):
     # check if asn specified in request
     asn = request.GET.get("asn")
 
+    default_asn = None
     default_net = Network.get_default_network_for_org(instance.org)
-    if asn is None and default_net is not None:
-        asn = default_net.network.asn
+    if default_net is not None:
+        default_asn = default_net.network.asn
+
+    if asn is None:
+        asn = default_asn
 
     if asn is not None:
         request.session["asn"] = asn
@@ -48,6 +52,7 @@ def view_instance(request, instance, **kwargs):
     env["net"] = net
     env["asns"] = asns
     env["asns_count"] = len(asns)
+    env["default_asn"] = default_asn
 
     return render(request, "theme-select.html", env)
 
