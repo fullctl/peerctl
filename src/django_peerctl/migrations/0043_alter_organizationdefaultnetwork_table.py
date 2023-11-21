@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('django_peerctl', '0042_auto_20231118_0857'),
+        ("django_peerctl", "0042_auto_20231118_0857"),
     ]
 
     operations = [
         migrations.AlterModelTable(
-            name='organizationdefaultnetwork',
-            table='peerctl_default_network',
+            name="organizationdefaultnetwork",
+            table="peerctl_default_network",
         ),
     ]
