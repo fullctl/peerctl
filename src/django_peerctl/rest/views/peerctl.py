@@ -102,7 +102,9 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
         """
 
         org = request.org
-        default_network = models.OrganizationDefaultNetwork.objects.filter(org=org).first()
+        default_network = models.OrganizationDefaultNetwork.objects.filter(
+            org=org
+        ).first()
         serializer = Serializers.default_network(
             instance=default_network,
             data={"network": net.id, "org": org.id},
