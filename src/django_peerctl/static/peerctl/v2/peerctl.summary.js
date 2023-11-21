@@ -122,6 +122,14 @@ $ctl.application.Peerctl.SessionsSummary = $tc.extend(
         return w;
       });
 
+      this.widget("no_port_assigned_filter_button", ($e) => {
+        return new $ctl.application.Peerctl.NoPortAssignedFilterButton(
+          $('#page-summary-sessions [data-element="filter_no_port_assigned"]'),
+          this.$w.list_peer_sessions
+        );
+      });
+
+
       this.widget("count_panel", ($e) => {
         return new $ctl.application.Peerctl.SummaryCountsPanel(this.$w.list_peer_sessions);
       });
@@ -354,7 +362,6 @@ $ctl.application.Peerctl.SessionsSummary = $tc.extend(
       } else if(device_filter && !isNaN(device_filter)) {
         action = "device/"+device_filter;
       } else if(facility_filter != "all") {
-        console.log(facility_filter)
         action = "facility/"+facility_filter;
       }
 
@@ -527,6 +534,82 @@ $ctl.application.Peerctl.CountsButton = $tc.define(
       this.element.find('.value').text(text);
     }
   },
+);
+
+$ctl.application.Peerctl.NoPortAssignedFilterButton = $tc.define(
+  "NoPortAssignedFilterButton",
+  {
+    NoPortAssignedFilterButton : function(jq, list) {
+      this.element = jq;
+      this.list = list;
+      this.filter_active = false;
+
+      $(this.list).on("load:after", () => {
+        this.update_count();
+      });
+
+      this.element.click(() => {
+        this.toggle_no_port_assigned_filter();
+      });
+    },
+
+    _is_no_port_assigned : function(session) {
+      return session.port_id == 0;
+    },
+
+    update_count : function() {
+      const count_element = this.element.find('.value');
+
+      const widget = this;
+      let sessions_no_port_assigned = 0;
+      this.list.list_body.find("tr").each(function() {
+        const data = $(this).data("apiobject");
+        if (widget._is_no_port_assigned(data)) {
+          sessions_no_port_assigned++;
+        }
+      });
+
+      count_element.text(sessions_no_port_assigned);
+    },
+
+    /**
+     * Add a class to rows that do not have a aport assigned. This is used to
+     * hide them.
+     *
+     * @method hide_port_assigned_session
+     * @param {Event} e
+     * @param {jQuery} row
+     * @param {Object} data
+     */
+    hide_port_assigned_session : function(e, row, data) {
+      if (!this._is_no_port_assigned(data)) {
+        row.addClass('filter-no-port-hidden');
+      } else {
+        row.removeClass('filter-no-port-hidden');
+      }
+    },
+
+    /**
+     * hides or shows sessions with no port assigned in the list.
+     *
+     * @method toggle_non_active_filter
+     * @param {Boolean} [active]
+     */
+    toggle_no_port_assigned_filter : function(active = null) {
+      this.filter_active = active != null ? active : !this.filter_active;
+      this.element.toggleClass("active", this.filter_active);
+
+      // make _is_no_port_assigned available to the list
+      this.list._is_no_port_assigned = this._is_no_port_assigned;
+      if (this.filter_active) {
+        $(this.list).on("insert:after", this.hide_port_assigned_session)
+      } else {
+        $(this.list).off("insert:after", this.hide_port_assigned_session)
+      }
+
+      this.list.load();
+    },
+  }
 );
 
 $ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
