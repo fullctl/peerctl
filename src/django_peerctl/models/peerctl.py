@@ -384,7 +384,7 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         """
 
         try:
-            return OrganizationDefaultNetwork.objects.get(org=org)
+            return OrganizationDefaultNetwork.objects.get(org=org).network
         except OrganizationDefaultNetwork.DoesNotExist:
             return cls.objects.filter(org=org).first()
 
