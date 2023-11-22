@@ -1952,3 +1952,18 @@ class AutopeerEnabled(serializers.Serializer):
 
     def get_url(self, obj):
         return autopeer_url(obj["asn"])
+
+
+@register
+class DefaultNetwork(ModelSerializer):
+    ref_tag = "default_network"
+
+    class Meta:
+        model = models.OrganizationDefaultNetwork
+        fields = ["org", "network"]
+
+    def save(self):
+        org = self.validated_data["org"]
+        network = self.validated_data["network"]
+
+        return models.Network.set_default_network_for_org(org, network)
