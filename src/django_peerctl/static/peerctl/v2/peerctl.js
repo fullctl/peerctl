@@ -772,6 +772,9 @@ $peerctl.PeeringLists = $tc.extend(
     },
 
     sync_url: function(id) {
+      if (window.location.hash.indexOf("#page-peering-lists") == -1) {
+        return
+      }
       window.history.pushState({}, '', "#page-peering-lists;"+id);
     },
 
