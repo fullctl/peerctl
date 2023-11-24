@@ -1050,7 +1050,7 @@ $peerctl.PortPolicySelect = $tc.extend(
   "PortPolicySelect",
   {
     PortPolicySelect : function(jq, ip_version) {
-      this.Select(jq);
+      this.SimpleSelect2(jq, {dropdownParent: jq.parent()});
       this.ip_version = ip_version;
     },
     payload : function() {
@@ -1067,7 +1067,7 @@ $peerctl.PortPolicySelect = $tc.extend(
       return url;
     }
   },
-  twentyc.rest.Select
+  fullctl.ext.SimpleSelect2
 )
 
 
@@ -1347,14 +1347,7 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
   "PeerSessionPolicySelect",
   {
     PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
-      this.Select(jq);
-
-      jq.select2({
-        dropdownParent: jq.parent()
-      });
-      $(this).on("load:after", (e, endpoint, data, response) => {
-        jq.trigger('change.select2');
-      });
+      this.SimpleSelect2(jq, {dropdownParent: jq.parent()});
 
       this.port_id = port_id;
       this.peer_session = peer_session;
@@ -1368,10 +1361,6 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
         on_off_toggle.data('peer_session-id', session_data.id);
         this.peer_session_id = data.id;
       });
-    },
-
-    load : function() {
-      this.Select_load();
     },
 
     payload : function() {
@@ -1402,7 +1391,7 @@ $peerctl.PeerSessionPolicySelect = $tc.extend(
       return fullctl.peerctl.$t.peering_lists.$w.peers.peer_sesion_update_url;
     }
   },
-  twentyc.rest.Select
+  fullctl.ext.SimpleSelect2
 )
 
 $peerctl.IPv4PeerSessionPolicySelect = $tc.extend(

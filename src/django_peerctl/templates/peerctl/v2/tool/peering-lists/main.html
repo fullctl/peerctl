@@ -316,28 +316,32 @@
           <div class="row mb-3">
             <div class="col">
               <label class="form-label">{% trans "Policy IPv4" %}</label>
-              <select
-                class="form-control port-policy-4"
-                data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
-                data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
-                data-api-method="put"
-                data-null-option="0;{% trans "Inherit Policy" %}"
-                data-element="port_policy_4">
-              </select>
+              <div class="modal-control">
+                <select
+                  class="form-control port-policy-4"
+                  data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
+                  data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
+                  data-api-method="put"
+                  data-null-option="0;{% trans "Inherit Policy" %}"
+                  data-element="port_policy_4">
+                </select>
+              </div>
             </div>
           </div>
 
           <div class="row mb-3">
             <div class="col">
               <label class="form-label">{% trans "Policy IPv6" %}</label>
-              <select
-                class="form-control port-policy-6"
-                data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
-                data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
-                data-api-method="put"
-                data-null-option="0;{% trans "Inherit Policy" %}"
-                data-element="port_policy_6">
-              </select>
+              <div class="modal-control">
+                <select
+                  class="form-control port-policy-6"
+                  data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
+                  data-api-action="{% url "peerctl_api:port-set-policy" asn=selected_asn pk=0 %}"
+                  data-api-method="put"
+                  data-null-option="0;{% trans "Inherit Policy" %}"
+                  data-element="port_policy_6">
+                </select>
+              </div>
             </div>
           </div>
 
