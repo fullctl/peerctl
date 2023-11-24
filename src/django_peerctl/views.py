@@ -26,7 +26,7 @@ def view_instance(request, instance, **kwargs):
     default_asn = None
     default_net = Network.get_default_network_for_org(instance.org)
     if default_net is not None:
-        default_asn = default_net.network.asn
+        default_asn = default_net.asn
 
     if asn is None:
         asn = default_asn
