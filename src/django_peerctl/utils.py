@@ -5,6 +5,7 @@ import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 from django.db import IntegrityError
+from grainy.const import PERM_READ
 
 from django_peerctl.exceptions import ASNClaimed
 from django_peerctl.models import Network, PortInfo
@@ -20,7 +21,9 @@ def get_network(asn, org):
 
 def verified_asns(perms, org, require_device=True):
     for permission in perms.pset.permissions.values():
-        if permission.namespace.match(["verified", "asn"]):
+        if permission.namespace.match(["verified", "asn"]) and perms.pset.check(
+            permission.namespace, PERM_READ
+        ):
             asn = int(permission.namespace[2])
             try:
                 net = get_network(asn, org)
