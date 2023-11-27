@@ -42,10 +42,6 @@ $ctl.application.Peerctl.Networks = $tc.extend(
         this.sync();
       });
 
-      $(document).on('select2:open', () => {
-        document.querySelector('.select2-search__field').focus();
-      });
-
       this.widget("list", ($e) => {
         return new $ctl.application.Peerctl.LocationList(
           this.template("list", this.$e.body)

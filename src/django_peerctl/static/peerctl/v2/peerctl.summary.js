@@ -726,7 +726,7 @@ $ctl.application.Peerctl.SummaryPeerSessionPolicySelect = $tc.extend(
   "SummaryPeerSessionPolicySelect",
   {
     SummaryPeerSessionPolicySelect : function(jq) {
-      this.Select(jq);
+      this.SimpleSelect2(jq);
       jq.select2({
         dropdownParent: jq.parent()
       });
@@ -736,13 +736,9 @@ $ctl.application.Peerctl.SummaryPeerSessionPolicySelect = $tc.extend(
         $(e.target).parents().off(evt);
         $(window).off(evt);
       });
-
-      $(this).on("load:after", (e, endpoint, data, response) => {
-        jq.trigger('change.select2');
-      });
     },
   },
-  twentyc.rest.Select
+  fullctl.ext.SimpleSelect2
 )
 
 $($ctl).on("init_tools", (e, app) => {
