@@ -148,6 +148,25 @@ class Base(HandleRefModel):
     class Meta:
         abstract = True
 
+@reversion.register
+class PolicyPeerGroup(Base):
+    slug = models.SlugField(max_length=255)
+    afi = models.SmallIntegerField()
+    max_prefixes = models.IntegerField()
+    import_policy = models.CharField(max_length=255)
+    export_policy = models.CharField(max_length=255)
+    enforce_first_asn = models.BooleanField(default=False)
+    soft_reconfig = models.BooleanField(default=False)
+    allow_asn_in = models.IntegerField()
+
+    class Meta:
+        db_table = 'peerctl_policy_peer_group'
+        verbose_name = _('Policy Peer Group')
+        verbose_name_plural = _('Policy Peer Groups')
+
+    class HandleRef:
+        tag = 'policy_peer_group'
+
 
 @reversion.register
 class Policy(Base):
@@ -159,6 +178,15 @@ class Policy(Base):
     localpref = models.IntegerField(null=True, blank=True)
     med = models.IntegerField(null=True, blank=True)
     peer_group = models.CharField(max_length=255, null=True, blank=True)
+
+    import_policy_managed = models.IntegerField(null=True, blank=True, help_text=_("FullCtl Managed"))
+    export_policy_managed = models.IntegerField(null=True, blank=True, help_text=_("FullCtl Managed"))
+    peer_group_managed = models.ForeignKey(
+        PolicyPeerGroup, null=True, blank=True, on_delete=models.SET_NULL, 
+        help_text=_("FullCtl Managed"),
+        related_name="policies"
+    )
+
 
     class HandleRef:
         tag = "policy"
@@ -2997,15 +3025,3 @@ class UserSession(models.Model):
 
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-
-
-# class UserNetworkPerms(models.Model):
-#    pass
-
-
-# class User(AbstractBaseUser, PermissionsMixin):
-#    class Meta:
-#        db_table = "peeringdb_user"
-#        verbose_name = _('user')
-#        verbose_name_plural = _('users')
-#
