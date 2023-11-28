@@ -11,7 +11,6 @@ from fullctl.django.rest.decorators import serializer_registry
 from fullctl.django.rest.serializers import ModelSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError  # noqa
-from jinja2 import Environment
 
 import django_peerctl.autopeer.tasks as autopeer_tasks
 import django_peerctl.models as models
@@ -1465,12 +1464,6 @@ class PeerSession(ModelSerializer):
             "meta6",
             "status",
         ]
-
-    @property
-    def jinja_env(self):
-        if not hasattr(self, '_jinja_env'):
-            self._jinja_env = Environment()
-        return self._jinja_env
 
     def get_meta4(self, obj):
         # TODO: fill in defaults?
