@@ -86,6 +86,11 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         );
       });
 
+      // lazy loading of peering_lists
+      $('#tab-peering-lists').one('show.bs.tab', () => {
+        this.$t.peering_lists.sync()
+      })
+
       $('#tab-ix').on('shown.bs.tab', () => {
         this.$t.ix.sync();
       });
@@ -748,8 +753,6 @@ $peerctl.PeeringLists = $tc.extend(
         else
           button.addClass("fullctl").removeClass("inactive");
       });
-
-      this.sync();
     },
 
     init: function() {
@@ -2272,8 +2275,6 @@ $peerctl.PeeringRequestsList = $tc.extend(
   },
   $ctl.application.Tool
 );
-
-
 
 
 $(document).ready(function() {
