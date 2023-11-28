@@ -11,9 +11,11 @@ from fullctl.django.rest.decorators import serializer_registry
 from fullctl.django.rest.serializers import ModelSerializer
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError  # noqa
+from jinja2 import Environment
 
 import django_peerctl.autopeer.tasks as autopeer_tasks
 import django_peerctl.models as models
+from django_peerctl.policy import render_policy_variable
 from django_peerctl.autopeer import autopeer_url
 from django_peerctl.helpers import get_best_policy
 
@@ -98,6 +100,26 @@ class Policy(ModelSerializer):
             "peer_group",
             "count_peers",
         ]
+
+    def validate(self, data):
+
+        """
+        Validate policy variables
+        """
+
+        variable_fields = ["import_policy", "export_policy", "peer_group"]
+        variable_validation_errors = {}
+        for field in variable_fields:
+            value = data.get(field)
+            try:
+                render_policy_variable(value, raise_errors=True)
+            except Exception as e:
+                variable_validation_errors[field] = str(e)
+        
+        if variable_validation_errors:
+            raise ValidationError(variable_validation_errors)
+
+        return data
 
     def peer_sessions(self, obj):
         """
@@ -1443,6 +1465,12 @@ class PeerSession(ModelSerializer):
             "meta6",
             "status",
         ]
+
+    @property
+    def jinja_env(self):
+        if not hasattr(self, '_jinja_env'):
+            self._jinja_env = Environment()
+        return self._jinja_env
 
     def get_meta4(self, obj):
         # TODO: fill in defaults?
