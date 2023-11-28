@@ -150,6 +150,7 @@ class Base(HandleRefModel):
 
 @reversion.register
 class PolicyPeerGroup(Base):
+    net = models.ForeignKey("Network", on_delete=models.CASCADE, related_name="policy_peer_groups")
     slug = models.SlugField(max_length=255)
     afi = models.SmallIntegerField()
     max_prefixes = models.IntegerField()
@@ -164,6 +165,8 @@ class PolicyPeerGroup(Base):
         verbose_name = _('Policy Peer Group')
         verbose_name_plural = _('Policy Peer Groups')
 
+        unique_together = (("slug", "net"),)
+        
     class HandleRef:
         tag = 'policy_peer_group'
 

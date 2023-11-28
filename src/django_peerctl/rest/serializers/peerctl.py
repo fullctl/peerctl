@@ -90,12 +90,15 @@ class Policy(ModelSerializer):
             "id",
             "name",
             "import_policy",
+            "import_policy_managed"
             "export_policy",
+            "export_policy_managed",
             "localpref",
             "med",
             "is_global4",
             "is_global6",
             "peer_group",
+            "peer_group_managed",
             "count_peers",
         ]
 
@@ -126,6 +129,21 @@ class Policy(ModelSerializer):
     def get_count_peers(self, obj):
         return obj.count_peers(peer_sessions=self.peer_sessions(obj))
 
+@register
+class PolicyPeerGroup(ModelSerializer):
+
+    class Meta:
+        model = models.PolicyPeerGroup
+        fields = [
+            "slug",
+            "afi",
+            "max_prefixes",
+            "import_policy",
+            "export_policy",
+            "enforce_first_asn",
+            "soft_reconfig",
+            "allow_asn_in",
+        ]
 
 @register
 class AvailablePort(serializers.Serializer):
