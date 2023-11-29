@@ -68,6 +68,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       this.$t.policies.activate();
       this.$t.peering_requests_list.activate();
 
+      this.get_autoload_args();
       $($ctl).trigger("init_tools", [this]);
 
       this.port_settings = $('#port-settings');
@@ -100,7 +101,6 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       });
 
       this.autoload_page();
-
     },
 
     permission_ui : function() {
