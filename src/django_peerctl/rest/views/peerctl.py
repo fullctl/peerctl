@@ -123,6 +123,7 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
 # update
 # destroy
 
+
 @route
 class PolicyPeerGroup(CachedObjectMixin, viewsets.ModelViewSet):
 
@@ -157,7 +158,9 @@ class PolicyPeerGroup(CachedObjectMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @load_object("net", models.Network, asn="asn")
-    @load_object("policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn")
+    @load_object(
+        "policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn"
+    )
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def update(self, request, asn, net, slug, policy_peer_group, *args, **kwargs):
         serializer = self.serializer_class(
@@ -166,14 +169,17 @@ class PolicyPeerGroup(CachedObjectMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
-    
+
     @load_object("net", models.Network, asn="asn")
-    @load_object("policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn")
+    @load_object(
+        "policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn"
+    )
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def destroy(self, request, asn, net, slug, policy_peer_group, *args, **kwargs):
         r = Response(self.serializer_class(policy_peer_group).data)
         policy_peer_group.delete()
         return r
+
 
 @route
 class Policy(CachedObjectMixin, viewsets.ModelViewSet):

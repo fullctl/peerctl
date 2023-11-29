@@ -342,6 +342,7 @@ class PolicyAdmin(admin.ModelAdmin):
     )
     form = status_form()
 
+
 @admin.register(PolicyPeerGroup)
 class PolicyPeerGroupAdmin(admin.ModelAdmin):
     search_fields = ("slug",)
@@ -353,9 +354,9 @@ class PolicyPeerGroupAdmin(admin.ModelAdmin):
         "updated",
     )
     autocomplete_fields = ("net",)
-    
 
     form = status_form()
+
 
 @admin.register(InternetExchange)
 class IXAdmin(admin.ModelAdmin):

@@ -148,9 +148,12 @@ class Base(HandleRefModel):
     class Meta:
         abstract = True
 
+
 @reversion.register
 class PolicyPeerGroup(Base):
-    net = models.ForeignKey("Network", on_delete=models.CASCADE, related_name="policy_peer_groups")
+    net = models.ForeignKey(
+        "Network", on_delete=models.CASCADE, related_name="policy_peer_groups"
+    )
     slug = models.SlugField(max_length=255)
     afi = models.SmallIntegerField()
     max_prefixes = models.IntegerField()
@@ -159,16 +162,17 @@ class PolicyPeerGroup(Base):
     enforce_first_asn = models.BooleanField(default=False)
     soft_reconfig = models.BooleanField(default=False)
     allow_asn_in = models.IntegerField()
+    multipath = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'peerctl_policy_peer_group'
-        verbose_name = _('Policy Peer Group')
-        verbose_name_plural = _('Policy Peer Groups')
+        db_table = "peerctl_policy_peer_group"
+        verbose_name = _("Policy Peer Group")
+        verbose_name_plural = _("Policy Peer Groups")
 
         unique_together = (("slug", "net"),)
-        
+
     class HandleRef:
-        tag = 'policy_peer_group'
+        tag = "policy_peer_group"
 
 
 @reversion.register
@@ -182,14 +186,20 @@ class Policy(Base):
     med = models.IntegerField(null=True, blank=True)
     peer_group = models.CharField(max_length=255, null=True, blank=True)
 
-    import_policy_managed = models.IntegerField(null=True, blank=True, help_text=_("FullCtl Managed"))
-    export_policy_managed = models.IntegerField(null=True, blank=True, help_text=_("FullCtl Managed"))
-    peer_group_managed = models.ForeignKey(
-        PolicyPeerGroup, null=True, blank=True, on_delete=models.SET_NULL, 
-        help_text=_("FullCtl Managed"),
-        related_name="policies"
+    import_policy_managed = models.IntegerField(
+        null=True, blank=True, help_text=_("FullCtl Managed")
     )
-
+    export_policy_managed = models.IntegerField(
+        null=True, blank=True, help_text=_("FullCtl Managed")
+    )
+    peer_group_managed = models.ForeignKey(
+        PolicyPeerGroup,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        help_text=_("FullCtl Managed"),
+        related_name="policies",
+    )
 
     class HandleRef:
         tag = "policy"
