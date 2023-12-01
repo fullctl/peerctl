@@ -971,7 +971,7 @@ $peerctl.Policies = $tc.extend(
       });
 
       this.widget("form", ($e) => {
-        return new twentyc.rest.Form(this.template("form_policy", $e.editor));
+        return new $peerctl.PolicyForm(this.template("form_policy", $e.editor));
       });
 
       this.edit_mode = false;
@@ -1050,6 +1050,41 @@ $peerctl.Policies = $tc.extend(
   },
   $ctl.application.Tool
 );
+
+
+$peerctl.PolicyForm = $tc.extend(
+  "PolicyForm",
+  {
+    PolicyForm : function(jq) {
+      this.Form(jq);
+
+      this.peer_group_select = new twentyc.rest.Select(
+        this.element.find('[data-element=peer_group]')
+      )
+
+      this.peer_group_select.load();
+    },
+
+    payload : function() {
+      const payload = this.Form_payload();
+      if (payload.import_policy_managed === true) {
+        payload.import_policy_managed = 1;
+      } else {
+        payload.import_policy_managed = 0;
+      }
+
+      if (payload.export_policy_managed === true) {
+        payload.export_policy_managed = 1;
+      } else {
+        payload.export_policy_managed = 0;
+      }
+
+      return payload;
+    }
+  },
+  twentyc.rest.Form
+);
+
 
 
 $peerctl.PortPolicySelect = $tc.extend(
