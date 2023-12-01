@@ -1,0 +1,88 @@
+{% load static i18n %}
+<table
+  class="table list-table table-borderless center"
+  data-api-load="yes"
+  data-api-base="{% url "peerctl_api:policy_peer_group-list" asn=selected_asn %}"
+  data-template="list"
+>
+  <thead>
+    <tr>
+      <th>
+        {% trans "slug" %}
+      </th>
+      <th>
+        {% trans "afi" %}
+      </th>
+      <th>
+        {% trans "Max Prefixes" %}
+      </th>
+      <th>
+        {% trans "Import Policy" %}
+      </th>
+      <th>
+        {% trans "Export Policy" %}
+      </th>
+      <th>
+        {% trans "Enforce First ASN" %}
+      </th>
+      <th>
+        {% trans "Soft Reconfig" %}
+      </th>
+      <th>
+        {% trans "Allow ASN in" %}
+      </th>
+      <th>
+        {% trans "Multipath" %}
+      </th>
+      <th>
+        {% trans "Controls" %}
+      </th>
+    </tr>
+
+  </thead>
+
+  <tbody class="list-body">
+  </tbody>
+
+  <tbody class="templates">
+    <tr data-template="row" class="with-border">
+      <td data-field="slug"></td>
+
+      <td data-field="afi"></td>
+
+      <td data-field="max_prefixes"></td>
+
+      <td data-field="import_policy"></td>
+
+      <td data-field="export_policy"></td>
+
+      <td data-field="enforce_first_asn"></td>
+
+      <td data-field="soft_reconfig"></td>
+
+      <td data-field="allow_asn_in"></td>
+
+      <td data-field="multipath"></td>
+
+      <td data-field="controls" class="right">
+        <a
+          class="button btn"
+          data-action="edit_peer_group"
+          role="button"
+        >
+          <span class="icon icon-edit"></span>
+        </a>
+        <a
+          class="button btn"
+          data-api-action="{slug}"
+          data-api-callback="remove"
+          data-confirm="Remove peer group?"
+          data-api-method="DELETE"
+          role="button"
+        >
+          <span class="icon fullctl icon-delete"></span></span>
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>

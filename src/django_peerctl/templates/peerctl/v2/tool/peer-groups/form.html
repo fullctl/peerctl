@@ -1,0 +1,80 @@
+
+{% load static i18n %}
+<form data-template="form_peer_group"
+  data-api-base="{% url "peerctl_api:policy_peer_group-list" asn=selected_asn %}"
+  data-api-method="POST"
+  >
+  <div class="container-fluid">
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <label class="form-label" for="peer-group-slug">{% trans "Slug" %}</label>
+        <input type="text" class="form-control" id="peer-group-slug" name="slug" />
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <label for="peer-group-afi" class="form-label">AFI</label>
+        <span class="modal-control">
+          <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+          <select class="form-control" id="peer-group-afi" name="afi">
+            <option value="4">IPv4</option>
+            <option value="6">IPv6</option>
+          </select>
+        </span>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <label class="form-label" for="peer-group-max-prefixes">{% trans "Max Prefixes" %}</label>
+        <input type="text" class="form-control" id="peer-group-max-prefixes" name="max_prefixes" />
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <label class="form-label" for="peer-group-import-policy">{% trans "Import Policy" %}</label>
+        <input type="text" class="form-control" id="peer-group-import-policy" name="import_policy" />
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <label class="form-label" for="peer-group-export-policy">{% trans "Export policy" %}</label>
+        <input type="text" class="form-control" id="peer-group-export-policy" name="export_policy" />
+      </div>
+    </div>
+
+    <div class="row form-check">
+      <div class="col-12" data-api-submit="yes">
+        <input type="checkbox" class="form-check-input" id="peer-group-enforce-first-asn" name="enforce_first_asn">
+        <label for="peer-group-enforce-first-asn" class="form-check-label form-label">Enforce first ASN</label>
+      </div>
+    </div>
+
+    <div class="row form-check">
+      <div class="col-12" data-api-submit="yes">
+        <input type="checkbox" class="form-check-input" id="peer-group-soft-reconfig" name="soft_reconfig">
+        <label for="peer-group-soft-reconfig" class="form-check-label form-label">Soft reconfig</label>
+      </div>
+    </div>
+
+    <div class="row form-check">
+      <div class="col-12" data-api-submit="yes">
+        <input type="checkbox" class="form-check-input" id="peer-group-multipath" name="multipath">
+        <label for="peer-group-multipath" class="form-check-label form-label">Multipath</label>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12" data-api-submit="yes">
+        <label class="form-label" for="peer-group-allow-asn-in">{% trans "Allow ASN in" %}</label>
+        <input type="text" class="form-control" id="peer-group-allow-asn-in" name="allow_asn_in" />
+      </div>
+    </div>
+
+  </div>
+</form>
+
