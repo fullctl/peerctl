@@ -1439,7 +1439,7 @@ class Port(devicectl.Port):
         if load_policies:
             policies = {
                 policy.port: policy
-                for policy in PortPolicy.objects.filter(port__in=port_ids)
+                for policy in PortPolicy.objects.filter(port__in=port_ids).select_related("peer_group_managed")
             }
 
             for port in instances:
@@ -1479,7 +1479,7 @@ class Port(devicectl.Port):
         if load_policies:
             policies = {
                 policy.port: policy
-                for policy in PortPolicy.objects.filter(port__in=port_ids)
+                for policy in PortPolicy.objects.filter(port__in=port_ids).select_related("peer_group_managed")
             }
         else:
             policies = {}

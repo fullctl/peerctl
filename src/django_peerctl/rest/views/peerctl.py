@@ -191,7 +191,7 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
     def list(self, request, asn, *args, **kwargs):
         instances = (
             models.Policy.objects.filter(net__asn=asn, status="ok")
-            .select_related("net")
+            .select_related("net", "peer_group_managed")
             .order_by(Lower("name"))
         )
         serializer = self.serializer_class(instances, many=True)

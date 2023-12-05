@@ -1386,13 +1386,25 @@ class PeerSession(ModelSerializer):
     policy4_peer_group = serializers.SerializerMethodField()
     policy4_import = serializers.SerializerMethodField()
     policy4_export = serializers.SerializerMethodField()
-
+    policy4_afi = serializers.SerializerMethodField()
+    policy4_max_prefixes = serializers.SerializerMethodField()
+    policy4_enforce_first_asn = serializers.SerializerMethodField()
+    policy4_soft_reconfig = serializers.SerializerMethodField()
+    policy4_allow_asn_in = serializers.SerializerMethodField()
+    policy4_multipath = serializers.SerializerMethodField()
+    
     policy6_id = serializers.SerializerMethodField()
     policy6_name = serializers.SerializerMethodField()
     policy6_inherited = serializers.SerializerMethodField()
     policy6_peer_group = serializers.SerializerMethodField()
     policy6_import = serializers.SerializerMethodField()
     policy6_export = serializers.SerializerMethodField()
+    policy6_afi = serializers.SerializerMethodField()
+    policy6_max_prefixes = serializers.SerializerMethodField()
+    policy6_enforce_first_asn = serializers.SerializerMethodField()
+    policy6_soft_reconfig = serializers.SerializerMethodField()
+    policy6_allow_asn_in = serializers.SerializerMethodField()
+    policy6_multipath = serializers.SerializerMethodField()
 
     peer_id = serializers.PrimaryKeyRelatedField(
         source="peer_port", queryset=models.PeerPort.objects.all()
@@ -1450,12 +1462,24 @@ class PeerSession(ModelSerializer):
             "policy4_import",
             "policy4_export",
             "policy4_peer_group",
+            "policy4_afi",
+            "policy4_max_prefixes",
+            "policy4_enforce_first_asn",
+            "policy4_soft_reconfig",
+            "policy4_allow_asn_in",
+            "policy4_multipath",
             "policy6_id",
             "policy6_name",
             "policy6_inherited",
             "policy6_import",
             "policy6_export",
             "policy6_peer_group",
+            "policy6_afi",
+            "policy6_max_prefixes",
+            "policy6_enforce_first_asn",
+            "policy6_soft_reconfig",
+            "policy6_allow_asn_in",
+            "policy6_multipath",
             "device_name",
             "device_id",
             "facility_slug",
@@ -1519,12 +1543,31 @@ class PeerSession(ModelSerializer):
                 policy = get_best_policy(obj, version, raise_error=False)
                 setattr(obj, f"_policy{version}", policy)
             if policy:
+
+                peer_group_managed = policy.peer_group_managed
+
+                import_policy = peer_group_managed.import_policy if peer_group_managed else policy.import_policy
+                export_policy = peer_group_managed.export_policy if peer_group_managed else policy.export_policy
+                peer_group = peer_group_managed.slug if peer_group_managed else policy.peer_group
+                afi = peer_group_managed.afi if peer_group_managed else None
+                max_prefixes = peer_group_managed.max_prefixes if peer_group_managed else None
+                enforce_first_asn = peer_group_managed.enforce_first_asn if peer_group_managed else None
+                soft_reconfig = peer_group_managed.soft_reconfig if peer_group_managed else None
+                allow_asn_in = peer_group_managed.allow_asn_in if peer_group_managed else None
+                multipath = peer_group_managed.multipath if peer_group_managed else None
+
                 return {
                     "id": policy.id,
                     "name": policy.name,
-                    "import_policy": policy.import_policy,
-                    "export_policy": policy.export_policy,
-                    "peer_group": policy.peer_group,
+                    "import_policy": import_policy,
+                    "export_policy": export_policy,
+                    "peer_group": peer_group,
+                    "afi": afi,
+                    "max_prefixes": max_prefixes,
+                    "enforce_first_asn": enforce_first_asn,
+                    "soft_reconfig": soft_reconfig,
+                    "allow_asn_in": allow_asn_in,
+                    "multipath": multipath,
                     "inherited": getattr(obj, f"policy{version}_inherited"),
                 }
         return {}
@@ -1547,6 +1590,24 @@ class PeerSession(ModelSerializer):
     def get_policy4_peer_group(self, obj):
         return self.get_policy(obj, 4).get("peer_group", None)
 
+    def get_policy4_afi(self, obj):
+        return self.get_policy(obj, 4).get("afi", None)
+    
+    def get_policy4_max_prefixes(self, obj):
+        return self.get_policy(obj, 4).get("max_prefixes", None)
+
+    def get_policy4_enforce_first_asn(self, obj):
+        return self.get_policy(obj, 4).get("enforce_first_asn", None)
+
+    def get_policy4_soft_reconfig(self, obj):
+        return self.get_policy(obj, 4).get("soft_reconfig", None)
+    
+    def get_policy4_allow_asn_in(self, obj):
+        return self.get_policy(obj, 4).get("allow_asn_in", None)
+    
+    def get_policy4_multipath(self, obj):
+        return self.get_policy(obj, 4).get("multipath", None)
+
     def get_policy6_id(self, obj):
         return self.get_policy(obj, 6).get("id", None)
 
@@ -1564,6 +1625,24 @@ class PeerSession(ModelSerializer):
 
     def get_policy6_peer_group(self, obj):
         return self.get_policy(obj, 6).get("peer_group", None)
+
+    def get_policy6_afi(self, obj):
+        return self.get_policy(obj, 6).get("afi", None)
+    
+    def get_policy6_max_prefixes(self, obj):
+        return self.get_policy(obj, 6).get("max_prefixes", None)
+
+    def get_policy6_enforce_first_asn(self, obj):
+        return self.get_policy(obj, 6).get("enforce_first_asn", None)
+
+    def get_policy6_soft_reconfig(self, obj):
+        return self.get_policy(obj, 6).get("soft_reconfig", None)
+
+    def get_policy6_allow_asn_in(self, obj):
+        return self.get_policy(obj, 6).get("allow_asn_in", None)
+    
+    def get_policy6_multipath(self, obj):
+        return self.get_policy(obj, 6).get("multipath", None)
 
     def get_md5(self, obj):
         return obj.peer_port.peer_net.md5
