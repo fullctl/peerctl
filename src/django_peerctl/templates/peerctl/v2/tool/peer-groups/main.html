@@ -3,7 +3,7 @@
   {% include "common/v2/tool_base.html" %}
 
   <div class="row">
-    <a class="secondary col-md-auto btn d-flex ms-auto" data-element="btn_api_view" type="button" role="button" target="_blank">
+    <a class="secondary col-md-auto btn d-flex ms-auto" data-element="btn_api_view" type="button" role="button" target="_blank" href="{% url "peerctl_api:policy_peer_group-list" asn=selected_asn %}">
       <div class="row align-items-center">
           <div class="col label pe-0">{% trans "API View" %}</div>
           <div class="col-auto">
