@@ -1567,9 +1567,6 @@ class PeerSession(ModelSerializer):
                     if peer_group_managed
                     else policy.export_policy
                 )
-                peer_group = (
-                    peer_group_managed.slug if peer_group_managed else policy.peer_group
-                )
                 afi = peer_group_managed.afi if peer_group_managed else None
                 max_prefixes = (
                     peer_group_managed.max_prefixes if peer_group_managed else None
@@ -1586,7 +1583,7 @@ class PeerSession(ModelSerializer):
                 multipath = peer_group_managed.multipath if peer_group_managed else None
 
                 peer_group_managed = (
-                    policy.peer_group_managed.id if policy.peer_group_managed else None
+                    policy.peer_group_managed.slug if policy.peer_group_managed else None
                 )
 
                 return {
@@ -1594,7 +1591,7 @@ class PeerSession(ModelSerializer):
                     "name": policy.name,
                     "import_policy": import_policy,
                     "export_policy": export_policy,
-                    "peer_group": peer_group,
+                    "peer_group": policy.peer_group,
                     "afi": afi,
                     "max_prefixes": max_prefixes,
                     "enforce_first_asn": enforce_first_asn,
