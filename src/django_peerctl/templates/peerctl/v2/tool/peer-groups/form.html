@@ -70,19 +70,10 @@
 
     <div class="row mb-3">
       <div class="col-12" data-api-submit="yes">
-        <label class="form-label" for="peer-group-allow-asn-in">{% trans "Allow ASN in" %}</label>
+        <label class="form-label" for="peer-group-allow-asn-in">{% trans "Allow ASN in" %} <span c;ass="dotted-underline" data-bs-toggle="tooltip" data-bs-title="{% blocktrans %}Allow the local device’s AS number in the received AS paths and specify the number of times the detection of the local device’s AS in the AS_PATH attribute is allowed.{% endblocktrans %}" data-bs-placement="top">[?]</span></label>
         <input type="text" class="form-control" id="peer-group-allow-asn-in" name="allow_asn_in" />
       </div>
     </div>
-
-    <div class="row">
-      <div class="col-12">
-        <div class="alert alert-info">
-          {% blocktrans %}Allow the local device’s AS number in the received AS paths and specify the number of times the detection of the local device’s AS in the AS_PATH attribute is allowed.{% endblocktrans %}
-        </div>
-      </div>
-    </div>
-
   </div>
 </form>
 

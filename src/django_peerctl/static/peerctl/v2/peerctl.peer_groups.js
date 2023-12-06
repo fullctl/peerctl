@@ -70,7 +70,8 @@ $ctl.application.Peerctl.ModalPeerGroup = $tc.extend(
         fullctl.peerctl.$t.peer_groups.sync();
         fullctl.peerctl.$t.policies.$w.form.peer_group_select.load();
       });
-
+      
+      this.form.element.find('[data-bs-toggle="tooltip"]').tooltip();
       this.Modal("save_right", title, form.element);
       form.wire_submit(this.$e.button_submit);
     }
