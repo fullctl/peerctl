@@ -150,7 +150,9 @@ class PolicyPeerGroup(CachedObjectMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @load_object("net", models.Network, asn="asn")
-    @load_object("policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn")
+    @load_object(
+        "policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn"
+    )
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def retrieve(self, request, asn, net, slug, policy_peer_group, *args, **kwargs):
         serializer = self.serializer_class(policy_peer_group)

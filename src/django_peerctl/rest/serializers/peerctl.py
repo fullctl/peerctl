@@ -1583,7 +1583,9 @@ class PeerSession(ModelSerializer):
                 multipath = peer_group_managed.multipath if peer_group_managed else None
 
                 peer_group_managed = (
-                    policy.peer_group_managed.slug if policy.peer_group_managed else None
+                    policy.peer_group_managed.slug
+                    if policy.peer_group_managed
+                    else None
                 )
 
                 return {
