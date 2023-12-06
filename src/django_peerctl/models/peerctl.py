@@ -621,6 +621,10 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             "peer_port__peer_net",
             "peer_port__port_info",
             "peer_port__peer_net__peer",
+            "policy4",
+            "policy6",
+            "policy4__peer_group_managed",
+            "policy6__peer_group_managed",
         )
 
     @property
@@ -1439,7 +1443,11 @@ class Port(devicectl.Port):
         if load_policies:
             policies = {
                 policy.port: policy
-                for policy in PortPolicy.objects.filter(port__in=port_ids).select_related("peer_group_managed")
+                for policy in PortPolicy.objects.filter(
+                    port__in=port_ids
+                ).select_related(
+                    "policy4__peer_group_managed", "policy6__peer_group_managed"
+                )
             }
 
             for port in instances:
@@ -1479,7 +1487,11 @@ class Port(devicectl.Port):
         if load_policies:
             policies = {
                 policy.port: policy
-                for policy in PortPolicy.objects.filter(port__in=port_ids).select_related("peer_group_managed")
+                for policy in PortPolicy.objects.filter(
+                    port__in=port_ids
+                ).select_related(
+                    "policy4__peer_group_managed", "policy6__peer_group_managed"
+                )
             }
         else:
             policies = {}
