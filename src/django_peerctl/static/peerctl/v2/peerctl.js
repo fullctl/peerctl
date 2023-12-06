@@ -65,6 +65,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       });
 
       this.$t.peering_lists.activate();
+      this.$t.peering_lists.sync_ports();
       this.$t.policies.activate();
       this.$t.peering_requests_list.activate();
 
@@ -836,6 +837,10 @@ $peerctl.PeeringLists = $tc.extend(
         this.$w.port_policy_6.load();
         this.$w.port_device_template.load();
       });
+    },
+
+    sync_ports : function() {
+      this.$w.port_filter.load()
     },
 
     menu: function() {
