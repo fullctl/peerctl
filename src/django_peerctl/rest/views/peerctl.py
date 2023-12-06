@@ -161,6 +161,16 @@ class PolicyPeerGroup(CachedObjectMixin, viewsets.ModelViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, *args, **kwargs):
+        data = request.data
+
+        if data.get("allow_asn_in") == "":
+            # set to None
+            data["allow_asn_in"] = None
+
+        if data.get("max_prefixes") == "":
+            # set to None
+            data["max_prefixes"] = None
+
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(net=net)

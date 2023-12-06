@@ -155,14 +155,14 @@ class PolicyPeerGroup(Base):
         "Network", on_delete=models.CASCADE, related_name="policy_peer_groups"
     )
     slug = models.SlugField(max_length=255)
-    afi = models.SmallIntegerField()
-    max_prefixes = models.IntegerField()
-    import_policy = models.CharField(max_length=255)
-    export_policy = models.CharField(max_length=255)
-    enforce_first_asn = models.BooleanField(default=False)
-    soft_reconfig = models.BooleanField(default=False)
-    allow_asn_in = models.IntegerField()
-    multipath = models.BooleanField(default=False)
+    afi = models.PositiveSmallIntegerField(null=True)
+    max_prefixes = models.PositiveIntegerField(null=True)
+    import_policy = models.CharField(max_length=255, blank=True, null=True)
+    export_policy = models.CharField(max_length=255, blank=True, null=True)
+    enforce_first_asn = models.BooleanField(null=True)
+    soft_reconfig = models.BooleanField(null=True)
+    allow_asn_in = models.PositiveSmallIntegerField(null=True)
+    multipath = models.BooleanField(null=True)
 
     class Meta:
         db_table = "peerctl_policy_peer_group"
