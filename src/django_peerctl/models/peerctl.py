@@ -150,6 +150,32 @@ class Base(HandleRefModel):
 
 
 @reversion.register
+class PolicyPeerGroup(Base):
+    net = models.ForeignKey(
+        "Network", on_delete=models.CASCADE, related_name="policy_peer_groups"
+    )
+    slug = models.SlugField(max_length=255)
+    afi = models.PositiveSmallIntegerField(null=True)
+    max_prefixes = models.PositiveIntegerField(null=True)
+    import_policy = models.CharField(max_length=255, blank=True, null=True)
+    export_policy = models.CharField(max_length=255, blank=True, null=True)
+    enforce_first_asn = models.BooleanField(null=True)
+    soft_reconfig = models.BooleanField(null=True)
+    allow_asn_in = models.PositiveSmallIntegerField(null=True)
+    multipath = models.BooleanField(null=True)
+
+    class Meta:
+        db_table = "peerctl_policy_peer_group"
+        verbose_name = _("Policy Peer Group")
+        verbose_name_plural = _("Policy Peer Groups")
+
+        unique_together = (("slug", "net"),)
+
+    class HandleRef:
+        tag = "policy_peer_group"
+
+
+@reversion.register
 class Policy(Base):
     net = models.ForeignKey("Network", on_delete=models.CASCADE, related_name="+")
     name = models.CharField(max_length=255, unique=False)
@@ -159,6 +185,21 @@ class Policy(Base):
     localpref = models.IntegerField(null=True, blank=True)
     med = models.IntegerField(null=True, blank=True)
     peer_group = models.CharField(max_length=255, null=True, blank=True)
+
+    import_policy_managed = models.IntegerField(
+        null=True, blank=True, help_text=_("FullCtl Managed")
+    )
+    export_policy_managed = models.IntegerField(
+        null=True, blank=True, help_text=_("FullCtl Managed")
+    )
+    peer_group_managed = models.ForeignKey(
+        PolicyPeerGroup,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        help_text=_("FullCtl Managed"),
+        related_name="policies",
+    )
 
     class HandleRef:
         tag = "policy"
@@ -580,6 +621,10 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
             "peer_port__peer_net",
             "peer_port__port_info",
             "peer_port__peer_net__peer",
+            "policy4",
+            "policy6",
+            "policy4__peer_group_managed",
+            "policy6__peer_group_managed",
         )
 
     @property
@@ -1398,7 +1443,11 @@ class Port(devicectl.Port):
         if load_policies:
             policies = {
                 policy.port: policy
-                for policy in PortPolicy.objects.filter(port__in=port_ids)
+                for policy in PortPolicy.objects.filter(
+                    port__in=port_ids
+                ).select_related(
+                    "policy4__peer_group_managed", "policy6__peer_group_managed"
+                )
             }
 
             for port in instances:
@@ -1438,7 +1487,11 @@ class Port(devicectl.Port):
         if load_policies:
             policies = {
                 policy.port: policy
-                for policy in PortPolicy.objects.filter(port__in=port_ids)
+                for policy in PortPolicy.objects.filter(
+                    port__in=port_ids
+                ).select_related(
+                    "policy4__peer_group_managed", "policy6__peer_group_managed"
+                )
             }
         else:
             policies = {}
@@ -2997,15 +3050,3 @@ class UserSession(models.Model):
 
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-
-
-# class UserNetworkPerms(models.Model):
-#    pass
-
-
-# class User(AbstractBaseUser, PermissionsMixin):
-#    class Meta:
-#        db_table = "peeringdb_user"
-#        verbose_name = _('user')
-#        verbose_name_plural = _('users')
-#

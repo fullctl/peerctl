@@ -18,6 +18,7 @@ from django_peerctl.models import (
     PeerRequestLocation,
     PeerSession,
     Policy,
+    PolicyPeerGroup,
     Port,
     PortInfo,
     UserSession,
@@ -73,7 +74,7 @@ class NetworkAdmin(admin.ModelAdmin):
         "updated",
         "email_override",
     )
-    search_fields = ("asn", "name")
+    search_fields = ("asn",)
     readonly_fields = ("policy4", "policy6")
     fields = (
         "asn",
@@ -331,11 +332,29 @@ class PolicyAdmin(admin.ModelAdmin):
         "net",
         "name",
         "import_policy",
+        "import_policy_managed",
         "export_policy",
+        "export_policy_managed",
         "peer_group",
+        "peer_group_managed",
         "created",
         "updated",
     )
+    form = status_form()
+
+
+@admin.register(PolicyPeerGroup)
+class PolicyPeerGroupAdmin(admin.ModelAdmin):
+    search_fields = ("slug",)
+    list_display = (
+        "id",
+        "net",
+        "slug",
+        "created",
+        "updated",
+    )
+    autocomplete_fields = ("net",)
+
     form = status_form()
 
 

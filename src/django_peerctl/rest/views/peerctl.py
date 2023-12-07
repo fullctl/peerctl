@@ -125,6 +125,82 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
 
 
 @route
+class PolicyPeerGroup(CachedObjectMixin, viewsets.ModelViewSet):
+
+    """
+    PolicyPeerGroup view set
+
+    Implements endpoints for PolicyPeerGroup objects
+
+    - list
+    - create
+    - update
+    - destroy
+    """
+
+    serializer_class = Serializers.policy_peer_group
+    queryset = models.PolicyPeerGroup.objects.all()
+    require_asn = True
+    lookup_field = "slug"
+
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list(self, request, asn, *args, **kwargs):
+        instances = models.PolicyPeerGroup.objects.filter(net__asn=asn)
+        serializer = self.serializer_class(instances, many=True)
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @load_object(
+        "policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn"
+    )
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def retrieve(self, request, asn, net, slug, policy_peer_group, *args, **kwargs):
+        serializer = self.serializer_class(policy_peer_group)
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def create(self, request, asn, net, *args, **kwargs):
+        data = request.data
+
+        if data.get("allow_asn_in") == "":
+            # set to None
+            data["allow_asn_in"] = None
+
+        if data.get("max_prefixes") == "":
+            # set to None
+            data["max_prefixes"] = None
+
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(net=net)
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @load_object(
+        "policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn"
+    )
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def update(self, request, asn, net, slug, policy_peer_group, *args, **kwargs):
+        serializer = self.serializer_class(
+            instance=policy_peer_group, data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @load_object(
+        "policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn"
+    )
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def destroy(self, request, asn, net, slug, policy_peer_group, *args, **kwargs):
+        r = Response(self.serializer_class(policy_peer_group).data)
+        policy_peer_group.delete()
+        return r
+
+
+@route
 class Policy(CachedObjectMixin, viewsets.ModelViewSet):
     serializer_class = Serializers.policy
     queryset = models.Policy.objects.all()
@@ -134,7 +210,7 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
     def list(self, request, asn, *args, **kwargs):
         instances = (
             models.Policy.objects.filter(net__asn=asn, status="ok")
-            .select_related("net")
+            .select_related("net", "peer_group_managed")
             .order_by(Lower("name"))
         )
         serializer = self.serializer_class(instances, many=True)
