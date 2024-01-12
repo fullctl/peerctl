@@ -123,6 +123,9 @@ class DefaultNetwork(CachedObjectMixin, viewsets.GenericViewSet):
     require_org_tag = True
 
     def list(self, request, *args, **kwargs):
+        """
+        returns default Network selected for org
+        """
         org = request.org
         default_network = models.Network.get_default_network_for_org(org)
 
@@ -131,11 +134,18 @@ class DefaultNetwork(CachedObjectMixin, viewsets.GenericViewSet):
 
 @route
 class Networks(CachedObjectMixin, viewsets.GenericViewSet):
+    """
+    Networks belonging to org view
+    """
+
     serializer_class = Serializers.net
     require_org_tag = True
     ref_tag = "networks"
 
     def list(self, request, *args, **kwargs):
+        """
+        list of all networks in verified_asns for org
+        """
         org = request.org
 
         instances = [net for net in verified_asns(request.perms, org=org)]
