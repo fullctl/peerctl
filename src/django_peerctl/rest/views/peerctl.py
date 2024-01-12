@@ -117,6 +117,18 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
         return Response(Serializers.default_network(default_network).data)
 
 
+@route
+class DefaultNetwork(CachedObjectMixin, viewsets.GenericViewSet):
+    serializer_class = Serializers.default_network
+    require_org_tag = True
+
+    def list(self, request, *args, **kwargs):
+        org = request.org
+        default_network = models.Network.get_default_network_for_org(org)
+
+        return Response(Serializers.net(default_network).data)
+
+
 # policy view
 # list all Polciy for a network
 # create
