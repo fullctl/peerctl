@@ -1,7 +1,11 @@
 import ipaddress
 
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
+from django.conf import settings
+from django.db.models.functions import Lower
+from django.http import HttpResponse
 from fullctl.django.auth import permissions
 from fullctl.django.rest.core import BadRequest
 from fullctl.django.rest.decorators import load_object
@@ -21,6 +25,7 @@ from django_peerctl.peer_session_workflow import (
 from django_peerctl.rest.decorators import grainy_endpoint
 from django_peerctl.rest.route.peerctl import route
 from django_peerctl.rest.serializers.peerctl import Serializers, ValidationError
+from django_peerctl.utils import load_exchanges
 
 
 @route
@@ -56,12 +61,143 @@ class Network(CachedObjectMixin, viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=Serializers.peeringdb_relationship,
+    )
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def facilities(self, request, asn, net, *args, **kwargs):
+        """
+        Returns a list of peeringdb facilities for a network
+        """
+
+        entities = list(pdbctl.Facility().objects(asn=asn))
+        serializer = self.get_serializer(entities, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        serializer_class=Serializers.peeringdb_relationship,
+    )
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def internet_exchanges(self, request, asn, net, *args, **kwargs):
+        """
+        Returns a list of peeringdb exchanges for a network
+        """
+
+        entities = list(pdbctl.InternetExchange().objects(asn=asn))
+        serializer = self.get_serializer(entities, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["POST"], serializer_class=Serializers.default_network)
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def set_as_default(self, request, asn, net, *args, **kwargs):
+        """
+        Set the Network as the default Network for the organization
+        """
+
+        org = request.org
+        default_network = models.OrganizationDefaultNetwork.objects.filter(
+            org=org
+        ).first()
+        serializer = Serializers.default_network(
+            instance=default_network,
+            data={"network": net.id, "org": org.id},
+        )
+
+        if not serializer.is_valid():
+            return BadRequest(serializer.errors)
+
+        default_network = serializer.save()
+        return Response(Serializers.default_network(default_network).data)
+
 
 # policy view
 # list all Polciy for a network
 # create
 # update
 # destroy
+
+
+@route
+class PolicyPeerGroup(CachedObjectMixin, viewsets.ModelViewSet):
+
+    """
+    PolicyPeerGroup view set
+
+    Implements endpoints for PolicyPeerGroup objects
+
+    - list
+    - create
+    - update
+    - destroy
+    """
+
+    serializer_class = Serializers.policy_peer_group
+    queryset = models.PolicyPeerGroup.objects.all()
+    require_asn = True
+    lookup_field = "slug"
+
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list(self, request, asn, *args, **kwargs):
+        instances = models.PolicyPeerGroup.objects.filter(net__asn=asn)
+        serializer = self.serializer_class(instances, many=True)
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @load_object(
+        "policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn"
+    )
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def retrieve(self, request, asn, net, slug, policy_peer_group, *args, **kwargs):
+        serializer = self.serializer_class(policy_peer_group)
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def create(self, request, asn, net, *args, **kwargs):
+        data = request.data
+
+        if data.get("allow_asn_in") == "":
+            # set to None
+            data["allow_asn_in"] = None
+
+        if data.get("max_prefixes") == "":
+            # set to None
+            data["max_prefixes"] = None
+
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(net=net)
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @load_object(
+        "policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn"
+    )
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def update(self, request, asn, net, slug, policy_peer_group, *args, **kwargs):
+        serializer = self.serializer_class(
+            instance=policy_peer_group, data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @load_object(
+        "policy_peer_group", models.PolicyPeerGroup, slug="slug", net__asn="asn"
+    )
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def destroy(self, request, asn, net, slug, policy_peer_group, *args, **kwargs):
+        r = Response(self.serializer_class(policy_peer_group).data)
+        policy_peer_group.delete()
+        return r
 
 
 @route
@@ -72,7 +208,11 @@ class Policy(CachedObjectMixin, viewsets.ModelViewSet):
 
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, *args, **kwargs):
-        instances = models.Policy.objects.filter(net__asn=asn, status="ok")
+        instances = (
+            models.Policy.objects.filter(net__asn=asn, status="ok")
+            .select_related("net", "peer_group_managed")
+            .order_by(Lower("name"))
+        )
         serializer = self.serializer_class(instances, many=True)
         return Response(serializer.data)
 
@@ -151,10 +291,16 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     serializer_class = Serializers.port
     require_asn = True
 
+    def get_serializer_class(self):
+        if self.action == "update":
+            return Serializers.port_update
+        return super().get_serializer_class()
+
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, *args, **kwargs):
         filter_device = request.GET.get("device")
         ixi = request.GET.get("ixi")
+        load_md5 = request.GET.get("load_md5", False)
 
         qset = models.PortInfo.objects.filter(
             net__org=request.org, net__asn=asn, port__gt=0
@@ -165,31 +311,39 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
 
             qset = qset.filter(ref_id__gt=0)
 
+        qset = qset.select_related("net")
+
         # collect port ids
 
-        port_ids = [int(obj.port) for obj in qset]
+        port_infos = {int(port_info.port): port_info for port_info in qset}
 
-        # load ports
+        port_ids = [int(obj.port) for obj in port_infos.values()]
 
-        instances = [
-            port
-            for port in models.Port().objects(
-                org=request.org.remote_id, join="device", status="ok"
-            )
-            if port.id in port_ids
-            and (not filter_device or port.device_id == int(filter_device))
-        ]
+        instances = models.Port.preload(
+            request.org,
+            asn,
+            port_ids,
+            filter_device=filter_device,
+            load_policies=True,
+            port_infos=port_infos,
+        )
 
-        # prefetch netixlans/ixctl members
+        if ixi:
+            models.Port.augment_ix(instances, asn)
 
-        for member in sot.InternetExchangeMember().objects(asn=asn):
-            for port in instances:
-                if port.port_info_object.ref_id == member.ref_id:
-                    port.port_info_object._ref = member
+        serializer = self.serializer_class(
+            instances, many=True, context={"load_md5": load_md5}
+        )
 
-        serializer = self.serializer_class(instances, many=True)
-
-        data = sorted(serializer.data, key=lambda x: x["ix_name"])
+        data = serializer.data
+        # ordering data based on order param
+        order = request.GET.get("ordering")
+        if order == "ix_simple_name":
+            data = sorted(data, key=lambda x: x["ix_simple_name"])
+        elif order == "-ix_simple_name":
+            data = sorted(data, key=lambda x: x["ix_simple_name"])[::-1]
+        else:
+            data = sorted(data, key=lambda x: x["ix_name"])
 
         return Response(data)
 
@@ -197,6 +351,18 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
     def retrieve(self, request, asn, pk, *args, **kwargs):
         port = models.Port().object(pk)
         serializer = Serializers.port(instance=port)
+        return Response(serializer.data)
+
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def update(self, request, asn, pk, *args, **kwargs):
+        port = models.Port().object(pk)
+
+        serializer = self.get_serializer_class()(
+            data=request.data, context={"port": port}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
         return Response(serializer.data)
 
     @action(
@@ -306,6 +472,45 @@ class Port(CachedObjectMixin, viewsets.GenericViewSet):
         serializer = self.serializer_class(port)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["get"], url_path="traffic/ix")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def ix_traffic(self, request, asn, pk, *args, **kwargs):
+        """
+        IX traffic datapoints for this port (only if the port is
+        is referenced by an ixctl port info object)
+        """
+
+        port = models.Port().object(pk)
+        port_info = port.port_info_object
+
+        # port info reference needs to exist, as it is used to relate
+        # the port to an exchange
+
+        if not port_info or not port_info.ref_id:
+            return Response({})
+
+        # port info reference needs to be from ixctl
+
+        if not port_info.ref_source == "ixctl":
+            return Response({})
+
+        # port info reference needs to be from the same asn as this
+        # network (everyone is only allowed to see their own traffic)
+
+        if int(port_info.ref.asn) != int(asn):
+            return Response({}, status=403)
+
+        start_time = request.GET.get("start_time")
+        duration = request.GET.get("duration")
+
+        return Response(
+            ixctl.InternetExchangeMember().traffic(
+                port_info.ref_id.split(":")[1],
+                start_time=start_time,
+                duration=duration,
+            )
+        )
+
 
 # peer view
 # list all peers for a port and asn
@@ -351,12 +556,19 @@ class NetworkSearch(viewsets.GenericViewSet):
 
         locations_them = {}
         locations_us = {}
+        ports_them = {}
 
-        for netixlan in pdbctl.NetworkIXLan().objects(asns=[asn, other_asn], join="ix"):
+        # get their exchanges, our exchanges, and also summarize mutual exchanges
+
+        for netixlan in sot.InternetExchangeMember().objects(
+            asns=[asn, other_asn], join="ix_name"
+        ):
+            ix_id = f"{netixlan.source}:{netixlan.ix_id}"
             if netixlan.asn == int(asn):
-                locations_us[netixlan.ix.id] = netixlan.ix.name
+                locations_us[ix_id] = netixlan.ix_name
             elif netixlan.asn == int(other_asn):
-                locations_them[netixlan.ix.id] = netixlan.ix.name
+                locations_them[ix_id] = netixlan.ix_name
+                ports_them.setdefault(ix_id, []).append(netixlan)
 
         for ix_id, ix_name in locations_them.items():
             result["their_locations"][ix_id] = {"ix_name": ix_name, "ix_id": ix_id}
@@ -370,6 +582,56 @@ class NetworkSearch(viewsets.GenericViewSet):
             )
             del result["their_locations"][ix_id]
             del result["our_locations"][ix_id]
+
+        # for mutual exchanges also note when there is already a session
+        # configured
+
+        peer_sessions = list(
+            models.PeerSession.objects.filter(
+                peer_port__peer_net__net__asn=asn,
+                peer_port__peer_net__peer__asn=other_asn,
+                status="ok",
+            ).select_related("peer_port", "peer_port__port_info")
+        )
+
+        # loop through mutual locations
+
+        for ix_id, loc_data in result["mutual_locations"].items():
+            # loop through all peering sessions for this net and asn
+
+            for session in peer_sessions:
+                # check if the session is for this ix, we do this by
+                # comparing ip addresses of active sessions against the
+                # ports (netixlans) pdb has for the ix
+
+                port_info = session.peer_port.port_info
+                peer_ip4 = (
+                    ipaddress.ip_interface(port_info.ipaddr4)
+                    if port_info.ipaddr4
+                    else None
+                )
+                peer_ip6 = (
+                    ipaddress.ip_interface(port_info.ipaddr6)
+                    if port_info.ipaddr6
+                    else None
+                )
+
+                for other_port in ports_them.get(ix_id, []):
+                    if (
+                        peer_ip4
+                        and other_port.ipaddr4
+                        and peer_ip4.ip == ipaddress.ip_address(other_port.ipaddr4)
+                    ):
+                        loc_data["session"] = True
+                        break
+
+                    if (
+                        peer_ip6
+                        and other_port.ipaddr6
+                        and peer_ip6.ip == ipaddress.ip_address(other_port.ipaddr6)
+                    ):
+                        loc_data["session"] = True
+                        break
 
         result["their_locations"] = sorted(
             list(result["their_locations"].values()), key=lambda x: x["ix_name"]
@@ -411,37 +673,17 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
 
         return r
 
-    def prefetch_relations(self, instances):
-        port_ids = [i.port for i in instances]
-        ports = {
-            port.id: port
-            for port in models.Port().objects(id__in=port_ids, join="device")
-        }
-
-        peer_asns = list({i.peer_port.peer_net.peer.asn for i in instances})
-        peer_nets = {}
-        if peer_asns:
-            peer_nets = {
-                net.asn: net for net in pdbctl.Network().objects(asns=peer_asns)
-            }
-        else:
-            peer_nets = {}
-
-        for i in instances:
-            port = ports.get(int(i.port))
-            if port:
-                i.port._object = port
-
-            net = peer_nets.get(i.peer_port.peer_net.peer.asn)
-            i.peer_port.peer_net.peer._ref = net
+    def prefetch_relations(self, sessions):
+        return models.PeerSession.load_references(sessions)
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list(self, request, asn, net, *args, **kwargs):
-        instances = net.peer_session_set.filter(status="ok")
-        instances = list(self._filter_peer(instances, request.GET.get("peer")))
+        instances = list(net.peer_session_set.filter(status__in=["ok", "configured"]))
 
         self.prefetch_relations(instances)
+
+        instances = list(self._filter_peer(instances, request.GET.get("peer")))
 
         serializer = self.serializer_class(instances, many=True)
         data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
@@ -453,10 +695,12 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_port(self, request, asn, net, port_pk, *args, **kwargs):
         port = models.Port().object(id=port_pk)
-        instances = port.peer_session_qs_prefetched.filter(status="ok")
-        instances = self._filter_peer(instances, request.GET.get("peer"))
+        instances = list(port.peer_session_qs_prefetched.filter(status="ok"))
 
         self.prefetch_relations(instances)
+
+        instances = self._filter_peer(instances, request.GET.get("peer"))
+
         serializer = self.serializer_class(instances, many=True)
         data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
         return Response(data)
@@ -466,9 +710,9 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_device(self, request, asn, net, device_pk, *args, **kwargs):
         device = models.Device().object(id=device_pk)
-        instances = device.peer_session_qs.filter(status="ok")
-        instances = self._filter_peer(instances, request.GET.get("peer"))
+        instances = list(device.peer_session_qs.filter(status="ok"))
         self.prefetch_relations(instances)
+        instances = self._filter_peer(instances, request.GET.get("peer"))
         serializer = self.serializer_class(instances, many=True)
         data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
         return Response(data)
@@ -477,15 +721,18 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def list_by_facility(self, request, asn, net, facility_tag, *args, **kwargs):
-        devices = models.Device().objects(facility_slug=facility_tag)
+        devices = list(models.Device().objects(facility_slug=facility_tag))
 
         instances = []
+
+        models.Device.load_references(devices, org=net.org.slug)
 
         for device in devices:
             instances.extend(list(device.peer_session_qs.filter(status="ok")))
 
-        instances = self._filter_peer(instances, request.GET.get("peer"))
         self.prefetch_relations(instances)
+
+        instances = self._filter_peer(instances, request.GET.get("peer"))
         serializer = self.serializer_class(instances, many=True)
         data = sorted(serializer.data, key=lambda x: (x["peer_asn"], x["id"]))
         return Response(data)
@@ -518,8 +765,9 @@ class SessionsSummary(CachedObjectMixin, viewsets.GenericViewSet):
         peer_session = models.PeerSession.objects.get(
             id=pk, peer_port__peer_net__net=net
         )
+        response = Response(self.serializer_class(peer_session).data)
         peer_session.delete()
-        return Response(self.serializer_class(peer_session).data)
+        return response
 
 
 @route
@@ -527,6 +775,21 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
     serializer_class = Serializers.peer
     require_asn = True
     require_port = True
+
+    def _filter_peer(self, instances, filter_term):
+        if not filter_term:
+            return instances
+
+        r = []
+        for instance in instances:
+            if instance.ipaddr4 == str(filter_term) or instance.ipaddr6 == filter_term:
+                r.append(instance)
+            elif instance.name.lower().find(filter_term.lower()) > -1:
+                r.append(instance)
+            elif str(instance.asn) == filter_term:
+                r.append(instance)
+
+        return r
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
@@ -536,6 +799,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         device = port.devices[0]
 
         instances = port.get_available_peers()
+        instances = list(self._filter_peer(instances, request.GET.get("peer")))
 
         serializer = self.serializer_class(
             instances, many=True, context={"port": port, "net": net, "device": device}
@@ -573,18 +837,18 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
         )
 
     @load_object("net", models.Network, asn="asn")
-    @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def retrieve(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
+    def retrieve(self, request, asn, net, port_pk, pk, *args, **kwargs):
+        port = models.Port().object(port_pk)
         peer = get_member(pk)
         serializer = self.serializer_class(peer, context={"port": port, "net": net})
         return Response(serializer.data)
 
     @action(detail=True, methods=["get"])
     @load_object("net", models.Network, asn="asn")
-    @load_object("port", models.Port, id="port_pk")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def details(self, request, asn, net, port_pk, port, pk, *args, **kwargs):
+    def details(self, request, asn, net, port_pk, pk, *args, **kwargs):
+        port = models.Port().object(port_pk)
         peer = get_member(pk)
         serializer = Serializers.peerdetail(peer, context={"port": port, "net": net})
         return Response(serializer.data)
@@ -662,7 +926,7 @@ class Peer(CachedObjectMixin, viewsets.GenericViewSet):
 
 
 @route
-class PeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
+class EmailPeerRequest(CachedObjectMixin, viewsets.ModelViewSet):
     serializer_class = Serializers.peer_session
     queryset = models.PeerSession.objects.all()
     require_asn = True
@@ -758,7 +1022,7 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
             net.save()
 
         workflow = PeerRequestToAsnWorkflow(
-            asn, request.data.get("asn"), request.data.get("ix_ids")
+            asn, request.data.get("asn"), load_exchanges(request.data.get("ix_ids"))
         )
         workflow.cc = request.data.get("cc_reply_to")
         workflow.test_mode = request.data.get("test_mode")
@@ -783,6 +1047,74 @@ class PeerRequestToAsn(CachedObjectMixin, viewsets.ModelViewSet):
         return Response({})
 
 
+@route
+class PeerRequest(viewsets.GenericViewSet):
+    serializer_class = Serializers.autopeer
+    require_asn = True
+    require_port = False
+    require_member = False
+
+    http_method_names = ["get", "post"]
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def create(self, request, asn, net, *args, **kwargs):
+        """
+        create new autopeer request
+        """
+
+        serializer = self.get_serializer_class()(
+            data=request.data, context={"asn": asn, "org": net.org, "net": net}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
+
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list(self, request, asn, net, *args, **kwargs):
+        """
+        lists peer requests
+        """
+
+        requests = self.get_serializer_class().get_requests(net)
+
+        serializer = self.get_serializer_class()(
+            instance=requests, context={"asn": asn}, many=True
+        )
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="enabled")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def list_enabled(self, request, asn, net, *args, **kwargs):
+        """
+        lists autopeer enabled asns
+        """
+
+        serializer = Serializers.autopeer_enabled(
+            instance=[
+                {"asn": their_asn} for their_asn in settings.AUTOPEER_ENABLED_NETWORKS
+            ]
+            if settings.AUTOPEER_ENABLED
+            else [],
+            context={"asn": asn},
+            many=True,
+        )
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="enabled/(?P<their_asn>[0-9]+)")
+    @load_object("net", models.Network, asn="asn")
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def enabled(self, request, asn, net, their_asn, *args, **kwargs):
+        serializer = Serializers.autopeer_enabled(
+            data={"asn": their_asn}, context={"asn": asn}
+        )
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
+
 # peer session view
 # create
 
@@ -794,27 +1126,15 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
     require_asn = True
     require_port = True
 
-    def get_serializer_dynamic(self, path, method, direction):
-        """
-        Retrieve correct serializer class for openapi schema
-        generation
-        """
-
-        if path == "/api/peer_session/{asn}/{port_pk}/create_floating/":
-            return Serializers.create_floating_peer_session()
-        elif path == "/api/peer_session/{asn}/{port_pk}/{id}/update_meta/":
-            return Serializers.update_peer_session_meta()
-        elif method == "PUT":
-            return Serializers.update_peer_session()
-
-        return Serializers.peer_session()
-
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def create(self, request, asn, net, port_pk, *args, **kwargs):
         data = request.data
 
-        port = models.Port().first(id=port_pk)
+        port = models.Port().first(id=port_pk, org_slug=net.org.slug)
+
+        if not port:
+            return Response({}, status=404)
 
         member = get_member(data.get("member"), join="ix")
 
@@ -826,23 +1146,25 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if not data.get("peer_asn"):
             data["peer_asn"] = 0
 
-        peer_port = models.PeerPort.get_or_create_from_members(
-            port.port_info_object.ref, member
+        # check if session exists
+
+        session_exists = models.PeerSession.get_unique(
+            asn,
+            port.device_id,
+            member.asn,
+            member.ipaddr4 or member.ipaddr6,
         )
 
-        # XXX aaactl metered limiting
-        # try:
-        #    port.port_info.net.validate_limits()
-        # except UsageLimitError as exc:
-        #    raise ValidationError(
-        #        {"non_field_errors": [["usage_limit", "{}".format(exc)]]}
-        #    )
+        if not session_exists:
+            peer_port = models.PeerPort.get_or_create_from_members(
+                port.port_info_object.ref, member
+            )
 
-        instance = models.PeerSession.get_or_create(port, peer_port)
-        instance.status = "ok"
-        instance.save()
+            instance = models.PeerSession.get_or_create(port, peer_port)
+            instance.status = "ok"
+            instance.save()
 
-        models.AuditLog.log_peer_session_add(instance, request.user)
+            models.AuditLog.log_peer_session_add(instance, request.user)
 
         serializer = Serializers.peer(
             through_member, context={"port": port, "net": net}
@@ -873,109 +1195,205 @@ class PeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         serializer = self.serializer_class(peer_session)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"])
+    @grainy_endpoint(namespace="verified.asn.{asn}.?")
+    def set_status(self, request, pk, *args, **kwargs):
+        peer_session = models.PeerSession.objects.get(id=pk)
+
+        peer_session.status = request.data.get("status")
+        peer_session.save()
+
+        serializer = self.serializer_class(peer_session)
+        return Response(serializer.data)
+
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def destroy(self, request, asn, net, port_pk, pk, *args, **kwargs):
         port = models.Port().object(port_pk)
         peer_session = models.PeerSession.objects.get(id=pk)
 
-        if int(peer_session.port.id) == int(port_pk):
+        response = Response(self.serializer_class(peer_session).data)
+
+        if peer_session.port and int(peer_session.port.id) == int(port_pk):
             super().destroy(request, asn, port, pk)
-        return Response(self.serializer_class(peer_session).data)
+        return response
 
-    @action(
-        detail=False,
-        methods=["post"],
-        serializer_class=Serializers.create_floating_peer_session,
-    )
-    @load_object("net", models.Network, asn="asn")
-    @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def create_floating(self, request, asn, net, port_pk, *args, **kwargs):
+
+@route
+class UpdatePeerSession(CachedObjectMixin, viewsets.ModelViewSet):
+
+    """
+    Ultimate endpoint for creating and updating peer session objects
+    based on port (ip or id), peer asn, and peer ip
+
+    Should eventually replace all other ends points for updating / creating
+    peer sessions
+    """
+
+    serializer_class = Serializers.peer_session
+    queryset = models.PeerSession.objects.all()
+    require_asn = True
+    ref_tag = "update_peer_session"
+
+    def get_serializer_dynamic(self, path, method, direction):
         """
-        Creates a new peering session.
-
-        Note that unless you set at minimum the following:
-
-        - peer ipv4 or ipv6 address
-        - peer type
-        - peer asn
-        - ipv4 or ipv6 policy
-        - port
-
-        the session will come back with status `partial`
-
-        You may update / finish configuration of partial sessions using the PUT request
-        the peer session API
+        Retrieve correct serializer class for openapi schema
+        generation
         """
 
-        data = request.data.copy()
+        if method == "POST":
+            return Serializers.update_peer_session()
 
-        if not data.get("peer_maxprefix4"):
-            data["peer_maxprefix4"] = 0
-
-        if not data.get("peer_maxprefix6"):
-            data["peer_maxprefix6"] = 0
-
-        serializer = Serializers.create_floating_peer_session(
-            data=data, context={"asn": asn}
-        )
-
-        serializer.is_valid(raise_exception=True)
-
-        peer_session = serializer.save()
-
-        return Response(self.serializer_class(peer_session).data)
+        return Serializers.peer_session()
 
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def update(self, request, asn, net, port_pk, pk, *args, **kwargs):
-        data = request.data.copy()
-        session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
+    def create(self, request, asn, net, *args, **kwargs):
+        """
+        Handles saving of peer session data (both creation an update)
 
-        if not data.get("peer_maxprefix4"):
-            data["peer_maxprefix4"] = 0
+        Unique sessions are identified by device or port (ip) + peer asn + peer ip
 
-        if not data.get("peer_maxprefix6"):
-            data["peer_maxprefix6"] = 0
+        If a peer session already exists, it is updated, otherwise a new
+        session is created.
+        """
 
-        serializer = Serializers.update_peer_session(
-            session, data=data, context={"asn": asn}
-        )
+        data = request.data
+
+        # the form will send blank strings for these fields, in which case they should
+        # just be removed
+
+        if "peer_maxprefix4" in data and not data["peer_maxprefix4"]:
+            data.pop("peer_maxprefix4")
+
+        if "peer_maxprefix6" in data and not data["peer_maxprefix6"]:
+            data.pop("peer_maxprefix6")
+
+        if "policy4" in data and (not data["policy4"] or data["policy4"] == "0"):
+            data["policy4"] = None
+
+        if "policy6" in data and (not data["policy6"] or data["policy6"] == "0"):
+            data["policy6"] = None
+
+        # handle policy4 sent as name
+
+        if data.get("policy4") and isinstance(data["policy4"], str):
+            # load policy from name and set policy4 to id
+
+            policy = models.Policy.objects.get(net=net, name__iexact=data["policy4"])
+            data["policy4"] = policy.id
+
+        # handle policy6 sent as name
+
+        if data.get("policy6") and isinstance(data["policy6"], str):
+            # load policy from name and set policy6 to id
+
+            policy = models.Policy.objects.get(net=net, name__iexact=data["policy6"])
+            data["policy6"] = policy.id
+
+        if "id" in data and not data["id"]:
+            data.pop("id")
+
+        valid_slz = Serializers.update_peer_session(data=data, context={"asn": asn})
+        valid_slz.is_valid(raise_exception=True)
+
+        data = valid_slz.validated_data
+
+        if data.get("id"):
+            # id is specified, so thats the session to update
+            session = models.PeerSession.objects.get(
+                pk=data["id"], peer_port__peer_net__net=net
+            )
+
+            collision = models.PeerSession.get_unique(
+                asn,
+                data["device"],
+                data["peer_asn"],
+                data.get("peer_ip4") or data.get("peer_ip6"),
+            )
+
+            if collision and collision.id != session.id:
+                return BadRequest(
+                    {
+                        "non_field_errors": [
+                            "A session with the same device, peer asn, and peer ip already exists"
+                        ]
+                    }
+                )
+        else:
+            # other wise we use the unique fields to find the session
+            session = models.PeerSession.get_unique(
+                asn,
+                data["device"],
+                data["peer_asn"],
+                data.get("peer_ip4") or data.get("peer_ip6"),
+            )
+
+        if session:
+            serializer = Serializers.update_peer_session(
+                instance=session, data=data, context={"asn": asn}
+            )
+
+        else:
+            serializer = Serializers.update_peer_session(
+                data=data, context={"asn": asn}
+            )
 
         serializer.is_valid(raise_exception=True)
 
-        peer_session = serializer.save()
+        session = serializer.save()
 
-        return Response(self.serializer_class(peer_session).data)
+        return Response(Serializers.update_peer_session(instance=session).data)
 
-    @action(
-        detail=True,
-        methods=["put"],
-        serializer_class=Serializers.update_peer_session_meta,
-    )
     @load_object("net", models.Network, asn="asn")
     @grainy_endpoint(namespace="verified.asn.{asn}.?")
-    def update_meta(self, request, asn, net, port_pk, pk, *args, **kwargs):
-        data = request.data.copy()
-        session = models.PeerSession.objects.get(pk=pk, peer_port__peer_net__net=net)
+    def destroy(self, request, asn, net, *args, **kwargs):
+        """
+        Handles deletion of a peer session
 
-        serializer = Serializers.update_peer_session_meta(
-            session, data=data, context={}
-        )
+        Unique sessions are identified by port (ip) + peer asn + peer ip
+        """
 
-        if "meta4" not in data:
-            data["meta4"] = session.meta4 or None
+        data = request.data
 
-        if "meta6" not in data:
-            data["meta6"] = session.meta6 or None
+        if "id" in data and not data["id"]:
+            data.pop("id")
 
-        serializer.is_valid(raise_exception=True)
-        peer_session = serializer.save()
-        return Response(self.serializer_class(peer_session).data)
+        valid_slz = Serializers.update_peer_session(data=data, context={"asn": asn})
+        valid_slz.is_valid(raise_exception=True)
+
+        data = valid_slz.validated_data
+
+        if data.get("id"):
+            # id is specified, so thats the session to update
+            session = models.PeerSession.objects.get(
+                pk=data["id"], peer_port__peer_net__net=net
+            )
+        else:
+            # other wise we use the unique fields to find the session
+            session = models.PeerSession.get_unique(
+                asn,
+                data["device"],
+                data["peer_asn"],
+                data.get("peer_ip4") or data.get("peer_ip6"),
+            )
+
+        if not session:
+            return Response({}, status=404)
+
+        response = Response(valid_slz.data)
+
+        session.delete()
+
+        return response
 
 
 @route
 class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
+    """
+    DEPRECATED - use UpdatePeerSession instead
+    """
+
     serializer_class = Serializers.peer_session
     queryset = models.PeerSession.objects.all()
     require_asn = True
@@ -1012,9 +1430,7 @@ class PartialPeerSession(CachedObjectMixin, viewsets.ModelViewSet):
         if not data.get("port"):
             data["port"] = 0
 
-        serializer = Serializers.create_floating_peer_session(
-            data=data, context={"asn": asn}
-        )
+        serializer = Serializers.update_peer_session(data=data, context={"asn": asn})
 
         serializer.is_valid(raise_exception=True)
 
@@ -1105,9 +1521,10 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")
-    @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def preview_default(self, request, asn, net, *args, **kwargs):
-        return self._preview(request, asn, net, "0", *args, **kwargs)
+        if request.perms.check(f"verified.asn.{asn}.?", "r"):
+            return self._preview(request, asn, net, "0", *args, **kwargs)
+        return HttpResponse(status=403)
 
     @action(detail=True, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")
@@ -1145,14 +1562,29 @@ class EmailTemplate(CachedObjectMixin, viewsets.ModelViewSet):
             email_template.context["peer"] = sot.InternetExchangeMember().first(asn=asn)
 
         if request.data.get("ix_ids"):
+            # exchanges have been selected
+            # these will come in a list as strings in the form of "ixctl:1" or "pdbctl:1"
+            # we need to split them and get the ids and then selectively load them from
+            # the service bridge.
+
+            exchanges = load_exchanges(request.data["ix_ids"])
             email_template.context["selected_exchanges"] = list(
-                models.MutualLocation(ix, net, None)
-                for ix in pdbctl.InternetExchange().objects(ids=request.data["ix_ids"])
+                models.MutualLocation(ix, net, None) for ix in exchanges
             )
 
-        if "peer_session" in request.data:
+        print("email template type", email_template.type)
+
+        if email_template.type == "peer-config-complete":
             email_template.context["sessions"] = models.PeerSession.objects.filter(
-                id=request.data["peer_session"]
+                peer_port__peer_net__net__asn=asn,
+                peer_port__peer_net__peer__asn=email_template.context["asn"],
+                status="requested",
+            )
+        elif email_template.type == "peer-session-live":
+            email_template.context["sessions"] = models.PeerSession.objects.filter(
+                peer_port__peer_net__net__asn=asn,
+                peer_port__peer_net__peer__asn=email_template.context["asn"],
+                status="configured",
             )
 
         serializer = Serializers.tmplpreview(instance=email_template)
@@ -1195,9 +1627,10 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")
-    @grainy_endpoint(namespace="verified.asn.{asn}.?")
     def preview_default(self, request, asn, net, *args, **kwargs):
-        return self._preview(request, asn, net, "0", *args, **kwargs)
+        if request.perms.check(f"verified.asn.{asn}.?", "r"):
+            return self._preview(request, asn, net, "0", *args, **kwargs)
+        return HttpResponse(status=403)
 
     @action(detail=True, methods=["post", "get"])
     @load_object("net", models.Network, asn="asn")
@@ -1206,22 +1639,25 @@ class DeviceTemplate(CachedObjectMixin, viewsets.ModelViewSet):
         return self._preview(request, asn, net, pk, *args, **kwargs)
 
     def _preview(self, request, asn, net, pk, *args, **kwargs):
+        device = models.Device().object(request.data["device"])
+
         if not pk or pk == "0":
             device_template = models.DeviceTemplate(
                 name="Preview",
                 net=net,
                 body=request.data.get("body"),
-                type=request.data.get("type"),
+                # TODO: defaulting to junos ok?
+                type=request.data.get("type") or "junos-bgp-neighbors",
             )
         else:
             device_template = models.DeviceTemplate.objects.get(id=pk)
 
-        port = net.port_info_qs.first().port.object
+        port = models.Port().first(device=device.id)
 
         device_template.context["port"] = port
         device_template.context["net"] = net
         # FIXME: support more than one physical port in templates (expose multiple devices?)
-        device_template.context["device"] = models.Device().object(port.device_id)
+        device_template.context["device"] = device
         device_template.context["member"] = request.data.get("member")
 
         serializer = Serializers.tmplpreview(instance=device_template)

@@ -2,65 +2,153 @@
 <div class="row">
   <div class="col">
 
-    <div class="row align-items-center">
+    <div class="infobar container mt-2" data-component="summary-counts-panel">
+      <div class="row">
+        <div class="col-auto right me-auto mt-1">
+          <div class="container">
+            <div class="row">
+              <div class="toolbar-field col-auto">
+                <span class="field">{% trans "Sessions" %}:</span> <span class="value" data-element="total">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-auto right mt-1">
+          <div class="container">
+            <div class="row">
+              <div class="toolbar-field col-auto" data-element="ixp_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "IXP" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="pni_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "PNI" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="transit_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "Transit" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="customer_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "Customer" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="core_btn">
+                <span class="icon-background"><span class="filter-btn | active action icon icon-view"></span></span>
+                <span class="field">{% trans "Core" %}:</span> <span class="value count">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="infobar row mb-2" >
+        <div class="col-auto right me-auto my-1">
+        </div>
+
+        <div class="col-auto right my-1">
+          <div class="container">
+            <div class="row">
+              <div class="toolbar-field col-auto" data-element="unique_ixp_count">
+                <span class="field">{% trans "Unique IXP" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="unique_pni_count">
+                <span class="field">{% trans "Unique PNI" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="unique_transit_count">
+                <span class="field">{% trans "Unique Transit" %}:</span> <span class="value count">-</span>
+              </div>
+              <div class="toolbar-field col-auto" data-element="unique_customer_count">
+                <span class="field">{% trans "Unique Customer" %}:</span> <span class="value count">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row align-items-center mb-2">
       <div class="toolbar-control-group col-auto">
-        <span class="inline-label">{% trans "Location" %}</span>
         <span class="toolbar-control">
           <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
           <select
             data-api-base="{% url "proxies-api-devicectl-facility-list" org_tag=request.org.slug %}"
-            data-null-option="all;{% trans "All" %}"
+            data-null-option="all;{% trans "Location" %}"
             data-name-field="slug"
             data-id-field="slug"
-            data-element="select_facility"></select>
+            data-element="select_facility"
+            data-localstorage-key="summary_select_facility"
+          >
+          </select>
         </span>
       </div>
 
       <div class="toolbar-control-group col-auto" style="display:none;">
-        <span class="inline-label">{% trans "Device" %}</span>
         <span class="toolbar-control">
           <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
           <select
             data-api-base="{% url "proxies-api-devicectl-facility-devices" org_tag=request.org.slug fac_tag="fac_tag" %}"
-            data-null-option="all;{% trans "All" %}"
+            data-null-option="all;{% trans "Device" %}"
             data-name-field="display_name"
-            data-element="select_device"></select>
+            data-element="select_device"
+            data-localstorage-key="summary_select_device"
+          >
+          </select>
         </span>
       </div>
 
       <div class="toolbar-control-group col-auto" style="display:none;">
-        <span class="inline-label">{% trans "Exchange / Port" %}</span>
         <span class="toolbar-control">
           <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
           <select
             data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
-            data-null-option="all;{% trans "All" %}"
+            data-null-option="all;{% trans "Exchange / Port" %}"
             data-name-field="display_name"
-            data-element="select_port"></select>
+            data-element="select_port"
+            data-localstorage-key="summary_select_port"
+          >
+          </select>
         </span>
       </div>
     </div>
 
-  <div class="row align-items-center">
-    <div class="col">
-      <div class="toolbar-control input-group searchbar">
-        <input type="text" value="" data-element="peer_filter" placeholder="{% trans "Search by IP / ASN / Name" %}">
-        <button class="btn" data-element="peer_filter_submit" type="button"><span class="icon icon-search"></span></button>
+    <div class="row align-items-center">
+      <div class="col">
+        <div class="toolbar-control input-group searchbar" data-element="summary_searchbar">
+          <input type="text" value="" data-role="filter" placeholder="Search by IP / ASN / Name">
+          <button class="btn curved" data-role="filter_submit" type="button">
+            <span class="icon icon-search"></span>
+          </button>
+          <button class="btn secondary small" data-role="filter_clear" type="button" style="display: none;">
+            <span class="icon icon-cancel"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-sm-auto ms-auto">
+        <button class="primary btn" data-element="btn_add_peer_session" type="button">
+          <div class="row align-items-center">
+            <div class="col label pe-0">{% trans "Add Session" %}</div>
+            <div class="col-auto">
+                <span class="icon icon-add"></span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+    </div>
+
+    <div class="row mt-2">
+      <div class="col-auto">
+        <button type="button" class="small btn filter d-flex align-items-center" data-element="filter_no_port_assigned">
+          <div class="row align-items-center">
+            <div class="col-auto pe-0">
+              <span class="icon icon-filter"></span>
+            </div>
+            <div class="col label ps-1"><span>{% trans "No port assigned:" %}&nbsp;</span><span class="value bold">-</span></div>
+          </div>
+        </button>
       </div>
     </div>
-
-    <div class="col-sm-auto ms-auto">
-      <button class="primary btn" data-element="btn_add_peer_session" type="button">
-        <div class="row align-items-center">
-          <div class="col label pe-0">{% trans "Add Session" %}</div>
-          <div class="col-auto">
-              <span class="icon icon-add"></span>
-          </div>
-        </div>
-      </button>
-    </div>
-
-  </div>
 
   </div>
 </div>

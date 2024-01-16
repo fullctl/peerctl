@@ -1,62 +1,27 @@
 
 {% load static i18n %}
 <form data-template="form_floating_session"
-  data-api-base="{% url "peerctl_api:peer_session-list" asn=selected_asn port_pk=0 %}"
+  data-api-base="{% url "peerctl_api:update_peer_session-list" asn=selected_asn %}"
   data-api-method="POST"
   >
   <div class="container-fluid">
+
+    <div style="display:none" data-api-submit="yes">
+      <input type="hidden" name="id" data-field="id" />
+    </div>
+
     <div class="row mb-3">
       <div class="col-12" data-api-submit="yes">
-        <label class="form-label" for="description">{% trans "Location" %}</label>
         <span class="modal-control">
-          <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
+          <label class="form-label" for="port">{% trans "Port" %}</label>
           <select
             class="form-control"
-            id="facility"
-            name="facility"
-            data-name-field="slug"
-            data-id-field="slug"
-            data-api-base="{% url "proxies-api-devicectl-facility-list" org_tag=request.org.slug %}"
-            >
-          <select>
+            id="port"
+            data-type="int"
+            name="port">
+          </select>
         </span>
       </div>
-    </div>
-
-
-    <div class="row mb-3">
-      <div class="col-12" data-api-submit="yes">
-        <label class="form-label" for="description">{% trans "Device" %}</label>
-        <span class="modal-control">
-        <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
-        <select
-          class="form-control"
-          id="device"
-          name="device"
-          data-name-field="display_name"
-          data-api-base="{% url "proxies-api-devicectl-facility-devices" org_tag=request.org.slug fac_tag="fac_tag" %}"
-          >
-        <select>
-        </span>
-      </div>
-    </div>
-
-    <div class="row mb-3">
-      <div class="col-12" data-api-submit="yes">
-        <label class="form-label" for="description">{% trans "Port" %}</label>
-        <span class="modal-control">
-        <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
-        <select
-          class="form-control"
-          id="port"
-          name="port"
-          data-name-field="display_name"
-          data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
-          >
-        <select>
-        </span>
-      </div>
-
     </div>
 
     <div class="row mb-3">
@@ -72,7 +37,8 @@
         <span class="modal-control">
           <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
           <select class="form-control" id="peer-session-type" name="peer_session_type">
-            <option value="peer">{% trans "Peer" %}</option>
+            <option value="ixp">{% trans "IXP" %}</option>
+            <option value="pni">{% trans "PNI" %}</option>
             <option value="transit">{% trans "Transit" %}</option>
             <option value="customer">{% trans "Customer" %}</option>
             <option value="core">{% trans "Core" %}</option>
@@ -90,16 +56,17 @@
     </div>
     <div class="row | mb-3 ms-1">
       <div class="col" data-api-submit="yes">
-        <label class="form-label" for="policy_4">{% trans "Policy" %}</label>
+        <label class="form-label" for="policy4">{% trans "Policy" %}</label>
         <span class="modal-control">
         <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
         <select
           class="form-control"
           id="policy-4"
-          name="policy_4"
+          name="policy4"
+          data-type="int"
           data-api-load="yes"
           data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
-          data-null-option="0;{% trans "Inherit Policy" %}">
+          data-null-option=";{% trans "Inherit Policy" %}">
         </select>
         </span>
       </div>
@@ -113,16 +80,17 @@
     </div>
     <div class="row | mb-3 ms-1">
       <div class="col" data-api-submit="yes">
-        <label class="form-label" for="policy_6">{% trans "Policy" %}</label>
+        <label class="form-label" for="policy6">{% trans "Policy" %}</label>
         <span class="modal-control">
         <img class="caret" src="{% static "common/icons/ui-caret-caret/down.svg" %}">
         <select
           class="form-control"
           id="policy-6"
-          name="policy_6"
+          name="policy6"
+          data-type="int"
           data-api-load="yes"
           data-api-base="{% url "peerctl_api:policy-list" asn=selected_asn %}"
-          data-null-option="0;{% trans "Inherit Policy" %}">
+          data-null-option=";{% trans "Inherit Policy" %}">
         </select>
         </span>
       </div>

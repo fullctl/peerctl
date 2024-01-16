@@ -1,10 +1,12 @@
 import collections
 import datetime
+import ipaddress
 import json
 import logging
 import os.path
 
 import fullctl.service_bridge.devicectl as devicectl
+import fullctl.service_bridge.ixctl as ixctl
 import fullctl.service_bridge.pdbctl as pdbctl
 import fullctl.service_bridge.sot as sot
 import reversion
@@ -17,23 +19,27 @@ from django.utils.html import strip_tags
 from django.utils.translation import gettext as _
 from django_countries.fields import CountryField
 from django_grainy.decorators import grainy_model
-from django_handleref.models import HandleRefModel
 from django_inet.models import ASNField
 from fullctl.django.fields.service_bridge import ReferencedObjectField
-from fullctl.django.models.abstract import meta
-from fullctl.django.models.concrete import Instance, Organization  # noqa
+from fullctl.django.models.abstract import HandleRefModel, meta
+from fullctl.django.models.concrete import Instance, Organization, Task  # noqa
 from fullctl.django.validators import ip_address_string
 from fullctl.service_bridge.data import Relationships
 from jinja2 import DictLoader, Environment, FileSystemLoader
-from netfields import InetAddressField, MACAddressField
+from netfields import InetAddressField, MACAddressField, NetManager
 
 from django_peerctl import const
 from django_peerctl.email import send_mail_from_default
-from django_peerctl.exceptions import TemplateRenderError, UsageLimitError
+from django_peerctl.exceptions import (
+    ASNClaimed,
+    PolicyMissingError,
+    TemplateRenderError,
+    UsageLimitError,
+)
 from django_peerctl.helpers import get_best_policy, get_peer_contact_email
 from django_peerctl.meta import PeerSessionSchema
-from django_peerctl.models.tasks import SyncMacAddress, SyncRouteServerMD5
-from django_peerctl.templating import make_variable_name
+from django_peerctl.models.tasks import SyncIsRsPeer, SyncMacAddress, SyncRouteServerMD5
+from django_peerctl.templating import ip_version, make_variable_name
 
 # naming::
 # handleref tag $model_$model
@@ -51,6 +57,24 @@ EMAIL_TEMPLATE_TYPES = (
     ("peer-config-complete", "Peering Configuration Complete"),
     ("peer-session-live", "Peering Session Live"),
 )
+
+
+def get_dummy_peer_data(net):
+    return {
+        "1": [
+            {
+                "name": "FooBar Inc",
+                "peer_as": 1111,
+                "peer_type": "external",
+                "neighbor_address": "2001:0db8:85a3::8a2e:0370:7334/64",
+                "local_as": net.asn,
+                "auth_password": "",
+                "max_prefixes": 32,
+                "import_policy": "ImportPolicy",
+                "export_policy": "ExportPolicy",
+            }
+        ]
+    }
 
 
 class DescriptionField(models.CharField):
@@ -112,6 +136,8 @@ class ref_fallback:
                     return value(*args)
                 return value
 
+        wrapped.__name__ = fn.__name__
+
         return wrapped
 
 
@@ -124,6 +150,32 @@ class Base(HandleRefModel):
 
 
 @reversion.register
+class PolicyPeerGroup(Base):
+    net = models.ForeignKey(
+        "Network", on_delete=models.CASCADE, related_name="policy_peer_groups"
+    )
+    slug = models.SlugField(max_length=255)
+    afi = models.PositiveSmallIntegerField(null=True)
+    max_prefixes = models.PositiveIntegerField(null=True)
+    import_policy = models.CharField(max_length=255, blank=True, null=True)
+    export_policy = models.CharField(max_length=255, blank=True, null=True)
+    enforce_first_asn = models.BooleanField(null=True)
+    soft_reconfig = models.BooleanField(null=True)
+    allow_asn_in = models.PositiveSmallIntegerField(null=True)
+    multipath = models.BooleanField(null=True)
+
+    class Meta:
+        db_table = "peerctl_policy_peer_group"
+        verbose_name = _("Policy Peer Group")
+        verbose_name_plural = _("Policy Peer Groups")
+
+        unique_together = (("slug", "net"),)
+
+    class HandleRef:
+        tag = "policy_peer_group"
+
+
+@reversion.register
 class Policy(Base):
     net = models.ForeignKey("Network", on_delete=models.CASCADE, related_name="+")
     name = models.CharField(max_length=255, unique=False)
@@ -133,6 +185,21 @@ class Policy(Base):
     localpref = models.IntegerField(null=True, blank=True)
     med = models.IntegerField(null=True, blank=True)
     peer_group = models.CharField(max_length=255, null=True, blank=True)
+
+    import_policy_managed = models.IntegerField(
+        null=True, blank=True, help_text=_("FullCtl Managed")
+    )
+    export_policy_managed = models.IntegerField(
+        null=True, blank=True, help_text=_("FullCtl Managed")
+    )
+    peer_group_managed = models.ForeignKey(
+        PolicyPeerGroup,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        help_text=_("FullCtl Managed"),
+        related_name="policies",
+    )
 
     class HandleRef:
         tag = "policy"
@@ -149,14 +216,38 @@ class Policy(Base):
     def is_global6(self):
         return self.net.policy6_id == self.id
 
-    @property
-    def count_peers(self):
+    def count_peers(self, peer_sessions=None):
+        """
+        Counts the number of peers using this policy
+
+        Arguments:
+            peer_sessions (QuerySet): optional queryset of peer sessions to count, if
+                not provided, all peer sessions for the network will be counted
+        """
+
         count = 0
-        for peer_session in self.net.peer_session_at_ix(ix_id=None):
-            if get_best_policy(peer_session, 4) == self:
-                count += 1
-            elif get_best_policy(peer_session, 6) == self:
-                count += 1
+
+        if not peer_sessions:
+            # load peer sessions for the network
+
+            peer_sessions = self.net.peer_session_at_ix(ix_id=None).filter(status="ok")
+
+            # batch load port references from devicectl
+
+            Port.load_references(peer_sessions)
+
+        # count peers using this policy by checking if the best policy for each peer
+        # session is this policy
+
+        for peer_session in peer_sessions:
+            try:
+                if get_best_policy(peer_session, 4) == self:
+                    count += 1
+                elif get_best_policy(peer_session, 6) == self:
+                    count += 1
+            except PolicyMissingError:
+                # no policy could be determined (no global policy set either)
+                pass
         return count
 
     def __str__(self):
@@ -307,23 +398,91 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     def get_or_create(cls, asn, org):
         """get or create a network object from an ASN"""
         try:
-            if org:
-                obj = cls.objects.get(asn=asn, org=org)
-            else:
-                obj = cls.objects.get(asn=asn)
+            obj = cls.objects.get(asn=asn)
+            if not obj.org and org:
+                obj.org = org
+                obj.create_global_policy()
+            elif obj.org and org and (obj.org != org):
+                raise ASNClaimed()
 
         except cls.DoesNotExist:
             obj = cls.objects.create(asn=asn, org=org, status="ok")
-
-            # create global policy owned by network
-            global_policy = Policy.objects.create(name="Global", status="ok", net=obj)
-
-            # assign global policy as network policy
-            obj.policy4 = global_policy
-            obj.policy6 = global_policy
-            obj.save()
+            obj.create_global_policy()
 
         return obj
+
+    @classmethod
+    def get_default_network_for_org(cls, org):
+        """
+        Returns the default Network for an organization
+
+        Will return the default network for the organization if
+        specified, otherwise will return the first network in the
+        organization's instance.
+
+        If the organization has no networks in its instance, will
+        return None
+        """
+
+        try:
+            return OrganizationDefaultNetwork.objects.get(org=org).network
+        except OrganizationDefaultNetwork.DoesNotExist:
+            return cls.objects.filter(org=org).first()
+
+    @classmethod
+    def set_default_network_for_org(cls, org, network):
+        """
+        Will take an Organization object and make the specified
+        Network the default network for that organization
+        """
+
+        # check that Network belongs to org
+
+        if network.org != org:
+            raise ValueError("Network does not belong to Organization")
+
+        try:
+            default = OrganizationDefaultNetwork.objects.get(org=org)
+        except OrganizationDefaultNetwork.DoesNotExist:
+            default = OrganizationDefaultNetwork(org=org)
+
+        default.network = network
+        default.save()
+
+        return default
+
+    def create_global_policy(self):
+        # create global policy owned by network
+        global_policy = Policy.objects.create(name="Global", status="ok", net=self)
+
+        # assign global policy as network policy
+        self.policy4 = global_policy
+        self.policy6 = global_policy
+        self.save()
+
+    def get_mutual_locations(self, other_asn, exclude=None):
+        asns = [self.asn, other_asn]
+
+        exchanges = {}
+
+        for member in sot.InternetExchangeMember().objects(asns=asns):
+            source = member.source
+            ix_ref_id = f"{source}:{member.ix_id}"
+
+            if exclude and ix_ref_id in exclude:
+                continue
+
+            if ix_ref_id not in exchanges:
+                exchanges[ix_ref_id] = {self.asn: [], other_asn: []}
+
+            exchanges[ix_ref_id][member.asn].append(member)
+
+        mutual = {}
+
+        for ix_id, members in list(exchanges.items()):
+            if members[self.asn] and members[other_asn]:
+                mutual[ix_id] = members
+        return mutual
 
     @property
     def ref(self):
@@ -457,8 +616,16 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
         """
         returns all peer sessions owned by this network
         """
-        ports = [port_info.port for port_info in PortInfo.objects.filter(net=self)]
-        return PeerSession.objects.filter(port__in=ports)
+        return PeerSession.objects.filter(peer_port__peer_net__net=self).select_related(
+            "peer_port",
+            "peer_port__peer_net",
+            "peer_port__port_info",
+            "peer_port__peer_net__peer",
+            "policy4",
+            "policy6",
+            "policy4__peer_group_managed",
+            "policy6__peer_group_managed",
+        )
 
     @property
     def peer_net_set(self):
@@ -536,30 +703,6 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
 
         return obj
 
-    def get_mutual_locations(self, other_asn, exclude=None):
-        asns = [self.asn, other_asn]
-
-        exchanges = {}
-
-        for member in sot.InternetExchangeMember().objects(asns=asns):
-            source = member.source
-            ix_ref_id = f"{source}:{member.ix_id}"
-
-            if exclude and ix_ref_id in exclude:
-                continue
-
-            if ix_ref_id not in exchanges:
-                exchanges[ix_ref_id] = {self.asn: [], other_asn: []}
-
-            exchanges[ix_ref_id][member.asn].append(member)
-
-        mutual = {}
-
-        for ix_id, members in list(exchanges.items()):
-            if members[self.asn] and members[other_asn]:
-                mutual[ix_id] = members
-        return mutual
-
     def get_peer_contacts(self, ix_id=None, role="policy"):
         peer_session_qset = (
             self.peer_session_at_ix(ix_id)
@@ -583,6 +726,35 @@ class Network(PolicyHolderMixin, UsageLimitMixin, Base):
     def set_as_set(self, as_set):
         self.as_set_override = as_set
         self.save()
+
+
+class OrganizationDefaultNetwork(models.Model):
+    """
+    Describes the default network for an organization
+
+    This is used to determine which network to use when
+    no network is specified in the url.
+    """
+
+    org = models.OneToOneField(
+        Organization,
+        related_name="default_network",
+        on_delete=models.CASCADE,
+        primary_key=True,
+    )
+    network = models.OneToOneField(
+        Network,
+        related_name="default_for_org",
+        on_delete=models.CASCADE,
+    )
+
+    class Meta:
+        db_table = "peerctl_default_network"
+        verbose_name = _("Organization Default Network")
+        verbose_name_plural = _("Organization Default Network")
+
+    def __str__(self):
+        return f"{self.org.name} -> {self.network.name}"
 
 
 @reversion.register
@@ -649,10 +821,18 @@ class PeerNetwork(PolicyHolderMixin, Base):
     def policy_parents(self):
         return [self.net]
 
+    def set_route_server_md5(self, md5):
+        self.md5 = md5
+        self.save()
+        self.sync_route_server_md5()
+
     def sync_route_server_md5(self):
         for session in self.peer_sessions.select_related(
             "peer_port", "peer_port__port_info"
         ):
+            if not session.port:
+                continue
+
             port_info = session.port.object.port_info_object
 
             if not port_info.is_rs_peer:
@@ -711,39 +891,122 @@ class InternetExchange(sot.ReferenceMixin, Base):
 
 
 class MutualLocation:
+
+    """
+    Reperesents a mutual location between two networks
+    """
+
     def __init__(self, ix, net, peer_net):
+        """
+        Arguments:
+
+            ix (InternetExchange): InternetExchange object
+            net (Network): Network object
+            peer_net (PeerNetwork): PeerNetwork object
+        """
+
         self.ix = ix
         self.net = net
         self.peer_net = peer_net
 
     @property
     def name(self):
+        """
+        Internet exchange name
+        """
+
         return self.ix.name
 
     @property
     def name_long(self):
+        """
+        Internet exchange name (long)
+        """
+
         return self.ix.name_long
 
     @property
     def country(self):
+        """
+        Internet exchange country code
+        """
+
         return self.ix.country
 
     @property
     def ip4(self):
-        return self.port_info.ipaddr4
+        """
+        String of IPv4 addresses for this mutual location, delimited by ','
+        """
+
+        return ", ".join([str(ip) for ip in self.ip4s])
 
     @property
     def ip6(self):
-        return self.port_info.ipaddr6
+        """
+        String of IPv6 addresses for this mutual location, delimited by ','
+        """
+
+        return ", ".join([str(ip) for ip in self.ip6s])
 
     @property
-    def port_info(self):
-        if hasattr(self, "_portinfo"):
-            return self._portinfo
-        for port_info in self.net.port_info_qs.all():
-            if port_info.ref_ix_id and port_info.ref_ix_id == self.ix.ref_id:
-                self._portinfo = port_info
-                return port_info
+    def ip4s(self):
+        """
+        List of IPv4 addresses for this mutual location
+        """
+
+        return [info.ipaddr4 for info in self.port_infos if info.ipaddr4]
+
+    @property
+    def ip6s(self):
+        """
+        List of IPv6 addresses for this mutual location
+        """
+
+        return [info.ipaddr6 for info in self.port_infos if info.ipaddr6]
+
+    @property
+    def port_infos(self):
+        """
+        Caches and returns a list of PortInfo objects for this mutual location that
+        have an IPv4 or IPv6 address
+        """
+
+        if hasattr(self, "_portinfos"):
+            return self._portinfos
+
+        self._portinfos = []
+
+        _portinfos = list(
+            self.net.port_info_qs.exclude(port__isnull=True).exclude(
+                ref_id__isnull=True
+            )
+        )
+
+        Port.load_references(_portinfos)
+
+        members = {}
+
+        for member in sot.InternetExchangeMember().objects(
+            asn=self.net.asn, join=["ix"]
+        ):
+            members[f"{member.source}:{member.id}"] = member
+
+        for port_info in _portinfos:
+            if not port_info.ref_id:
+                continue
+            port_info._ref = members.get(port_info.ref_id)
+
+        for port_info in _portinfos:
+            if port_info.ref_ix_id != self.ix.ref_id:
+                continue
+
+            if not port_info.ipaddr4 and not port_info.ipaddr6:
+                continue
+
+            self._portinfos.append(port_info)
+
+        return self._portinfos
 
 
 class PortPolicy(PolicyHolderMixin, Base):
@@ -779,7 +1042,8 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
     def port_info_object(self):
         if not hasattr(self, "_port_info"):
             self._port_info = PortInfo.objects.filter(port=self.id).first()
-            self._port_info.port._object = self
+            if self._port_info:
+                self._port_info.port._object = self
         return self._port_info
 
     @property
@@ -836,14 +1100,74 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         Returns an instance of the peer_session_qs set that has peer_port
         and port_info preselected for performance.
         """
-        # FIXME: should see if there is a way to tell django to automatically
-        # do that for a set.
         if not hasattr(self, "_peer_session_qs_prefetched"):
             peer_sessions = PeerSession.objects.filter(port=self.pk)
             self._peer_session_qs_prefetched = peer_sessions.select_related(
-                "peer_port", "peer_port__port_info", "peer_port__peer_net"
-            ).all()
+                "peer_port",
+                "peer_port__port_info",
+                "peer_port__peer_net",
+                "peer_port__peer_net__peer",
+            ).exclude(status="deleted")
         return self._peer_session_qs_prefetched
+
+    @property
+    def peer_session_ips(self):
+        """
+        Returns a dictionary of session peer ips for this port
+
+        Will use a cache to avoid multiple queries
+
+        Returns:
+
+            dict: Dictionary of peer_session_ips for this port in the format of
+            {ip: peer_session}
+        """
+
+        if hasattr(self, "_peer_session_ips"):
+            return self._peer_session_ips
+
+        self._peer_session_ips = {}
+
+        port_infos = list()
+
+        # loop through peer_session_qs_prefetched and add port_infos to list
+
+        for peer_session in self.peer_session_qs_prefetched:
+            # we dont need to preload port_info for pni ports
+
+            if not peer_session.peer_port.port_info.ref_id:
+                continue
+
+            if peer_session.peer_port.port_info.ref_source == "ixctl":
+                port_infos.append(peer_session.peer_port.port_info)
+            elif peer_session.peer_port.port_info.ref_source == "pdbctl":
+                port_infos.append(peer_session.peer_port.port_info)
+
+        # load references for port_infos from ixctl and pcbctl
+
+        PortInfo.load_references(port_infos)
+
+        # organization peer session peer port ips into dictionary
+
+        for peer_session in self.peer_session_qs_prefetched:
+            if peer_session.peer_port.port_info.ipaddr4:
+                ip = ipaddress.ip_interface(peer_session.peer_port.port_info.ipaddr4).ip
+                self._peer_session_ips[ip] = peer_session
+
+            if peer_session.peer_port.port_info.ipaddr6:
+                ip = ipaddress.ip_interface(peer_session.peer_port.port_info.ipaddr6).ip
+                self._peer_session_ips[ip] = peer_session
+
+        return self._peer_session_ips
+
+    @property
+    def is_ixi(self):
+        """
+        Returns True if the port is an IXI port
+        """
+        if self.port_info_object and self.port_info_object.ref_id:
+            return True
+        return False
 
     def set_policy(self, *args, **kwargs):
         return self.port_policy.set_policy(*args, **kwargs)
@@ -857,6 +1181,33 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
                 self.asn, self.port_info_object.ipaddr4, mac_address
             )
 
+    def set_route_server_md5(self, md5):
+        """
+        Sets and syncs the route server md5 to ixctl
+
+        Arguments:
+
+            md5 (str): md5 password to set
+        """
+
+        # only route server peers can set route server md5s
+
+        if not self.is_route_server_peer:
+            return
+
+        # retrieve route server session
+
+        route_server_member = self.get_route_server_member()
+
+        if not route_server_member:
+            return
+
+        peer_port = PeerPort.get_or_create_from_members(
+            self.port_info_object.ref, route_server_member
+        )
+
+        peer_port.peer_net.set_route_server_md5(md5)
+
     def set_is_route_server_peer(self, is_route_server_peer):
         self.port_info_object.is_route_server_peer = is_route_server_peer
         self.port_info_object.save()
@@ -868,13 +1219,102 @@ class PortObject(devicectl.DeviceCtlEntity, PolicyHolderMixin):
         Returns the peering session for this port
         and a member
         """
-        try:
-            for peer_session in self.peer_session_qs_prefetched:
-                if peer_session.peer_port.port_info.ref_id == member.ref_id:
-                    return peer_session
-        except PeerSession.DoesNotExist:
-            return None
-        return None
+
+        ip4 = ipaddress.ip_interface(member.ipaddr4).ip if member.ipaddr4 else None
+        ip6 = ipaddress.ip_interface(member.ipaddr6).ip if member.ipaddr6 else None
+
+        if ip4 and ip4 in self.peer_session_ips:
+            return self.peer_session_ips[ip4]
+
+        if ip6 and ip6 in self.peer_session_ips:
+            return self.peer_session_ips[ip6]
+
+    def get_route_server_member(self):
+        """
+        Returns the route server member for this port
+        """
+
+        ref_source = self.port_info_object.ref_source
+
+        # if source ix ixctl we can get the route server member
+        # directly from there
+
+        if ref_source == "ixctl":
+            return self.get_route_server_member_ixctl()
+
+        # if source is pdbctl we need to check network member
+
+        if ref_source == "pdbctl":
+            return self.get_route_server_member_pdbctl()
+
+    def get_route_server_member_ixctl(self):
+        """
+        Returns the route server member for this port when the source is ixctl
+        """
+        port_info = self.port_info_object
+
+        for routeserver in ixctl.Routeserver().objects(
+            ix=port_info.ref_ix_id.split(":")[1]
+        ):
+            return ixctl.InternetExchangeMember().first(ip=routeserver.router_id)
+
+    def get_route_server_member_pdbctl(self):
+        """
+        Returns the route server member for this port when the source is pdbctl
+        """
+        port_info = self.port_info_object
+        return pdbctl.NetworkIXLan().first(
+            ix=port_info.ref_ix_id.split(":")[1], routeserver=1
+        )
+
+    def get_route_server_peer_net(self):
+        """
+        Returns the route server peer for this port
+        """
+
+        ref_source = self.port_info_object.ref_source
+
+        # if source ix ixctl we can get the route server peer
+        # directly from there
+
+        if ref_source == "ixctl":
+            return self.get_route_server_peer_net_ixctl()
+
+        # if source is pdbctl we need to check network type
+
+        if ref_source == "pdbctl":
+            return self.get_route_server_peer_net_pdbctl()
+
+    def get_route_server_peer_net_ixctl(self):
+        """
+        Returns the route server peers for this port when the source is ixctl
+        """
+        port_info = self.port_info_object
+
+        for routeserver in ixctl.Routeserver().objects(
+            ix=port_info.ref_ix_id.split(":")[1]
+        ):
+            try:
+                return PeerNetwork.objects.get(
+                    net__asn=self.asn, peer__asn=routeserver.asn
+                )
+            except PeerNetwork.DoesNotExist:
+                pass
+
+    def get_route_server_peer_net_pdbctl(self):
+        """
+        Returns the route server peers for this port when the source is pdbctl
+        """
+        port_info = self.port_info_object
+        for routeserver in pdbctl.NetworkIXlan().objects(
+            ix=port_info.ref_ix_id.split(":")[1], routeserver=1
+        ):
+            try:
+                return PeerNetwork.objects.get(
+                    net__asn=self.asn, peer__asn=routeserver.asn
+                )
+            except PeerNetwork.DoesNotExist:
+                pass
 
     def __str__(self):
         return "Port"
@@ -885,6 +1325,276 @@ class Port(devicectl.Port):
 
     class Meta(devicectl.Port.Meta):
         data_object_cls = PortObject
+
+    @classmethod
+    def in_same_subnet(cls, org, device, ip):
+        """
+        Will return all ports on the device that are in the same subnet as the given ip
+        """
+
+        ports = cls().objects(device=device, org_slug=org.slug)
+
+        ip = ip.split("/")[0]
+
+        candidates = []
+
+        for port in ports:
+            peer_ip = ipaddress.ip_address(ip)
+
+            if peer_ip.version == 6 and not port.ip_address_6:
+                continue
+            if peer_ip.version == 4 and not port.ip_address_4:
+                continue
+            port_ip = ipaddress.ip_interface(
+                port.ip_address_4 if peer_ip.version == 4 else port.ip_address_6
+            )
+
+            peer_ip = ipaddress.ip_interface(f"{ip}/{port_ip.network.prefixlen}")
+
+            # check if peer_ip and port_ip4 are in the same subnet
+            # with prefix length specified in prefixlen
+            if peer_ip.network.network_address == port_ip.network.network_address:
+                candidates.append(port)
+
+        return candidates
+
+    @classmethod
+    def preload(
+        cls,
+        org,
+        asn,
+        port_ids,
+        filter_device=None,
+        load_policies=False,
+        port_infos=None,
+    ):
+        """
+        Preloads ixctl and pdbctl member reference (port_info ref)
+
+        Arguments:
+
+            org: org object
+            asn: asn
+            port_ids: list of port ids - only include ports with these ids
+            filter_device: device id to filter on, will ignore port_ids if set
+            load_policies: load policies for ports
+
+        Returns:
+
+            list of PortObject instances
+        """
+
+        # load ports
+
+        filters = dict(org=org.remote_id, join="device", status="ok", has_ips=1)
+
+        if port_ids:
+            filters["ids"] = port_ids
+
+        instances = [
+            port
+            for port in Port().objects(**filters)
+            if (filter_device or port.id in port_ids)
+            and (not filter_device or port.device_id == int(filter_device))
+            # and (not port.name or not port.name.startswith("peerctl:"))
+        ]
+
+        # prefetch port infos
+        if not port_infos:
+            port_info_qset = PortInfo.objects.filter(
+                port__in=[port.id for port in instances]
+            ).select_related("net")
+            port_infos = {
+                int(port_info.port): port_info for port_info in port_info_qset
+            }
+
+        for port in instances:
+            port._port_info = port_infos.get(int(port.id))
+            port._port_info.port._object = port
+
+        # prefetch netixlans/ixctl members
+
+        for member in sot.InternetExchangeMember().objects(asn=asn):
+            for port in instances:
+                # PNI ports may not have a port_info_object yet and can be skipped
+
+                if not hasattr(port, "port_info_object") or not port.port_info_object:
+                    continue
+
+                if port.port_info_object.ref_id == member.ref_id:
+                    port.port_info_object._ref = member
+
+        # prefetch networks
+
+        networks = Network.objects.filter(
+            port_info_qs__port__in=[port.id for port in instances]
+        )
+
+        for port in instances:
+            if not hasattr(port, "port_info_object") or not port.port_info_object:
+                continue
+
+            for net in networks:
+                if port.port_info_object.net_id == net.id:
+                    port.port_info_object.net = net
+
+        # prefetch policies
+
+        if load_policies:
+            policies = {
+                policy.port: policy
+                for policy in PortPolicy.objects.filter(
+                    port__in=port_ids
+                ).select_related(
+                    "policy4__peer_group_managed", "policy6__peer_group_managed"
+                )
+            }
+
+            for port in instances:
+                if port.id in policies:
+                    port._port_policy = policies[port.id]
+                    port._port_policy._object = port
+
+        return instances
+
+    @classmethod
+    def load_references(cls, objects, load_policies=False, join=None):
+        """
+        Takes a list or generator of objects that have a `port` reference field
+        and batch loads all PortObjects at once
+        """
+
+        # collect all port ids
+
+        port_ids = set()
+
+        for obj in objects:
+            if obj.port:
+                port_ids.add(obj.port.id)
+
+        # load all ports
+
+        ports = Port().objects(ids=list(port_ids), join=join)
+
+        # map ports by id
+
+        port_map = {}
+
+        if port_ids:
+            for port in ports:
+                port_map[port.id] = port
+
+        if load_policies:
+            policies = {
+                policy.port: policy
+                for policy in PortPolicy.objects.filter(
+                    port__in=port_ids
+                ).select_related(
+                    "policy4__peer_group_managed", "policy6__peer_group_managed"
+                )
+            }
+        else:
+            policies = {}
+
+        # assign port objects to objects
+
+        for obj in objects:
+            if obj.port and obj.port.id:
+                obj.port._object = port_map[obj.port.id]
+
+                if isinstance(obj, PortInfo):
+                    obj.port._object._port_info_object = obj
+
+                if obj.port.id in policies:
+                    obj.port._object._port_policy = policies[obj.port.id]
+
+    @classmethod
+    def augment_ix(cls, ixi_ports, asn):
+        """
+        Augments list of intnernet exchange PortObject instances for a network
+
+        Will add prefix4, prefix6, mtu and route server md5
+
+        This takes into consideration whether the exchange has its source
+        of truth in ixctl or pdbctl (peeringdb) and will also augment data
+        from both datasets if necessary
+        """
+
+        net = Network.objects.get(asn=asn)
+
+        # will hold pdbctl internet exchange objects, keyed by id
+        pdbctl_ix = {}
+
+        # will hold ixctl internet exchange objects, keyed by id
+        ixctl_ix = {}
+
+        for ixi_port in ixi_ports:
+            if not ixi_port.port_info_object.ref_id:
+                continue
+
+            source, ix_id = ixi_port.port_info_object.ref_ix_id.split(":")
+
+            ix_id = int(ix_id)
+
+            ixi_port.source = source
+            ixi_port.remote_ix_id = ix_id
+
+            if source == "pdbctl":
+                pdbctl_ix[ix_id] = None
+            elif source == "ixctl":
+                ixctl_ix[ix_id] = None
+
+        # now get ixctl internet exchange objects
+
+        if ixctl_ix:
+            ix_ix = ixctl.InternetExchange().objects(ids=list(ixctl_ix.keys()))
+            for ix in ix_ix:
+                ixctl_ix[ix.id] = ix
+
+                # if ixctl ix has a peeringdb reference, mark
+                # it so it also gets fetched
+
+                if ix.pdb_id:
+                    pdbctl_ix[ix.pdb_id] = None
+
+        # now get pdbctl internet exchange objects
+
+        if pdbctl_ix:
+            pdb_ix = pdbctl.InternetExchange().objects(ids=list(pdbctl_ix.keys()))
+            for ix in pdb_ix:
+                pdbctl_ix[ix.id] = ix
+
+        # now augment data from both sources
+
+        for ixi_port in ixi_ports:
+            mtu = None
+
+            if not ixi_port.port_info_object.ref_id:
+                continue
+
+            if ixi_port.source == "ixctl":
+                # port has SoT in ixctl
+
+                ix = ixctl_ix[ixi_port.remote_ix_id]
+
+                # ixctl ix has a peeringdb reference, so we can
+                # join in MTU from there as ixctl has no MTU field
+                # yet.
+
+                pdb_ix_id = ix.pdb_id
+
+                if pdb_ix_id:
+                    mtu = pdbctl_ix[pdb_ix_id].mtu
+            else:
+                # port has SoT in pdbctl
+
+                ix = pdbctl_ix[ixi_port.remote_ix_id]
+
+                mtu = ix.mtu
+
+            ixi_port.prefix4 = net.prefix4
+            ixi_port.prefix6 = net.prefix6
+            ixi_port.mtu = mtu
 
 
 @reversion.register
@@ -925,6 +1635,8 @@ class PortInfo(sot.ReferenceMixin, Base):
 
     mac_address = MACAddressField(null=True, blank=True)
 
+    objects = NetManager()
+
     class HandleRef:
         tag = "port_info"
 
@@ -934,38 +1646,135 @@ class PortInfo(sot.ReferenceMixin, Base):
         verbose_name_plural = "Port Information"
 
     @classmethod
-    def require_for_pdb_netixlan(cls, network, port, member):
-        if not port:
+    def require_for_pdb_netixlan(cls, network, port_id, member):
+        """
+        makes sure a portinfo instance exists for a peeringdb networkixlan
+        or fullctl ixctl member object.
+
+        this expects a devicectl port id reference to be passed in
+
+        if the portinfo instance already exists, but the port id is different,
+        it will migrate the port info to the new port id
+
+        if the portinfo instance already exists, but the port id is the same,
+        it will return the existing port info instance
+
+        if the portinfo instance does not exist, it will create it
+
+        Arguments:
+
+            network (Network): network object
+            port_id (int): devicectl port id
+            member (pdbctl.InternetExchangeMember or ixctl.InternetExchangeMember): member object
+        """
+
+        if not port_id:
             try:
                 return cls.objects.get(net=network, ref_id=member.ref_id)
             except cls.DoesNotExist:
                 pass
 
-        port_info, _ = cls.objects.get_or_create(
-            net=network, port=port, ref_id=member.ref_id
-        )
+        try:
+            port_info = cls.objects.get(net=network, ref_id=member.ref_id)
+
+            if int(port_info.port) and int(port_info.port) != int(port_id):
+                try:
+                    cls.migrate_ports(int(port_info.port), int(port_id), reassign=True)
+                    port_info.port = port_id
+                except ValueError:
+                    return port_info
+            elif not int(port_info.port):
+                port_info.port = port_id
+                port_info.save()
+
+        except cls.DoesNotExist:
+            port_info = cls.objects.create(
+                net=network, ref_id=member.ref_id, port=port_id
+            )
 
         port_info.ix
 
         return port_info
 
     @classmethod
-    def migrate_ports(cls, from_port, to_port):
+    def migrate_ports(cls, from_port, to_port, reassign=False):
         """
         Moves all PortInfo instances referenced to Port `from_port` to Port `to_port`
+
+        Arguments:
+            from_port (Port): Port object or id to migrate from
+            to_port (Port): Port object or id to migrate to
+            reassign (bool): If True, will reassign PortInfo instances to `to_port` even if it is already assigned
         """
 
-        if not from_port or not from_port.id:
+        # from_port can either be id or port object
+        if isinstance(from_port, PortObject):
+            from_port = from_port.id
+
+        # to_port can either be id or port object
+        if isinstance(to_port, PortObject):
+            to_port = to_port.id
+
+        if not from_port:
             raise ValueError("Need to specify port to migrate from")
 
-        if not to_port or not to_port.id:
+        if not to_port:
             raise ValueError("Need to specify port to migrate to")
 
-        if cls.objects.filter(port=to_port.id).exists():
+        if not reassign and cls.objects.filter(port=to_port).exists():
             raise ValueError("Port is already assigned")
 
-        cls.objects.filter(port=from_port.id).update(port=to_port.id)
-        PeerSession.objects.filter(port=from_port.id).update(port=to_port.id)
+        cls.objects.filter(port=from_port).update(port=to_port)
+        PeerSession.objects.filter(port=from_port).update(port=to_port)
+
+    @classmethod
+    def load_references(self, objects):
+        """
+        loads ixctl/pdbctl references for port info objects
+
+        This will do a batched request to ixctl/pdbctl to fetch all at once
+        """
+
+        ixctl_ref_ids = set()
+        pdbctl_ref_ids = set()
+        ixctl_members = {}
+        pdbctl_members = {}
+
+        # collect all ref ids and categorize ixctl or pdbctl
+
+        for obj in objects:
+            if not obj.ref_id:
+                continue
+
+            if obj.ref_source == "pdbctl":
+                pdbctl_ref_ids.add(int(obj.ref_id.split(":")[1]))
+            elif obj.ref_source == "ixctl":
+                ixctl_ref_ids.add(int(obj.ref_id.split(":")[1]))
+
+        # fetch all ixctl/pdbctl objects
+
+        if pdbctl_ref_ids:
+            pdbctl_members = {
+                m.id: m for m in pdbctl.NetworkIXLan().objects(ids=list(pdbctl_ref_ids))
+            }
+
+        if ixctl_ref_ids:
+            ixctl_members = {
+                m.id: m
+                for m in ixctl.InternetExchangeMember().objects(ids=list(ixctl_ref_ids))
+            }
+
+        # set references according to ref id
+
+        for obj in objects:
+            if not obj.ref_id:
+                continue
+
+            if obj.ref_source == "pdbctl":
+                obj._ref = pdbctl_members[int(obj.ref_id.split(":")[1])]
+
+            elif obj.ref_source == "ixctl":
+                obj._ref = ixctl_members[int(obj.ref_id.split(":")[1])]
 
     @property
     @ref_fallback(0)
@@ -1041,6 +1850,47 @@ class PortInfo(sot.ReferenceMixin, Base):
             return self.info_prefixes6
         raise ValueError(f"Ip Protocol version invalid: {version}")
 
+    def set_is_route_server_peer(self, value):
+        """
+        Updates the is_route_server_peer value and also
+        syncs to other services (ixctl)
+        """
+        self.is_route_server_peer = value
+        self.save()
+        SyncIsRsPeer.create_task(self.net.asn, self.ipaddr4, self.is_route_server_peer)
+
+    def in_same_subnet(self, port_info):
+        """
+        Checks if the supplied port info is in the same subnet as this port info
+
+        prefix length will be determined by either port_info's ip interface, checking
+        self first, then the other port info
+        """
+
+        ip4 = ipaddress.ip_interface(self.ipaddr4) if self.ipaddr4 else None
+        ip6 = ipaddress.ip_interface(self.ipaddr6) if self.ipaddr6 else None
+
+        other_ip4 = (
+            ipaddress.ip_interface(port_info.ipaddr4) if port_info.ipaddr4 else None
+        )
+        other_ip6 = (
+            ipaddress.ip_interface(port_info.ipaddr6) if port_info.ipaddr6 else None
+        )
+
+        if ip4 and other_ip4:
+            network4 = ip4.network if ip4.network.prefixlen < 32 else other_ip4.network
+
+        if ip6 and other_ip6:
+            network6 = ip6.network if ip6.network.prefixlen < 128 else other_ip6.network
+
+        if ip4 and other_ip4:
+            return other_ip4.ip in network4 and ip4.ip in network4
+
+        if ip6 and other_ip6:
+            return other_ip6.ip in network6 and ip6.ip in network6
+
+        return False
+
 
 class DeviceObject(devicectl.DeviceCtlEntity):
     @property
@@ -1051,11 +1901,15 @@ class DeviceObject(devicectl.DeviceCtlEntity):
 
     @property
     def peer_session_qs(self):
-        return PeerSession.objects.filter(port__in=[p.id for p in self.ports])
+        return PeerSession.objects.filter(
+            models.Q(port__in=[p.id for p in self.ports]) | models.Q(device=self.id)
+        )
 
     @property
     def ports(self):
-        return Port().objects(device=self.id)
+        if not hasattr(self, "_ports"):
+            self._ports = Port().objects(device=self.id)
+        return self._ports
 
     def peer_groups(self, net, ip_version):
         """return collection of peer groups"""
@@ -1142,6 +1996,31 @@ class Device(devicectl.Device):
     class Meta(devicectl.Device.Meta):
         data_object_cls = DeviceObject
 
+    @classmethod
+    def load_references(cls, devices, org=None):
+        """
+        Loads references for the given devices
+
+        Arguments:
+
+        - devices <list>: list of Device objects
+
+        Keyword Arguments:
+
+        - org <str>: organization slug
+        """
+
+        device_ids = [device.id for device in devices]
+
+        ports_by_device = {}
+        for port in Port().objects(devices=device_ids, org_slug=org):
+            if port.device_id not in ports_by_device:
+                ports_by_device[port.device_id] = []
+            ports_by_device[port.device_id].append(port)
+
+        for device in devices:
+            device._ports = ports_by_device.get(device.id, [])
+
 
 @reversion.register
 class PeerPort(Base):
@@ -1220,21 +2099,40 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     port going to a Peer with 2 physical ports (with different IPs)
     """
 
-    port = ReferencedObjectField(bridge=Port)
-    peer_port = models.ForeignKey(PeerPort, on_delete=models.CASCADE, related_name="+")
+    port = ReferencedObjectField(bridge=Port, null=True, blank=True)
+    peer_port = models.ForeignKey(
+        PeerPort, on_delete=models.CASCADE, related_name="peer_sessions"
+    )
     peer_session_type = models.CharField(
         max_length=255,
         choices=(
-            ("peer", _("Peer")),
+            ("ixp", _("IXP")),
+            ("pni", _("PNI")),
             ("transit", _("Transit")),
             ("customer", _("Customer")),
             ("core", _("Core")),
         ),
-        default="peer",
+        default="ixp",
+    )
+    status = models.CharField(
+        max_length=32,
+        choices=(
+            ("ok", "ok"),
+            ("requested", "requested"),
+            ("configured", "configured"),
+        ),
+        default="ok",
     )
 
-    meta4 = models.JSONField(null=True)
-    meta6 = models.JSONField(null=True)
+    meta4 = models.JSONField(null=True, blank=True)
+    meta6 = models.JSONField(null=True, blank=True)
+
+    device = ReferencedObjectField(
+        bridge=devicectl.Device,
+        null=True,
+        blank=True,
+        help_text=_("Session is running on this device"),
+    )
 
     class Meta:
         unique_together = ("port", "peer_port")
@@ -1265,6 +2163,148 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
         return obj
 
+    @classmethod
+    def get_unique(cls, asn, device, peer_asn, peer_ip):
+        """
+        Returns a unique PeerSession instance for the given
+        port, peer_asn and peer_port
+
+        port can be a devicectl port reference object, referece id or an ip address
+
+        Arguments:
+
+            - asn <int> AS number of the owner network
+            - device <int> devicectl device id
+            - peer_asn <int> AS number of the peer network
+            - peer_ip <ipaddress> IP address of the peer network
+
+        Returns:
+
+            - PeerSession
+        """
+
+        # load session related objects, if they dont exist
+        # no session exists and we can return None
+
+        try:
+            net = Network.objects.get(asn=asn)
+            peer = Network.objects.get(asn=peer_asn)
+            peer_net = PeerNetwork.objects.get(net=net, peer=peer)
+        except (Network.DoesNotExist, PeerNetwork.DoesNotExist):
+            return None
+
+        # Resolve the port to a PortObject instance
+
+        peer_ports = PeerPort.objects.filter(
+            peer_net=peer_net, peer_sessions__device=int(device)
+        )
+
+        # loop through the peer ports to look for an ip match
+
+        peer_port = None
+        session = None
+        peer_ip = ipaddress.ip_interface(peer_ip)
+
+        for _peer_port in peer_ports:
+            if peer_ip.version == 4 and not _peer_port.port_info.ipaddr4:
+                continue
+
+            if peer_ip.version == 6 and not _peer_port.port_info.ipaddr6:
+                continue
+
+            if (
+                peer_ip.version == 4
+                and ipaddress.ip_interface(_peer_port.port_info.ipaddr4).ip
+                == peer_ip.ip
+            ):
+                peer_port = _peer_port
+                break
+            elif (
+                peer_ip.version == 6
+                and ipaddress.ip_interface(_peer_port.port_info.ipaddr6).ip
+                == peer_ip.ip
+            ):
+                peer_port = _peer_port
+                break
+
+        # we got all pieces now to query the session
+
+        if peer_port:
+            session = cls.objects.filter(
+                device=int(device), peer_port=peer_port, status="ok"
+            ).first()
+
+        if session:
+            return session
+
+        # no session found, see if there any group candidates
+
+        peer_port = None
+
+        for _peer_port in peer_ports:
+            if (
+                peer_ip.version == 4
+                and _peer_port.port_info.ipaddr6
+                and not _peer_port.port_info.ipaddr4
+            ):
+                peer_port = _peer_port
+                break
+
+            if (
+                peer_ip.version == 6
+                and _peer_port.port_info.ipaddr4
+                and not _peer_port.port_info.ipaddr6
+            ):
+                peer_port = _peer_port
+                break
+
+        return cls.objects.filter(
+            device=int(device), peer_port=peer_port, status="ok"
+        ).first()
+
+    @classmethod
+    def load_references(cls, sessions):
+        """
+        Prefetches relations for the sessions
+
+        This will batch several service bridge requests
+        """
+
+        peers_asns = []
+        port_infos = []
+
+        for session in sessions:
+            peers_asns.append(session.peer_port.peer_net.peer.asn)
+            port_infos.append(session.peer_port.port_info)
+
+        if peers_asns:
+            networks = {
+                net.asn: net
+                for net in pdbctl.Network().objects(asns=list(set(peers_asns)))
+            }
+        else:
+            networks = {}
+
+        Port.load_references(port_infos + sessions, join="device")
+
+        for session in sessions:
+            if not session.port or not session.port.id:
+                continue
+
+            port_infos.append(session.port.object.port_info_object)
+
+        PortInfo.load_references(port_infos)
+
+        if not networks:
+            return sessions
+
+        for session in sessions:
+            session.peer_port.peer_net.peer._ref = networks.get(
+                session.peer_port.peer_net.peer.asn
+            )
+
+        return sessions
+
     @property
     def ip4(self):
         return ip_address_string(self.port.object.ip_address_4)
@@ -1280,6 +2320,10 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
     @property
     def peer_ip6(self):
         return self.peer_port.port_info.ipaddr6
+
+    @property
+    def peer_asn(self):
+        return self.peer_port.peer_net.peer.asn
 
     @property
     def peer_is_managed(self):
@@ -1299,6 +2343,18 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
     @property
     def devices(self):
+        """
+        TODO: this is deprecated by the device property, but
+        references need to be set on all existing sessions first
+
+        TODO: multiple devices / ports for same session?
+        """
+
+        if self.device:
+            # device reference is set return it
+            return [self.device.object]
+
+        # otherwise get it from port
         devices = []
         if self.port:
             if self.port.object.device:
@@ -1309,12 +2365,182 @@ class PeerSession(PolicyHolderMixin, meta.DataMixin, Base):
 
     @property
     def policy_parents(self):
-        return [self.peer_port.peer_net, self.port.object]
+        if self.port:
+            return [self.peer_port.peer_net, self.port.object]
+        return [self.peer_port.peer_net]
 
     def __str__(self):
         return "Session ({}): AS{} -> AS{}".format(
             self.id, self.peer_port.peer_net.net.asn, self.peer_port.peer_net.peer.asn
         )
+
+
+@grainy_model(
+    namespace="verified.asn", namespace_instance="{namespace}.{instance.net.asn}.?"
+)
+@reversion.register
+class PeerRequest(HandleRefModel):
+
+    """
+    Describes a peer request from one ASN to another
+    """
+
+    net = models.ForeignKey(
+        Network, on_delete=models.CASCADE, related_name="peer_requests"
+    )
+
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="peer_requests",
+        null=True,
+        blank=True,
+    )
+
+    peer_asn = models.PositiveIntegerField(help_text=_("Peer request to this ASN"))
+
+    notes = models.CharField(max_length=255, null=True, blank=True)
+
+    status = models.CharField(
+        max_length=32,
+        choices=(
+            ("pending", "Pending"),
+            ("completed", "Completed"),
+            ("failed", "Failed"),
+        ),
+        default="pending",
+    )
+
+    type = models.CharField(
+        max_length=32,
+        choices=(
+            ("email", "Email"),
+            ("autopeer", "Autopeer"),
+        ),
+    )
+
+    class Meta:
+        db_table = "peerctl_peerrequest"
+        verbose_name = _("Peer Request")
+        verbose_name_plural = _("Peer Requests")
+
+    class HandleRef:
+        tag = "peer_request"
+
+    def add_pdb_location(self, pdb_ix_id, port_id=None, member_ref_id=None):
+        """
+        Adds a PDB location to this peer request
+        """
+        loc, _ = PeerRequestLocation.objects.get_or_create(
+            peer_request=self,
+            pdb_ix_id=pdb_ix_id,
+        )
+
+        if port_id and member_ref_id:
+            loc.port = port_id
+            loc.peer_id = member_ref_id
+            loc.save()
+
+    def add_ixctl_location(
+        self, ixctl_ix_id, pdb_ix_id=None, port_id=None, member_ref_id=None
+    ):
+        """
+        Adds an IXCTL location to this peer request
+        """
+        loc, _ = PeerRequestLocation.objects.get_or_create(
+            peer_request=self,
+            ixctl_ix_id=ixctl_ix_id,
+            pdb_ix_id=pdb_ix_id,
+        )
+
+        if port_id and member_ref_id:
+            loc.port = port_id
+            loc.peer_id = member_ref_id
+            loc.save()
+
+    def add_location(self, port_info, port_id=None, member_ref_id=None):
+        """
+        Adds a location to this peer request
+        """
+        if not port_info.ref_id or not port_info.ref_ix_id:
+            return
+
+        if port_info.ref_source == "pdbctl":
+            self.add_pdb_location(
+                port_info.ref_ix_id.split(":")[1],
+                port_id=port_id,
+                member_ref_id=member_ref_id,
+            )
+        elif port_info.ref_source == "ixctl":
+            self.add_ixctl_location(
+                port_info.ref_ix_id.split(":")[1],
+                port_id=port_id,
+                member_ref_id=member_ref_id,
+            )
+
+
+class PeerRequestLocation(HandleRefModel):
+
+    """
+    Describes an exchange location for a peer request
+    """
+
+    peer_request = models.ForeignKey(
+        PeerRequest, on_delete=models.CASCADE, related_name="locations"
+    )
+
+    pdb_ix_id = models.PositiveIntegerField(null=True, blank=True)
+    ixctl_ix_id = models.PositiveIntegerField(null=True, blank=True)
+
+    peer_id = models.CharField(max_length=255, null=True, blank=True)
+    port = ReferencedObjectField(null=True, blank=True)
+
+    notes = models.CharField(max_length=255, null=True, blank=True)
+
+    status = models.CharField(
+        max_length=32,
+        choices=(
+            ("pending", "Pending"),
+            ("completed", "Completed"),
+            ("failed", "Failed"),
+        ),
+        default="pending",
+    )
+
+    class Meta:
+        db_table = "peerctl_peerrequest_location"
+        verbose_name = _("Peer Request Location")
+        verbose_name_plural = _("Peer Request Locations")
+
+    class HandleRef:
+        tag = "peer_request_location"
+
+    @property
+    def ref_id(self):
+        if self.pdb_ix_id:
+            return f"pdbctl:{self.pdb_ix_id}"
+        if self.ixctl_ix_id:
+            return f"ixctl:{self.ixctl_ix_id}"
+        return None  #
+
+    @property
+    def name(self):
+        if hasattr(self, "_name"):
+            return self._name
+
+        if self.pdb_ix_id:
+            pdb_ix = pdbctl.first(id=self.pdb_ix_id)
+            if pdb_ix:
+                self._name = pdb_ix.name
+                return self._name
+
+        if self.ixctl_ix_id:
+            ixctl_ix = ixctl.first(id=self.ixctl_ix_id)
+            if ixctl_ix:
+                self._name = ixctl_ix.name
+                return self._name
+
+        return ""
 
 
 @grainy_model(namespace="peerctl.user.{user.id}.wish")
@@ -1404,6 +2630,7 @@ class TemplateBase(models.Model):
         env = Environment(trim_blocks=True, loader=loader, autoescape=True)
 
         env.filters["make_variable_name"] = make_variable_name
+        env.filters["ip_version"] = ip_version
 
         return env
 
@@ -1435,6 +2662,7 @@ class TemplateBase(models.Model):
 )
 class DeviceTemplate(Base, TemplateBase):
     type = models.CharField(max_length=255, choices=const.DEVICE_TEMPLATE_TYPES)
+    default = models.BooleanField(default=False)
 
     class Meta:
         db_table = "peerctl_device_template"
@@ -1450,6 +2678,12 @@ class DeviceTemplate(Base, TemplateBase):
     def template_loader_paths(self):
         return [settings.NETOM_TEMPLATE_DIR] + super().template_loader_paths
 
+    def render(self):
+        r = super().render()
+        if not r:
+            return "There were no active sessions to generate configuration output for."
+        return r
+
     def get_data(self):
         data = super().get_data()
         ctx = self.context
@@ -1460,6 +2694,8 @@ class DeviceTemplate(Base, TemplateBase):
             member = [member]
 
         data.update(**device.peer_groups_netom0_data(net, members=member))
+        if len(data["peer_groups"]) == 0:
+            data["peer_groups"] = get_dummy_peer_data(net)
         data["device"] = {"type": device.type}
         data["ports"] = [port for port in device.ports]
 
@@ -1473,6 +2709,7 @@ class DeviceTemplate(Base, TemplateBase):
 )
 class EmailTemplate(Base, TemplateBase):
     type = models.CharField(max_length=255, choices=EMAIL_TEMPLATE_TYPES)
+    default = models.BooleanField(default=False)
 
     class Meta:
         db_table = "peerctl_email_template"
@@ -1514,15 +2751,18 @@ class EmailTemplate(Base, TemplateBase):
         if ctx.get("peer"):
             peer = ctx.get("peer")
             mutual_locations = []
-            for ix_id in self.net.get_mutual_locations(peer.asn):
-                ix_source, ix_id = ix_id.split(":")
-                mutual_locations.append(
-                    MutualLocation(
-                        InternetExchange.get_or_create(int(ix_id), ix_source),
-                        self.net,
-                        peer,
+
+            if not ctx.get("selected_exchanges"):
+                for ix_id in self.net.get_mutual_locations(peer.asn):
+                    ix_source, ix_id = ix_id.split(":")
+                    mutual_locations.append(
+                        MutualLocation(
+                            InternetExchange.get_or_create(int(ix_id), ix_source),
+                            self.net,
+                            peer,
+                        )
                     )
-                )
+
             data.update(
                 {
                     "peer": {
@@ -1561,6 +2801,7 @@ class EmailTemplate(Base, TemplateBase):
                             "prefix_length6": session.port.object.port_info_object.info_prefixes6,
                         }
                         for session in ctx.get("sessions")
+                        if session.port
                     ]
                 }
             )
@@ -1809,15 +3050,3 @@ class UserSession(models.Model):
 
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     session = models.ForeignKey(Session, on_delete=models.CASCADE)
-
-
-# class UserNetworkPerms(models.Model):
-#    pass
-
-
-# class User(AbstractBaseUser, PermissionsMixin):
-#    class Meta:
-#        db_table = "peeringdb_user"
-#        verbose_name = _('user')
-#        verbose_name_plural = _('users')
-#

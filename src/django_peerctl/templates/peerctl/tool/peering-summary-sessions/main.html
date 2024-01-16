@@ -12,7 +12,7 @@
   data-api-base="{% url "peerctl_api:sessions_summary-list" asn=selected_asn %}"
   data-template="list">
   <thead>
-      <tr>
+    <tr>
       <th>
         <div>{% trans "ASN" %}</div>
         <div>{% trans "Type" %}</div>
@@ -30,11 +30,11 @@
         <div>{% trans "Device" %}</div>
       </th>
       <th>
-        <div>{% trans "Last Updown4" %}</div>
-        <div>{% trans "Last Updown6" %}</div>
+        <div>{% trans "status4" %}</div>
+        <div>{% trans "status6" %}</div>
       </th>
       <th></th>
-      </tr>
+    </tr>
   </thead>
 
   <tbody class="list-body">

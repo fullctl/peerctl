@@ -10,41 +10,67 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         return;
       }
 
-			this.autoload_page();
+      // init home page tool
+      this.tool("home", () => {
+        return new $peerctl.Home();
+      });
+
+      // return if no asn selected
+      if (!selected_asn) {
+        return;
+      }
+
+      // init peering lists tool
       this.tool("peering_lists", () => {
         return new $peerctl.PeeringLists();
       });
 
-      this.tool("networks", () => {
-        return new $peerctl.Networks();
-      });
-
+      // init network settings tool
       this.tool("network_settings", () => {
         return new $peerctl.NetworkSettings();
       });
 
-      this.tool("sessions_summary", () => {
-        return new $peerctl.SessionsSummary();
+      // init ix tool
+      this.tool("ix", () => {
+        return new $peerctl.Ix();
       });
 
+
+      // init policies management tool
       this.tool("policies", ()=> {
         return new $peerctl.Policies();
       });
 
-      this.tool("email_templates", ()=> {
-        return new $peerctl.EmailTemplates();
+      // init peering requests tool
+      this.tool("peering_requests_list", ()=> {
+        return new $peerctl.PeeringRequestsList();
       });
 
-      this.tool("device_templates", ()=> {
-        return new $peerctl.DeviceTemplates();
+      const button_make_default = new twentyc.rest.Button(
+        this.$c.header.$e.button_set_default_network
+      );
+      button_make_default.format_request_url = (url) => {
+        return url.replace("network_asn", selected_asn);
+      };
+      $(button_make_default).on("api-write:success", (e, ev, d, response) => {
+        alert("Default Network set successfully");
+        if (!response.content.data[0]){
+          return
+        }
+
+        const default_network = response.content.data[0].network
+        this.$c.header.$e.select_network.find(`a[data-network-id="${default_network}"]`).append(
+          this.$c.header.$e.default_network_label
+        );
       });
 
       this.$t.peering_lists.activate();
-      this.$t.sessions_summary.activate();
+      this.$t.peering_lists.sync_ports();
       this.$t.policies.activate();
-      this.$t.email_templates.activate();
-      this.$t.device_templates.activate();
-      this.$t.networks.activate();
+      this.$t.peering_requests_list.activate();
+
+      this.get_autoload_args();
+      $($ctl).trigger("init_tools", [this]);
 
       this.port_settings = $('#port-settings');
 
@@ -53,12 +79,7 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       });
 
       $('a[data-select-asn]').click(function(){
-        window.location.href = "?asn="+$(this).data("select-asn");
-      });
-      $(this.$c.toolbar.$e.peer_filter).on("keydown", (ev)=>{
-        if(ev.which == 13) {
-          this.$t.sessions_summary.sync();
-        }
+        window.location.href = "?asn=" + $(this).data("select-asn") + window.location.hash;
       });
 
       $('#tab-peering-lists').on('show.bs.tab', () => {
@@ -67,12 +88,20 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
         );
       });
 
-      $('#tab-summary-sessions').on('show.bs.tab', () => {
-        this.$t.sessions_summary.sync_url(true);
+      // lazy loading of peering_lists
+      $('#tab-peering-lists').one('show.bs.tab', () => {
+        this.$t.peering_lists.sync()
+      })
+
+      $('#tab-ix').on('shown.bs.tab', () => {
+        this.$t.ix.sync();
       });
 
+      $('#tab-peering-requests').on('shown.bs.tab', () => {
+        this.$t.peering_requests_list.sync();
+      });
 
-
+      this.autoload_page();
     },
 
     permission_ui : function() {
@@ -82,10 +111,10 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
     },
 
     port : function() {
-      return this.$t.peering_lists.$w.select_port.element.val();
+      return this.$t.peering_lists.$w.port_filter.element.val();
     },
 
-    port_object: function() {
+    port_object : function() {
       return this.$t.peering_lists.ports[this.port()]
     },
 
@@ -99,17 +128,9 @@ var $peerctl = $ctl.application.Peerctl = $tc.extend(
       var i, app = this;
       for(i in this.$t) {
         if(this.$t[i].active && this.$t[i] != tool) {
-          this.$t[i].sync(app);
+          this.$t[i].sync();
         }
       }
-    },
-
-    refresh : function() {
-      return this.refresh_select_port();
-    },
-
-    refresh_select_port : function() {
-      return this.$t.peering_lists.$w.select_port.refresh();
     },
 
     /**
@@ -164,9 +185,27 @@ $peerctl.NetworkSettings = $tc.extend(
 
       this.widget("form", ($e) => {
         return new twentyc.rest.Form(
-          this.template("form", this.$e.body)
+          this.template("form", this.$e.network_settings_container)
         );
       });
+
+
+      // facilities list
+
+      this.widget("facilities", ($e) => {
+        return new twentyc.rest.List(
+          this.template("facilities_list", this.$e.facilities_container)
+        );
+      });
+
+      // exchanges list
+
+      this.widget("exchanges", ($e) => {
+        return new twentyc.rest.List(
+          this.template("exchanges_list", this.$e.internet_exchanges_container)
+        );
+      });
+
 
       this.$w.form.wire_submit(this.$w.form.element.find('[data-element=save_network]'));
 
@@ -301,213 +340,368 @@ $peerctl.NetworkSettings = $tc.extend(
         this.sync_ux();
       });
 
+      this.$w.facilities.load();
+      this.$w.exchanges.load();
+
     }
   },
   $ctl.application.Tool
 )
 
-
-$peerctl.Networks = $tc.extend(
-  "Networks",
+/**
+ * Renders a list of exchanges for the selected ASN
+ * @class Ix
+ * @extends $ctl.application.Tool
+ * @constructor
+ * @namespace fullctl.peerctl
+ */
+$peerctl.Ix = $tc.extend(
+  "Ix",
   {
+    Ix: function() {
+      this.Tool("ix");
 
-    Networks : function() {
-      this.Tool("networks");
-    },
+      // init list
 
-    init : function() {
       this.widget("list", ($e) => {
         return new twentyc.rest.List(
-          this.template("list", this.$e.body)
+          this.template("ix_list", this.$e.body)
         );
-      })
+      });
+
+      var list = this.$w.list;
 
       this.$w.list.format_request_url = (url) => {
-        return url.replace(/other_asn/, this.select_network_search.val());
+        return url +"?ixi=1&load_md5=1";
       }
-
-      $(this.$w.list).on("api-read:success", (ev, endpoint, payload, response) => {
-
-        if(!response.first()) {
-          $('#network-search-result-name').text("");
-          $('#network-search-result-asn').text("");
-          this.peer = null;
-          $('#searched-asn').text("");
-          return;
-        }
-
-        this.peer = response.first();
-
-        $('#network-search-result-name').text(this.peer.name);
-        $('#network-search-result-asn').text(this.peer.asn);
-        $('#searched-asn').text(this.peer.asn);
-      });
 
       this.$w.list.formatters.row = (row, data) => {
-        row.data("ix-id", data.ix_id);
+        row.find(".ix-header").attr("data-ix-header", data.ref_ix_id);
 
-        var cont_us = $('<div>');
-        var cont_them = $('<div>');
-        var cont_mutual = $('<div>');
-        var loc,i;
+        // wire up clicking the ip column to change to the peering lists
+        // page and auto select the port
 
+        row.find("[data-element=ips").click((e) => {
+          fullctl.peerctl.$t.peering_lists.sync(data.id);
+          fullctl.peerctl.page("page-peering-lists");
+        }).css("cursor", "pointer");
 
-        for(i=0; i< data.our_locations.length; i++) {
-          loc = data.our_locations[i];
-          $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
-            $('<input type="checkbox">')
-          ).append(
-            $('<span>').text(loc.ix_name)
-          ).appendTo(cont_us);
+        // set up local action handler for opening the edit modal
+
+        row.find("[data-action=edit]").click((e) => {
+          new $peerctl.ModalIxPort(data);
+        });
+
+        if(data.ref_source == "ixctl"){
+          row.addClass("ixctl-port");
+          this.show_graph_controls(row, data)
         }
 
-        for(i=0; i< data.their_locations.length; i++) {
-          loc = data.their_locations[i];
-          $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
-            $('<input type="checkbox">')
-          ).append(
-            $('<span>').text(loc.ix_name)
-          ).appendTo(cont_them);
+        row.attr("id", "ix-port-"+data.id);
+
+      };
+
+      // format speed
+
+      this.$w.list.formatters.speed = fullctl.formatters.pretty_speed;
+
+      // format md5 field to simply show whether its set or not
+      // instead of the actual md5 value
+
+      this.$w.list.formatters.md5 =  fullctl.formatters.yesno;
+
+      // format is_route_server_peer to show a checkmark if true
+
+      this.$w.list.formatters.is_route_server_peer = fullctl.formatters.yesno;
+
+      // render peeringdb or ixctl logo depending on ref_source value
+
+      this.$w.list.formatters.ref_source = (value, data) => {
+        if(value == "ixctl") {
+          return $("<span>").addClass("fullctl-sot");
         }
+        return "";
+      };
 
-        for(i=0; i< data.mutual_locations.length; i++) {
-          loc = data.mutual_locations[i];
-          $('<div class="compact-row">').data("ix-id", loc.ix_id).append(
-            $('<input type="checkbox">')
-          ).append(
-            $('<span>').text(loc.ix_name)
-          ).appendTo(cont_mutual);
-        }
-
-        row.find('.our-locations').append(cont_us);
-        row.find('.their-locations').append(cont_them);
-        row.find('.mutual-locations').append(cont_mutual);
-
-      }
-
-      $(this.$w.list).on("load:after", (ev,response) => {
-        var data = response.first();
-        var request_peering = this.$w.list.element.find('[data-element=request_peering]');
-        request_peering.show().prop("disabled", false).children('.label').hide().filter('.ok').show();
-
-      });
-
-      this.select_network_search = $ctl.peerctl.$c.toolbar.$e.network_search_asn;
-
-      this.select_network_search.select2({
-        ajax: {
-          url : '/autocomplete/pdb/net',
-          dataType: 'json',
-          processResults : function(data, params) {
-
-            var term = params.term;
-            if(!isNaN(parseInt(term))) {
-              var exact_found = data.results.find((obj) => { return obj.id == parseInt(term) });
-              if(!exact_found) {
-                data.results.unshift({
-                  id: parseInt(term),
-                  text: "AS"+term,
-                  selected_text: "AS"+term
-                });
-              }
-            }
-            console.log("DATA", data.results, exact_found);
-            return {
-              results: data.results
-            }
-          }
-        },
-        placeholder: "Search by ASN"
-      });
-
-      this.select_network_search.on('select2:select', ()=> {
-        this.sync();
-      });
-
-      $(document).on('select2:open', () => {
-        document.querySelector('.select2-search__field').focus();
-      });
-
-      /*
       $(this.$w.list).on("load:after", () => {
-        this.$e.request_peering.show();
-      });
+        // only show first data-ix-header element distinguishing
+        // by value of data-ix-header
 
-      this.input_network_search = $ctl.peerctl.$c.toolbar.$e.network_search;
+        var shown = {};
 
-      this.input_network_search.on("keydown", function(ev){
-        if(ev.which == 13) {
-          this.sync();
-        }
-      }.bind(this));
+        this.$w.list.element.find("[data-ix-header]").each(function() {
+          var ix_id = $(this).data("ix-header");
+          if(!shown[ix_id]) {
+            $(this).show();
+            shown[ix_id] = true;
+          }
+        });
 
-      this.btn_network_search = $ctl.peerctl.$c.toolbar.$e.network_search_submit;
-
-      $(this.btn_network_search).click(function() {
-        this.sync();
-      }.bind(this));
-      */
-
-      this.$w.list.element.find("[data-element=request_peering]").on("click", () => {
-        this.request_peering();
-      });
-
-
+        this.show_graphs();
+      })
     },
 
-    sync : function() {
+    /**
+     * Reloads the ix port list from the server
+     * @method sync
+     * @param {boolean} force - if true will force a reload from the server, otherwise respect a 60 second cache
+     */
+
+    sync: function(force) {
+
+      // if force is false check if we have already loaded the list
+      // in the last minute and dont sync if we have
+      var now = new Date();
+
+      if(!force) {
+        var last_sync = this.$w.list.element.data("last-sync");
+        if(last_sync) {
+          var diff = now - last_sync;
+          if(diff < 60000) {
+            return;
+          }
+        }
+      }
+
+      // set last sync time
+      this.$w.list.element.data("last-sync", now);
+
       this.$w.list.load();
     },
 
-    request_peering : function() {
+    // Function to indicate loading
+    indicate_loading : function(row) {
+      let graph_container = row.find("[data-element=graph_container]");
+      console.log("LOADING GRAPH", graph_container.length, fullctl.template("graph_placeholder"))
+      graph_container.empty().append(
+        fullctl.template("graph_placeholder")
+      );
+      return this;
+    },
 
-      if(!this.peer) {
-        return alert("No network in results");
+    show_graph_controls(row, port) {
+      fullctl.graphs.init_controls(row, this, (end_date, duration)=>{
+        this.indicate_loading(row).show_graph(port, row, end_date, duration);
+      });
+      row.find('.graph-controls').show();
+    },
+
+    show_graphs : function() {
+      this.$w.list.element.find("div.ixctl-port").each((i, row) => {
+        row = $(row);
+        let port = row.data("apiobject");
+        this.indicate_loading(row);
+        this.show_graph(port, row);
+      });
+    },
+
+    // Function to show graphs
+    show_graph : function(port, row, end_date, duration) {
+      let graph_container = row.find("[data-element=graph_container]");
+
+      if(!port.ref_id || port.ref_id.split(":")[0] != "ixctl") {
+        graph_container.empty().append(message);
+        return;
       }
 
-      var selected = this.$w.list.element.find('input[type=checkbox]:checked').parent()
-      var ix_ids = []
+      let url = this.$w.list.element.data('api-base') + "/" + port.id + "/traffic/ix";
+      let params = [];
+      if (end_date) {
+        params.push('start_time=' + end_date);
+      }
+      if (end_date && duration) {
+        params.push('duration=' + duration);
+      }
+      if (params.length > 0) {
+        url += '?' + params.join('&');
+      }
 
-      selected.each(function() {
-        console.log(this);
-        ix_ids.push($(this).data("ix-id"));
-      });
+      console.log(port, "#ix-port-"+port.id+" .graph_container");
 
-      new $peerctl.modals.RequestPeeringFromAsn(
-        this.peer,
-        ix_ids,
-      );
-
+      fullctl.graphs.render_graph_from_file(
+        url,
+        "#ix-port-"+port.id+" .graph_container",
+        port.virtual_port_name,
+      ).then(() => {
+        // check if a svg has been added to the container, if not, graph data was empty
+        if(graph_container.find("svg").length == 0) {
+          graph_container.empty().append(
+            $('<div class="alert alert-info">').append(
+              $('<p>').text("No traffic data available for this port.")
+            )
+          )
+        } else {
+          this.$e.refresh_traffic_graph.show();
+        }
+      })
     }
-
 
   },
   $ctl.application.Tool
 )
+
+/**
+ * Modal that lets user edit the following values on an ixi port
+ *
+ * - prefix4
+ * - prefix6
+ * - mac_address
+ * - md5
+ *
+ * @class ModalIxPort
+ * @extends $ctl.application.Modal
+ * @constructor
+ * @param {object} port - the port object to edit
+ * @namespace fullctl.peerctl
+ */
+
+$peerctl.ModalIxPort = $tc.extend(
+  "ModalIxPort",
+  {
+    ModalIxPort: function(port) {
+      var modal = this;
+      var title = "Edit exchange port"
+      var form = this.form = new twentyc.rest.Form(
+        $ctl.template("form_ix_port")
+      );
+
+      // form api url needs to replace `pk` with port id
+      form.format_request_url = (url) => {
+        return url.replace("/0/", "/"+port.id+"/");
+      }
+
+      // fill form
+      form.fill(port);
+
+      // form success handler
+      $(this.form).on("api-write:success", (ev, e, payload, response) => {
+        modal.hide();
+        fullctl.peerctl.$t.ix.$w.list.load();
+      });
+
+      // set up modal
+      this.Modal("save_right", title, form.element);
+
+      // wire form to submit
+      form.wire_submit(this.$e.button_submit);
+    }
+  },
+  $ctl.application.Modal
+);
+
 
 $peerctl.PeeringLists = $tc.extend(
   "PeeringLists",
   {
     PeeringLists : function() {
       this.Tool("peering_lists");
+      const peering_lists_tool = this;
 
       this.ports = {};
 
-      this.widget("select_port", ($e) => {
-        let select_port = $('#page-peering-lists select[data-element="select_port"]');
-        var w = new twentyc.rest.Select(select_port);
-        $(w).on("load:after", (event, element, data) => {
-          var i;
-          for(i = 0; i < data.length; i++) {
-            this.ports[data[i].id] = data[i];
+      this.widget("port_filter", ($e) => {
+        return fullctl.ext.select2.init_autocomplete(
+
+          // bind to port <select> element
+          $('#page-peering-lists select#port-filter'),
+
+          // parent dropdown to form element
+          $('#page-peering-lists select#port-filter').parent(),
+
+          // options
+          {
+
+            // autocomplete url
+            url: '/autocomplete/device/ixi-port?asn=' + fullctl.peerctl.network.asn,
+
+            // process results, allowing us to add entries for
+            // ips that are not assigned to a port
+            process: (data, term, params) => {
+              if(fullctl.util.is_valid_ip4(term)) {
+
+                // check if we have an exact match for the ip in the results
+                var exact_found = data.results.find((obj) => {
+                  return obj.text.primary && obj.text.primary.split("/")[0] == term
+                });
+
+                if(!exact_found) {
+
+                  // if no exact match was found, add an entry for the ip that
+                  // can be selected as a choice.
+
+                  data.results.unshift({
+                    id: term,
+                    text: {primary: term, secondary:"Ip not assigned", extra:""},
+                    selected_text: {primary: term, secondary:"Ip not assigned", extra:""},
+                  });
+                }
+              }
+            },
+
+            // place holder text for the search field
+            placeholder: "Search IP, device, port or location names.",
+
+            controls: false,
+
+            localstorage_key: "peering_lists_port_filter"
           }
-          if(data.length == 0) {
-            select_port.attr('disabled', true);
-          } else {
-            select_port.attr('disabled', false)
+        );
+      });
+      const port_filter = this.$w.port_filter;
+      this.$w.port_filter.load = (port_id) => {
+
+        const list = this;
+        // use data-api-ports to get a list of ports
+        const port_api_url = this.$w.port_filter.element.data("api-ports");
+        const select_element = this.$w.port_filter.element;
+
+        return $.ajax({
+          type: 'GET',
+          dataType: 'json',
+          url: port_api_url,
+          // TODO: optimize response speed
+          timeout: 30000,
+          success: function(response){
+            const data = response.data;
+            for(let i = 0; i < data.length; i++) {
+              peering_lists_tool.ports[data[i].id] = data[i];
+            }
+
+            // set value of select element on loading
+            if (port_id) {
+              if (select_element.find("option[value='" + port_id + "']").length)
+                return
+            } else {
+              if (port_filter.localstorage_get() && peering_lists_tool.ports[port_filter.localstorage_get()])
+                port_id = port_filter.localstorage_get();
+              else
+                port_id = Object.keys(peering_lists_tool.ports)[0];
+            }
+            if (!port_id) return;
+            port_filter.localstorage_set(port_id);
+            peering_lists_tool.sync_url(port_id);
+            const port = peering_lists_tool.ports[port_id];
+            let initial = {
+              id: port.id,
+              primary: port.ix_name,
+              secondary: "",
+              extra: ""
+            };
+            let option = $(new Option(initial.primary, initial.id, true, true));
+            option.data("selection_data", initial);
+            select_element.append(option);
+            list.$w.devicectl_device.load();
+          },
+          fail: function(xhr, textStatus, errorThrown){
+            console.log(xhr)
           }
         });
-        return w
+      };
+      this.$w.port_filter.init_localstorage();
+
+      this.$w.port_filter.element.on("change", () => {
+        this.sync();
+        this.sync_url(this.$w.port_filter.element.val())
       });
 
       this.widget("port_info", ($e) => {
@@ -522,13 +716,12 @@ $peerctl.PeeringLists = $tc.extend(
         return $('#page-peering-lists [data-element="toggle_available_peers"]');
       });
 
-      this.$w.select_port.format_request_url = (url) => {
-        return url + "?ixi=1";
-      };
-
-
-      $(this.$w.select_port).on("load:after", (e, select) => {
-        this.$w.devicectl_device.load();
+      this.widget("searchbar", ($e) => {
+        return new fullctl.application.Searchbar(
+          $('#page-peering-lists [data-element="peer_searchbar"]'),
+          () => this.sync(),
+          () => this.sync()
+        );
       });
 
       $(this.$w.devicectl_device).on("load:after", (e, select) => {
@@ -538,12 +731,8 @@ $peerctl.PeeringLists = $tc.extend(
         else
           select.val(select.find('option').first().val());
         this.$w.devicectl_port.device_id = select.val();
-        this.$w.devicectl_port.load();
-      });
-
-      $(this.$w.select_port.element).on("change", () => {
-        this.sync();
-        this.sync_url(this.$w.select_port.element.val())
+        if(this.$w.devicectl_port.device_id)
+          this.$w.devicectl_port.load();
       });
 
       var peering_lists = this;
@@ -565,8 +754,6 @@ $peerctl.PeeringLists = $tc.extend(
         else
           button.addClass("fullctl").removeClass("inactive");
       });
-
-      this.sync();
     },
 
     init: function() {
@@ -581,7 +768,7 @@ $peerctl.PeeringLists = $tc.extend(
     },
 
     port : function() {
-      return this.$w.select_port.element.val();
+      return this.$w.port_filter.element.val();
     },
 
     port_object: function() {
@@ -589,11 +776,14 @@ $peerctl.PeeringLists = $tc.extend(
     },
 
     sync_url: function(id) {
+      if (window.location.hash.indexOf("#page-peering-lists") == -1) {
+        return
+      }
       window.history.pushState({}, '', "#page-peering-lists;"+id);
     },
 
     sync : function(port_id) {
-      let port = this.port_object();
+      const port = this.port_object();
       this.$e.menu.find(".ixctl-controls").hide();
 
       // no port supplied to sync, get from select eleement
@@ -613,17 +803,31 @@ $peerctl.PeeringLists = $tc.extend(
         }
       }
 
-      this.$w.select_port.load(port_id).then(() => {
-        let port = this.port_object();
+      // Searchbar functionality
+      const peer_filter = this.$w.searchbar.element.val();
+      this.$w.peers.payload = () => {
+        if(peer_filter && peer_filter != "") {
+          return {peer:peer_filter}
+        }
+        return {};
+      }
+
+      // add loading shim to peers manually otherwise it will take a while
+      // for it to appear as it needs to wait until the request resolves
+      this.$w.peers.start_processing();
+
+      this.$w.port_filter.load(port_id).then(() => {
+        const port = this.port_object();
+        if (!port) {
+          this.$w.peers.done_processing();
+          return;
+        }
         this.$w.port_info.find(".speed").text( $ctl.formatters.pretty_speed(port.speed) );
         this.$w.port_policy_4.element.val(port.policy4.id);
         this.$w.port_policy_6.element.val(port.policy6.id);
         this.$w.devicectl_device.element.val(port.device.id);
         this.$w.devicectl_port.element.val(port.id);
 
-        if(port.ref_ix_id && port.ref_ix_id.indexOf("ixctl:") == 0) {
-          this.Tool_menu().find(".ixctl-controls").show();
-        }
         this.$w.port_mac_address.element.val(port.mac_address);
         this.$w.port_is_route_server_peer.element.prop("checked", port.is_route_server_peer);
         //this.$w.net_as_set.element.val(fullctl.peerctl.network.as_set);
@@ -633,6 +837,10 @@ $peerctl.PeeringLists = $tc.extend(
         this.$w.port_policy_6.load();
         this.$w.port_device_template.load();
       });
+    },
+
+    sync_ports : function() {
+      this.$w.port_filter.load()
     },
 
     menu: function() {
@@ -712,7 +920,6 @@ $peerctl.PeeringLists = $tc.extend(
       });
 
 
-
       $(this.$w.port_mac_address).on("api-write:success", (ev, endpoint, sent_data, response)=>{
         //var data = response.first();
         //fullctl.peerctl.ports[data.id] = data;
@@ -726,424 +933,34 @@ $peerctl.PeeringLists = $tc.extend(
       */
 
 
-
       return menu;
     }
   },
   $ctl.application.Tool
 );
 
-$peerctl.SessionsSummary = $tc.extend(
-  "SessionsSummary",
+
+$peerctl.Home = $tc.extend(
+  "Home",
   {
-    SessionsSummary : function() {
-      this.Tool("peering_summary-sessions");
-
-      this.ports = {};
-
-      this.widget("select_port", ($e) => {
-        return this.setup_select_filter('#page-summary-sessions select[data-element="select_port"]');
+    Home : function() {
+      this.Tool("peering_home");
+      this.widget("as_list", ($e) => {
+        return $('.asn-container');
       });
 
-      this.widget("select_device", ($e) => {
-        return this.setup_select_filter('#page-summary-sessions select[data-element="select_device"]');
-      });
-
-      this.widget("select_facility", ($e) => {
-        return this.setup_select_filter('#page-summary-sessions select[data-element="select_facility"]');
-      });
-
-      this.widget("btn_add_peer_session", ($e) => {
-        return $('#page-summary-sessions button[data-element="btn_add_peer_session"]');
-      });
-
-
-      this.$w.select_port.format_request_url = (url) => {
-        let device_filter = this.$w.select_device.element.val();
-        if(device_filter != "all") {
-          url = url + "?device="+device_filter;
-        }
-        return url;
-      };
-
-      this.$w.select_device.format_request_url = (url) => {
-        return url.replace(/fac_tag/g, this.$w.select_facility.element.val());
-      };
-
-      $(this.$w.select_facility).one("load:after", () => {
-        this.sync();
-      });
-
-      this.$w.btn_add_peer_session.click(() => {
-        new $ctl.application.Peerctl.ModalFloatingSession(
-          this.$w.select_facility.element.val(),
-          this.$w.select_device.element.val(),
-          this.$w.select_port.element.val(),
-        );
-      });
-
-      // set up delete selected button
-      this.delete_selected_button = this.$t.button_delete_selected;
-      $(this.delete_selected_button).insertBefore(this.$w.btn_add_peer_session);
-
-      // setup session summary widget
-      this.widget("list_peer_sessions", ($e) => {
-        let w = new $ctl.widget.SelectionList(
-          $('#summary-sessions-body table'),
-          $(this.delete_selected_button)
-        );
-
-        // handle policy editor widgets for each row
-        w.formatters.row = (row, data) => {
-          row.find("[data-action=edit_session]").click(() => {
-            new $ctl.application.Peerctl.ModalFloatingSession(null, null, null, data);
-          });
-
-          if(data.status == "partial") {
-            row.addClass("partial");
-          }
-        }
-
-        w.formatters.meta4 = (value) => {
-          if(!value)
-            return "-";
-
-          var node = $('<div>');
-          node.append($('<span>').text(value.last_updown));
-          node.append($('<button data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').prop("title", fullctl.formatters.meta_data(value).html()).tooltip().append(
-            $('<span class="icon fullctl icon-list">')
-          ));
-
-          return node;
-
-        };
-
-        w.formatters.meta6 = w.formatters.meta4;
-
-        return w;
-      });
-
-      // set up delete select functionality
-      $(this.delete_selected_button).click(() => {
-        if (confirm("Remove selected Peer Sessions?")) {
-          this.$w.list_peer_sessions.delete_selected_list();
-        }
-      });
-
-      // determine autoloading of filter arguments
-
-      var autoload = this.autoload = $ctl.peerctl.autoload_enabled(
-        "page-summary-sessions",
-        (v) => { return (v && v != "all"); },
-        ["facility", "device", "port", "peer"]
-      );
-
-      // wire initial setting of filter values if autoload is enabled
-
-      $(this.$w.select_facility).one("load:after", () => {
-        if(autoload && autoload.facility) {
-          this.$w.select_facility.element.val(autoload.facility);
-          this.toggle_facility_filters();
-        } else {
-          this.sync();
-        }
-      });
-
-      $(this.$w.select_device).one("load:after", () => {
-        if(autoload && autoload.device) {
-          this.$w.select_device.element.val(autoload.device);
-          this.toggle_device_filters();
-        }
-      });
-
-      $(this.$w.select_port).one("load:after", () => {
-        if(autoload && autoload.port) {
-          this.$w.select_port.element.val(autoload.port);
-        }
-      });
-
-      $ctl.peerctl.$c.toolbar.$e.peer_filter.val(autoload ? autoload.peer : null);
-
-      // wire triggering of sync if any filter values are changed
-
-      $(this.$w.select_port.element).on("change", () => { this.sync();});
-      $(this.$w.select_device.element).on("change", () => { this.toggle_device_filters(true); });
-      $(this.$w.select_facility.element).on("change", () => { this.toggle_facility_filters(true); });
-
-      // if autoloading of filters is enabled, sync the session list from
-      // the filters provided in the autoload arguments
-
-      if(autoload) {
-        this.sync(
-          autoload.facility,
-          autoload.device,
-          autoload.port,
-          autoload.peer
-        );
-      }
-
-      // always load values for the facility filter dropdown
-
-      this.$w.select_facility.load();
-
-    },
-
-    /**
-     * This will show the port filter if a device is selected
-     * otherwise it will hide the port filter.
-     *
-     * @method toggle_device_filters
-     * @param {bool} sync if true will sync the session list
-     */
-
-    toggle_device_filters : function(sync) {
-      if(this.$w.select_device.element.val() == "all") {
-        this.$w.select_port.element.parents('.toolbar-control-group').hide();
-        this.$w.select_port.element.empty();
-      } else {
-        this.$w.select_port.element.parents('.toolbar-control-group').show();
-        this.$w.select_port.element.empty();
-        this.$w.select_port.load().then();
-      }
-      if(sync)
-        this.sync();
-    },
-
-    /**
-     * This will show the device filter if a facility is selected
-     * otherwise it will hide the device and the port filter.
-     *
-     * @method toggle_facility_filters
-     * @param {bool} sync if true will sync the session list
-     */
-
-    toggle_facility_filters : function(sync) {
-      if(this.$w.select_facility.element.val() == "all") {
-        this.$w.select_device.element.parents('.toolbar-control-group').hide();
-        this.$w.select_port.element.parents('.toolbar-control-group').hide();
-        this.$w.select_device.element.empty();
-        this.$w.select_port.element.empty();
-      } else {
-        this.$w.select_device.element.parents('.toolbar-control-group').show();
-        this.$w.select_port.element.parents('.toolbar-control-group').hide();
-        this.$w.select_device.element.empty();
-        this.$w.select_port.element.empty();
-        this.$w.select_device.load();
-      }
-
-      if(sync)
-        this.sync();
-    },
-
-    /**
-     * Updates the # parameter in the url for autoloading
-     *
-     * filter arguments
-     * @method sync_url
-     * @param {Boolean} force if true will also update the url if the session summary is currently not visible
-     * @param {String} facility facility slug
-     * @param {Number} device device id
-     * @param {Number} port port id
-     * @param {String} q peer asn, name or ip
-     */
-
-    sync_url: function(force, facility, device, port, q) {
-      if(this.$w.select_facility.element.is(":visible") || force) {
-        window.history.pushState({}, '', "#page-summary-sessions;"+(facility||'')+";"+(device||'')+";"+(port||"")+";"+(q||""));
+      if(this.get_number_of_as() <= 1) {
+        $ctl.peerctl.page("page-summary-sessions");
+        $ctl.peerctl.hide_page("page-home");
       }
     },
 
-    /**
-     * Syncs the session list from the api according to the specified
-     * filter arguments
-     *
-     * If not filter arguments are provided, filters will be read from the
-     * filter input elements.
-     *
-     * @method sync
-     * @param {String} facility_filter facility slug
-     * @param {Number} device_filter device id
-     * @param {Number} port_filter port id
-     * @param {String} peer_filter peer asn, name or ip
-     */
+    get_number_of_as : function() {
+      return this.$w.as_list.find(".asn").length
+    }
 
-    sync: function(facility_filter, device_filter, port_filter, peer_filter) {
-
-      // if session summary is already syncing, do not start an additional
-      // sync
-
-      if(this.syncing)
-        return;
-
-      this.syncing = true;
-
-      // if no filters were provided to the function read the filter values
-      // from the various filter elements
-
-      if(!facility_filter && !device_filter && !port_filter && !peer_filter) {
-        port_filter = this.$w.select_port.element.val();
-        device_filter = this.$w.select_device.element.val();
-        facility_filter = this.$w.select_facility.element.val();
-        peer_filter = $ctl.peerctl.$c.toolbar.$e.peer_filter.val();
-      }
-
-      if(peer_filter && !facility_filter) {
-        facility_filter = "all";
-      }
-
-      this.$w.list_peer_sessions.action = "";
-
-      // update the url with filter values
-
-      this.sync_url(false, facility_filter, device_filter, port_filter, peer_filter);
-
-      // build the request path from the filters
-
-      var action = "";
-
-      if(port_filter && !isNaN(port_filter)) {
-        action = "port/"+port_filter;
-      } else if(device_filter && !isNaN(device_filter)) {
-        action = "device/"+device_filter;
-      } else if(facility_filter != "all") {
-        action = "facility/"+facility_filter;
-      }
-
-      this.$w.list_peer_sessions.payload = function() {
-        if(peer_filter && peer_filter != "") {
-          return {peer:peer_filter}
-        }
-        return {};
-      }
-
-      // update list
-
-      this.$w.list_peer_sessions.action = action;
-      this.$w.list_peer_sessions.load().then(() => {this.syncing=false;});
-
-      // update API view link
-
-      this.$e.btn_api_view.attr("href", this.$w.list_peer_sessions.base_url+"/"+this.$w.list_peer_sessions.action);
-
-    },
-
-    setup_select_filter : function(selector) {
-      let jq = $(selector);
-      var w = new twentyc.rest.Select(jq);
-      $(w).on("load:after", (event, element, data) => {
-        var i;
-        for(i = 0; i < data.length; i++) {
-          this.ports[data[i].id] = data[i];
-        }
-        if(data.length == 0) {
-          jq.attr('disabled', true);
-        } else {
-          jq.attr('disabled', false)
-        }
-      });
-      return w
-    },
   },
   $ctl.application.Tool
-);
-
-
-$ctl.application.Peerctl.ModalFloatingSession = $tc.extend(
-  "ModalFloatingSession",
-  {
-    ModalFloatingSession : function(facility, device, port, session) {
-      var modal = this;
-      var title = "Add peer session"
-      var form = this.form = new twentyc.rest.Form(
-        $ctl.template("form_floating_session")
-      );
-
-      this.session = session;
-
-      this.select_facility = new twentyc.rest.Select(this.form.element.find('#facility'));
-      this.select_device = new twentyc.rest.Select(this.form.element.find('#device'));
-      this.select_port = new twentyc.rest.Select(this.form.element.find('#port'));
-      this.select_policy_4 = new twentyc.rest.Select(this.form.element.find('#policy-4'));
-      this.select_policy_6 = new twentyc.rest.Select(this.form.element.find('#policy-6'));
-
-      if(facility == "all")
-        facility = null;
-
-      if(device == "all")
-        device = null;
-
-      if(port == "all")
-        port = null;
-
-      // edit existing session
-
-      if(session) {
-        title = "Edit Session ["+session.id+"]";
-        form.format_request_url = (url) => {
-          return url.replace("/12345/", session.id);
-        };
-        form.method = "PUT";
-        form.form_action = session.id;
-        form.fill(session);
-        device = session.device_id;
-        facility = session.facility_slug;
-        port = session.port_id;
-      } else {
-        form.form_action = "create_floating"
-      }
-
-      this.preselect_port = port;
-
-      $(this.select_facility).one("load:after", () => {
-        if(facility)
-          this.select_facility.element.val(facility);
-        this.select_device.load();
-      });
-
-      $(this.select_device).one("load:after", () => {
-        if(device)
-          this.select_device.element.val(device);
-        this.select_port.load();
-      });
-
-      $(this.select_port).one("load:after", () => {
-        if(port)
-          this.select_port.element.val(port);
-      });
-
-      this.select_device.format_request_url = (url) => {
-        return url.replace("fac_tag", this.select_facility.element.val() || facility);
-      };
-
-      this.select_port.format_request_url = (url) => {
-        return url + "?device="+(this.select_device.element.val() || device || 0);
-      };
-
-      this.select_facility.element.on("change", () => {
-        this.select_device.element.empty();
-        this.select_port.element.empty();
-        this.select_device.load().then(() => {
-          this.select_port.load();
-        });
-      });
-      this.select_device.element.on("change", () => {
-        this.select_port.load();
-      });
-
-      this.select_facility.load();
-      this.select_policy_4.load(session ? session.policy4_id : null);
-      this.select_policy_6.load(session ? session.policy6_id : null);
-
-      $(this.form).on("api-write:success", (ev, e, payload, response) => {
-        modal.hide();
-        fullctl.peerctl.$t.sessions_summary.$w.list_peer_sessions.load();
-      });
-
-      this.Modal("save_right", title, form.element);
-      form.wire_submit(this.$e.button_submit);
-    }
-  },
-  $ctl.application.Modal
 );
 
 $peerctl.Policies = $tc.extend(
@@ -1159,15 +976,24 @@ $peerctl.Policies = $tc.extend(
       });
 
       this.widget("form", ($e) => {
-        return new twentyc.rest.Form(this.template("form_policy", $e.editor));
+        return new $peerctl.PolicyForm(this.template("form_policy", $e.editor));
       });
 
+      this.edit_mode = false;
+      this.active_changes = false;
       this.$w.list.local_actions.edit_policy = (policy)=>{
         this.$e.editor.removeClass("create");
         this.$w.form.form_action = policy.id;
         this.$w.form.method = "put";
         this.$w.form.fill(policy);
         this.$e.editor_title.text("Edit policy");
+        this.edit_mode = true;
+        this.$w.form.element.find(":input").on("input", (e) => {
+          // might be out of edit mode when the listener fires
+          if (this.edit_mode) {
+            this.active_changes = true;
+          }
+        });
       };
 
       this.$w.list.formatters.row = (row, data) => {
@@ -1186,16 +1012,38 @@ $peerctl.Policies = $tc.extend(
 
       this.$w.list.load();
 
-      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+      const reset_form = () => {
         this.$e.editor.addClass("create");
         this.$w.form.form_action = "";
         this.$w.form.method = "post";
         this.$w.form.reset();
         this.$e.editor_title.text("Create new policy");
+        this.edit_mode = false;
+      }
+
+      this.$e.menu.find('[data-element="button_new_policy"]').click(()=>{
+        if (this.edit_mode && this.active_changes &&
+          !confirm("You have unsaved edits, are you sure you want to discard them?")) {
+          return;
+        }
+        reset_form();
+        this.$w.form.element.find(":input").first().focus();
+      });
+
+      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
+        reset_form();
       });
 
       $(this.$w.form).on("api-write:success", ()=>{
         this.$w.list.load();
+        if (!this.edit_mode) {
+          reset_form();
+        }
+        this.active_changes = false;
+        fullctl.peerctl.sync();
+      });
+
+      $(this.$w.list).on("api-write:success", ()=>{
         fullctl.peerctl.sync();
       });
 
@@ -1209,148 +1057,38 @@ $peerctl.Policies = $tc.extend(
 );
 
 
-$peerctl.TemplateEditor= $tc.extend(
-  "TemplateEditor",
+$peerctl.PolicyForm = $tc.extend(
+  "PolicyForm",
   {
-    TemplateEditor : function() {
-      this.Tool("email_templates");
-      this.preview_timeout = new twentyc.util.SmartTimeout(()=>{},100);
+    PolicyForm : function(jq) {
+      this.Form(jq);
+
+      this.peer_group_select = new twentyc.rest.Select(
+        this.element.find('[data-element=peer_group]')
+      )
+
+      this.peer_group_select.load();
     },
 
-    init: function() {
-      this.widget("list", ($e) => {
-        return new twentyc.rest.List(this.template("template_list", $e.list_container));
-      });
-
-      this.widget("form", ($e) => {
-        return new twentyc.rest.Form(this.template("form_template", $e.editor));
-      });
-
-      this.widget("select_type", ($e) => {
-        return new twentyc.rest.Select(this.$w.form.element.find('#type'));
-      });
-
-      this.preview_client = new twentyc.rest.Client(
-        this.$w.form.element.find("#preview").data("api-preview-default")
-      );
-
-      $(this.$w.select_type.element).on("change", ()=>{
-        let val = this.$w.select_type.element.val();
-
-        if(!val) {
-          return this.$w.form.element.find('#preview,#body').val("")
-        }
-
-        $.ajax({
-          method:'get',
-          url:'/tmpl/'+this.tag+'/'+val
-        }).done((text)=> {
-          this.$w.form.element.find('#body').val(text);
-          this.preview();
-        });
-      });
-
-      this.$w.list.local_actions.edit_template = (template)=>{
-        this.$e.editor.removeClass("create");
-        this.$w.form.form_action = template.id;
-        this.$w.form.method = "put";
-        this.$w.form.fill(template);
-        this.$e.editor_title.text("Edit template");
-        this.preview();
-      };
-
-      this.$w.list.load();
-
-      this.$w.form.element.find('a.btn.btn-secondary').click(()=>{
-        this.$e.editor.addClass("create");
-        this.$w.form.form_action = "";
-        this.$w.form.method = "post";
-        this.$w.form.reset();
-        this.$e.editor_title.text("Create new template");
-        this.$w.form.element.find('#preview,#body').val("");
-      });
-
-      $(this.$w.form).on("api-write:success", ()=>{
-        this.$w.list.load();
-      });
-      this.$w.form.element.find("#body").on("input", ()=>{
-        this.preview();
-      });
-
-    },
-
-    sync : function() {
-      this.$w.list.load();
-    },
-
-    preview : function() {
-      var type =this.$w.select_type.element.val();
-      this.$w.form.element.find('#preview').prop("disabled", true);
-      this.preview_timeout.set(()=>{
-        this.preview_client.post(null, {
-          type: type,
-          body: this.$w.form.payload().body,
-          device: fullctl.peerctl.port_object().device.id
-        }).then((response)=>{
-          this.$w.form.element.find('#preview').
-            val(response.first().body).
-            prop("disabled", false);
-        });
-      },500);
-    }
-  },
-  $ctl.application.Tool
-);
-
-
-$peerctl.EmailTemplates = $tc.extend(
-  "EmailTemplates",
-  {
-    EmailTemplates : function() {
-      this.tag = "email_template";
-      this.Tool("email_templates");
-      this.preview_timeout = new twentyc.util.SmartTimeout(()=>{},100);
-    }
-  },
-  $peerctl.TemplateEditor
-);
-
-$peerctl.DeviceTemplates = $tc.extend(
-  "DeviceTemplates",
-  {
-    DeviceTemplates : function() {
-      this.tag = "device_template";
-      this.Tool("device_templates");
-      this.preview_timeout = new twentyc.util.SmartTimeout(()=>{},100);
-    }
-  },
-  $peerctl.TemplateEditor
-);
-
-
-
-
-$peerctl.DeviceTemplateSelect = $tc.extend(
-  "DeviceTemplateSelect",
-  {
-    load_params : function() {
-      let port = fullctl.peerctl.port_object();
-      if(port && port.device.type) {
-        return {device_type: port.device.type};
+    payload : function() {
+      const payload = this.Form_payload();
+      if (payload.import_policy_managed === true) {
+        payload.import_policy_managed = 1;
+      } else {
+        payload.import_policy_managed = 0;
       }
-    }
-  },
-  twentyc.rest.Select
-)
 
-$peerctl.EmailTemplateSelect = $tc.extend(
-  "EmailTemplateSelect",
-  {
-    load_params : function() {
+      if (payload.export_policy_managed === true) {
+        payload.export_policy_managed = 1;
+      } else {
+        payload.export_policy_managed = 0;
+      }
+
+      return payload;
     }
   },
-  twentyc.rest.Select
-)
+  twentyc.rest.Form
+);
 
 
 
@@ -1358,7 +1096,7 @@ $peerctl.PortPolicySelect = $tc.extend(
   "PortPolicySelect",
   {
     PortPolicySelect : function(jq, ip_version) {
-      this.Select(jq);
+      this.SimpleSelect2(jq, {dropdownParent: jq.parent()});
       this.ip_version = ip_version;
     },
     payload : function() {
@@ -1375,61 +1113,77 @@ $peerctl.PortPolicySelect = $tc.extend(
       return url;
     }
   },
-  twentyc.rest.Select
+  fullctl.ext.SimpleSelect2
 )
 
 
-$peerctl.PeerSessionPolicySelect = $tc.extend(
-  "PeerSessionPolicySelect",
+$peerctl.PeerSessionToggle = $tc.extend(
+  "PeerSessionToggle",
   {
-    PeerSessionPolicySelect : function(jq, ip_version, port_id, peer_session_id) {
-      this.PortPolicySelect(jq, ip_version);
-      this.peer_session_id = peer_session_id;
-      this.port_id = port_id;
-    },
-    payload : function() {
-      return {
-        value: this.element.val(),
-        ipv: this.ip_version
+    PeerSessionToggle: function(jq, peer_port, peer, init_method) {
+      this.Checkbox(jq);
+      this.peer_id = peer_port.id;
+      this.through_id = peer_port.origin_id;
+      this.port_id = peer_port.port_id;
+      this.peer = peer;
+      this.peer_port = peer_port;
+      this.mode = init_method;
+
+      if (this.mode.toUpperCase() == "DELETE") {
+        jq.prop("checked", true);
       }
     },
-    format_request_url: function(url,method) {
-      if(method == "put") {
-        url = this.element.data("api-action");
-        return url.replace("port_id", this.port_id).replace("peer_session_id", this.peer_session_id);
-      }
-      return url;
-    }
-  },
-  $peerctl.PortPolicySelect
-)
 
-$peerctl.PeerSessionButton = $tc.extend(
-  "PeerSessionButton",
-  {
-    PeerSessionButton: function(jq, peer_id, through_id, port_id) {
-      this.Button(jq);
-      this.peer_id = peer_id;
-      this.through_id = through_id;
-      this.port_id = port_id;
-
-    },
     format_request_url: function(url, method) {
-      var peer_session_id = this.element.data("peer_session-id")
-      var port = (this.port_id || fullctl.peerctl.port())
-      return url.replace("port_id", port).replace("peer_session_id", peer_session_id);
+
+      // if there is no session id then we need to POST to update_session
+      // otherwise just replace port_id and peer_session_id
+      const peer_session_id = this.element.data("peer_session-id")
+
+      if(peer_session_id) {
+
+        const port = (this.port_id || fullctl.peerctl.port())
+        return url.replace("port_id", port).replace("peer_session_id", peer_session_id);
+
+      } else {
+
+        return fullctl.peerctl.$t.peering_lists.$w.peers.peer_sesion_update_url;
+
+      }
+
     },
+
     payload: function() {
-      return {
-        member: this.peer_id,
-        through: this.through_id
-      };
+      let payload = {
+        status : "ok",
+        peer_asn: this.peer.asn,
+        peer_ip4: this.peer_port.ipaddr4,
+        peer_ip6: this.peer_port.ipaddr6,
+        md5: this.peer.md5,
+        peer_maxprefix4: this.peer.info_prefixes4,
+        peer_maxprefix6: this.peer.info_prefixes6,
+        peer_session_type: "ixi",
+        port: Number($ctl.peerctl.port()),
+      }
 
-    }
+      if (this.mode.toUpperCase() == "DELETE") {
+        payload.status = "configured";
+      }
+
+      return payload
+    },
+
+    render_non_field_errors: function(errors) {
+      const error = errors[0];
+      this.element.parent().after($('<div class="validation-error non-field-errors | text-nowrap position-absolute top-0 start-0">').text(error));
+    },
+
+    clear_errors : function() {
+      this.element.parent().parent().find('.validation-error').detach();
+    },
   },
-  twentyc.rest.Button
+  twentyc.rest.Checkbox
 );
-
 
 
 $peerctl.DeviceSelect = $tc.extend(
@@ -1533,88 +1287,199 @@ $peerctl.ASSetInput = $tc.extend(
 $peerctl.PeerSessionList = $tc.extend(
   "PeerSessionList",
   {
+    PeerSessionList: function(jq, peer_apiobject) {
+      this.List(jq)
+      this.peer = peer_apiobject;
+    },
+
     insert: function(data) {
-      var list =this;
-      var port_row = this.List_insert(data);
-      var peer_row = this.peer_row;
+      const list = this;
+      const port_row = this.List_insert(data);
 
-        var button_add = new $peerctl.PeerSessionButton(
-          port_row.find("button.peer_session-add"),
-          data.id,
-          data.origin_id,
-          data.port_id
-        );
+      const switch_init_method = data.peer_session_status == "ok" ? "delete" : "post";
+      const switch_add = new $peerctl.PeerSessionToggle(
+        port_row.find("input.peer_session-add"),
+        data,
+        this.peer,
+        switch_init_method
+      );
+
+      const button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
+
+      button_show_config.click(()=>{
+        new $peerctl.modals.DeviceConfig(data);
+      });
 
 
-        var button_live = new $peerctl.PeerSessionButton(
-          port_row.find("button.peer_session-live"),
-          data.id,
-          data.origin_id,
-          data.port_id
-        );
+      const row = this.find_row(this.peer.id);
+      $(switch_add).on("api-write:success", (ev, endpoint, sent_data, response) => {
+        const loading_shim = fullctl.peerctl.$t.peering_lists.$w.peers.loading_shim;
 
-        let button_show_config = port_row.find('button[data-element="peer_session_device_config"]');
+        const offset_top = row.first().position().top;
+        const offset_height = row.first().height();
 
-        button_show_config.click(()=>{
-          console.log(data);
-          new $peerctl.modals.DeviceConfig(data);
+        loading_shim.height(offset_height);
+        loading_shim.css('top', offset_top);
+        loading_shim.show();
+
+        fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(this.peer.id)
+        .then(() => {
+          fullctl.peerctl.$t.peering_lists.$w.peers.update_counts()
+        })
+        .finally(() => {
+          loading_shim.height('');
+          loading_shim.css('top', 0);
         });
+        //fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
+      });
 
+      switch_add.element.data("peer_session-id", data.peer_session);
 
-        $(button_add).on("api-post:success", (ev, endpoint, sent_data, response)=>{
-          port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
-          if(peer_row)
-            peer_row.addClass("border-active").removeClass("border-inactive");
-          list.fill_policy_selects(port_row, data);
-          button_live.element.data("peer_session-id", response.first().peer_session);
-          fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
-          fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
-        });
-
-        $(button_live).on("api-delete:success", ()=>{
-          port_row.addClass("peer_session-inactive").removeClass("peer_session-active");
-          if(peer_row)
-            peer_row.addClass("border-inactive").removeClass("border-active");
-          fullctl.peerctl.$t.peering_lists.$w.peers.update_counts();
-          fullctl.peerctl.sync_except(fullctl.peerctl.$t.peering_lists);
-        });
-
-
-
-        if(data.peer_session_status == "ok") {
-          button_live.element.data("peer_session-id", data.peer_session);
-          port_row.addClass("peer_session-active").removeClass("peer_session-inactive");
-          if(peer_row)
-            peer_row.addClass("border-active").removeClass("border-inactive");
-          list.fill_policy_selects(port_row, data);
-        } else {
-          port_row.addClass("peer_session-inactive").removeClass("peer_session-active");
-          if(peer_row)
-            peer_row.addClass("border-inactive").removeClass("border-active");
-        }
+      list.fill_policy_selects(port_row, data);
 
     },
-    fill_policy_selects : function(port_row, data) {
-      new $peerctl.PeerSessionPolicySelect(
-        port_row.find('.peer_session-policy-4'), 4, $ctl.peerctl.port(), data.peer_session
-      ).element.val(data.policy4_id);
 
-      new $peerctl.PeerSessionPolicySelect(
-        port_row.find('.peer_session-policy-6'), 6, $ctl.peerctl.port(), data.peer_session
-      ).element.val(data.policy6_id);
+    /**
+     * Fill policy selects and set the selected value to the policy id
+     *
+     * @method fill_policy_selects
+     * @param {jQuery} port_row - The row of the port (jQuery object)
+     * @param {Object} peer_session_apiobj - The peer session api object
+     */
+
+    fill_policy_selects : function(port_row, peer_session_apiobj) {
+
+      // default policy id selection to 0, which will set it to "Inherit Policy"
+      // this is true when we dont have a session yet, or when we have a session that
+      // is specifically configured to inherit the policy
+
+      var policy_4_id = 0;
+      var policy_6_id = 0;
+
+      // if we have a session that is not configured to inherit the policy, then
+      // set the policy id to the policy id of the session
+
+
+      if(peer_session_apiobj.policy4.id && !peer_session_apiobj.policy4.inherited) {
+        policy_4_id = peer_session_apiobj.policy4.id;
+      }
+
+      if(peer_session_apiobj.policy6.id && !peer_session_apiobj.policy6.inherited) {
+        policy_6_id = peer_session_apiobj.policy6.id;
+      }
+
+      // create the policy selects and set the selected value to the policy id
+
+      new $peerctl.IPv4PeerSessionPolicySelect(
+        port_row.find('.peer_session-policy-4'),
+        $ctl.peerctl.port(),
+        peer_session_apiobj,
+        this.peer
+      ).element.val(policy_4_id).trigger("change.select2");
+
+      new $peerctl.IPv6PeerSessionPolicySelect(
+        port_row.find('.peer_session-policy-6'),
+        $ctl.peerctl.port(),
+        peer_session_apiobj,
+        this.peer
+      ).element.val(policy_6_id).trigger("change.select2");
 
     }
-
-
   },
   twentyc.rest.List
 );
 
+$peerctl.PeerSessionPolicySelect = $tc.extend(
+  "PeerSessionPolicySelect",
+  {
+    PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
+      this.SimpleSelect2(jq, {dropdownParent: jq.parent()});
+
+      this.port_id = port_id;
+      this.peer_session = peer_session;
+      this.peer = peer;
+      this.peer_session_id = peer_session.peer_session || null;
+
+
+      $(this).on("api-write:success", (e, endpoint, data, response)=>{
+        let session_data = response.first();
+        let on_off_toggle = jq.closest('.list-body').find("input.peer_session-add");
+        on_off_toggle.data('peer_session-id', session_data.id);
+        this.peer_session_id = data.id;
+      });
+    },
+
+    payload : function() {
+
+      const payload = {
+        peer_asn: this.peer.asn,
+        peer_ip4: this.peer_session.ipaddr4,
+        peer_ip6: this.peer_session.ipaddr6,
+        port: Number(this.port_id),
+        md5: this.peer.md5,
+        peer_maxprefix4: this.peer.info_prefixes4,
+        peer_maxprefix6: this.peer.info_prefixes6,
+        peer_session_type: "ixi",
+      }
+
+      // if already has a peer session
+      if (this.peer_session_id) {
+        payload.id = this.peer_session.peer_session;
+        payload.status = this.peer_session.status;
+      } else {
+        payload.status = "configured";
+      }
+
+      return payload;
+    },
+
+    format_request_url: function(url,method) {
+      return fullctl.peerctl.$t.peering_lists.$w.peers.peer_sesion_update_url;
+    }
+  },
+  fullctl.ext.SimpleSelect2
+)
+
+$peerctl.IPv4PeerSessionPolicySelect = $tc.extend(
+  "IPv4PeerSessionPolicySelect",
+  {
+    IPv4PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
+      this.PeerSessionPolicySelect(jq, port_id, peer_session, peer);
+    },
+
+    payload : function() {
+      const payload = this.PeerSessionPolicySelect_payload()
+      payload.policy4 = Number(this.element.val());
+
+      return payload;
+    },
+  },
+  $peerctl.PeerSessionPolicySelect
+);
+
+$peerctl.IPv6PeerSessionPolicySelect = $tc.extend(
+  "IPv6PeerSessionPolicySelect",
+  {
+    IPv6PeerSessionPolicySelect : function(jq, port_id, peer_session, peer) {
+      this.PeerSessionPolicySelect(jq, port_id, peer_session, peer);
+    },
+
+    payload : function() {
+      const payload = this.PeerSessionPolicySelect_payload()
+      payload.policy6 = Number(this.element.val());
+
+      return payload;
+    },
+  },
+  $peerctl.PeerSessionPolicySelect
+);
+
+
 $peerctl.MutualLocations = $tc.extend(
   "MutualLocations",
   {
-    MutualLocations : function(jq, peer_id) {
-      this.PeerSessionList(jq);
+    MutualLocations : function(jq, peer_id, peer_apiobject) {
+      this.PeerSessionList(jq, peer_apiobject);
       this.peer_id = peer_id;
     },
     format_request_url : function(url, method) {
@@ -1630,12 +1495,92 @@ $peerctl.PeerList = $tc.extend(
 
     PeerList : function(jq) {
       this.List(jq);
+      this.peer_sesion_update_url = this.element.data('api-update-url');
 
       this.formatters.peeringdb = (value, data) => {
-        var icon = $('<span>').addClass("icon icon-launch icon-right fullctl");
-        var label = $('<span>').text("View on PeeringD");
-        return $('<a>').attr('href', value).append(label).append(icon).addClass("external");
+
+        const icon_col = $('<div>').addClass("col-auto").append(
+          $('<span>').addClass("icon icon-launch icon-right")
+        );
+        const text_col = $('<div>').text("View on PDB").addClass("col label pe-0");
+        const a_container = $('<div>').addClass("row align-items-center").append(text_col).append(icon_col)
+
+        return $('<a>').attr('href', value).addClass("peer_session-active-toggled | secondary btn small ms-auto external").append(a_container);
       };
+
+      $(this).on("load:after", () => {
+        let url = `/api/autopeer/${fullctl.peerctl.network.asn}/enabled/`
+
+        $.ajax({
+          url: url,
+          method: "GET",
+          headers : {
+            "Content-Type" : "application/json",
+            "X-CSRFToken" : twentyc.rest.config.csrf
+          },
+        }).then((response)=>{
+          const autopeer_enabled_asns = {}
+          response.data.forEach((asn)=>{
+            autopeer_enabled_asns[asn.asn] = asn;
+          });
+
+          this.list_body.find(".peers-row").each(function() {
+            const apiobject = $(this).data('apiobject')
+
+            if(autopeer_enabled_asns[apiobject.asn] !== undefined) {
+              const autopeer_data = autopeer_enabled_asns[apiobject.asn];
+              const request_peering_btn = $(this).data('dropdown-peering-btn')
+
+              // load function runs twice due to the structure of the List
+              if (request_peering_btn.jq.find('button[data-element="request_peering_autopeering"]').length > 0)
+                return;
+
+              const autopeer_btn = $(`
+                  <button
+                    class="primary btn | small active"
+                    data-option-text="Autopeer"
+                    data-element="request_peering_autopeering"
+                  >
+                    <div class="row align-items-center">
+                      <div class="col label pe-0">
+                        Request peering
+                      </div>
+                      <div class="col-auto">
+                        <span class="icon icon-api"></span>
+                      </div>
+                    </div>
+                  </button>
+              `)
+              request_peering_btn.add_option(autopeer_btn);
+
+              autopeer_btn.click(()=>{
+                new $peerctl.modals.RequestPeering(
+                  apiobject,
+                  {
+                    type: "autopeering",
+                    url: autopeer_data.url,
+                    autopeer_enabled: true,
+                    asn: apiobject.asn
+                  }
+                );
+              });
+
+              $(this).find('[data-element="request_peering"]').off('click')
+              $(this).find('[data-element="request_peering"]').on('click', ()=>{
+                new $peerctl.modals.RequestPeering(
+                  apiobject,
+                  {
+                    type: "email",
+                    url: autopeer_data.url,
+                    autopeer_enabled: true,
+                    asn: apiobject.asn
+                  }
+                );
+              });
+            }
+          })
+        })
+      })
     },
 
     toggle_available_peers: function() {
@@ -1659,36 +1604,15 @@ $peerctl.PeerList = $tc.extend(
       }
     },
 
-
-
     insert : function(data) {
       var row = this.List_insert(data);
       this.render_ports(row, data);
 
-
-      row.find("button.toggle-mutual-locations").click(function() {
-          var button = $(this);
-          var container = row.find('.mutual-locations')
-
-          var mutual_list = row.data("mutual-list");
-          if(mutual_list) {
-						button.find('.icon').removeClass('icon-caret-down').addClass('icon-caret-left');
-            mutual_list.element.detach();
-            row.data("mutual-list", null);
-          } else {
-            var loading = $ctl.loading_animation();
-						button.find('.icon').addClass('icon-caret-down').removeClass('icon-caret-left');
-            mutual_list = new $peerctl.MutualLocations(
-              fullctl.template("port_list").data("data-api-base", button.data("data-api-base")),
-              data.id
-            );
-            mutual_list.load();
-            $(mutual_list).on("load:after", ()=>{ container.append(mutual_list.element); loading.detach(); });
-            container.append(loading);
-            row.data("mutual-list", mutual_list);
-          }
-      });
-
+      new $peerctl.OtherMutualLocationsButton(
+        row.find("button.toggle-mutual-locations"),
+        row,
+        data
+      );
 
       new $peerctl.MaxPrefixInput(row.find('input[data-field="info_prefixes4"]'), data.id);
       new $peerctl.MaxPrefixInput(row.find('input[data-field="info_prefixes6"]'), data.id);
@@ -1697,63 +1621,209 @@ $peerctl.PeerList = $tc.extend(
         new $peerctl.modals.MD5(data);
       });
 
+
+      row.find('[data-element="request_autopeering"]').click(()=>{
+        let url = `/api/autopeer/${fullctl.peerctl.network.asn}/`
+        let payload = {
+          asn: data.asn,
+        }
+
+        $.ajax({
+          url: url,
+          method: "POST",
+          data: JSON.stringify(payload),
+          headers : {
+            "Content-Type" : "application/json",
+            "X-CSRFToken" : twentyc.rest.config.csrf
+          },
+        }).then((data)=>{
+          console.log(data);
+        });
+      });
+
       row.find('[data-element="request_peering"]').click(()=>{
         new $peerctl.modals.RequestPeering(data);
       });
+
+      const request_peering_btn = new fullctl.application.DropdownBtn(row.find('.dropdown-btn'));
+      row.data('dropdown-peering-btn', request_peering_btn);
 
       return row;
     },
 
     render_ports : function(row, data) {
-      var list = this;
-      var list_node = fullctl.template("port_list")
-      var ports = new $peerctl.PeerSessionList(list_node);
-      ports.peer_row = row;
-      $(data.ipaddr).each(function() {
-        this.ix_name = data.ix_name;
-        this.device_id = data.device_id;
-        var port_row = ports.insert(this);
+      const list_node = fullctl.template("port_list")
+      const ports = new $peerctl.PeerSessionList(list_node, data);
+
+      data.ipaddr.forEach((port) => {
+        port.ix_name = data.ix_name;
+        port.device_id = data.device_id;
+        ports.insert(port);
       });
 
+      const status = this.get_status(data);
+      row.addClass(status);
+      if (status == "complete") {
+        row.find('[data-element="request_peering"]').hide();
+      } else if (status == "incomplete") {
+        row.find('[data-element="request_peering"] .label').text("Peering Requested");
+      }
+
+      if (this.is_peer_active(data)) {
+        row.addClass('peers-active');
+      } else {
+        row.addClass('peers-inactive');
+      }
 
       row.find(".port-list").append(list_node)
+      /* styles */
+      const resize_observer = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          row.find(".switch-col").outerWidth(entry.borderBoxSize[0].inlineSize);
+        }
+      });
+      resize_observer.observe(row.find(".prefixes-col")[0])
 
       row.data("ports-widget", ports);
 
     },
 
     count_peers : function() {
-      var active = 0;
-      var available = 0;
+      let available = 0;
+      let active = 0;
+
       this.element.find('.peers-row').each(function() {
-        if(!$(this).find('.peer_session-active').length)
-          available += 1
-        else
+        if($(this).hasClass('peers-active'))
           active +=1
-      });
+        else
+          available += 1
+      })
+
       return [available, active]
     },
 
     update_counts : function() {
-      var counts = this.count_peers();
+      const counts = this.count_peers();
       $(".port-info .active-peers").text(counts[1]);
       $(".port-info .available-peers").text(counts[0]);
     },
 
     format_request_url : function(url) {
       return url.replace("/0/", "/"+ fullctl.peerctl.port()+ "/");
+    },
+
+    get_status : function(peer_data) {
+      const status_counts = this.get_status_counts(peer_data);
+      if (!status_counts)
+        return;
+
+      let status = "";
+      if (status_counts["incomplete"] > 0) {
+      // if any tasks are in progress
+        status = "incomplete"
+      } else if (status_counts["complete"] > 0 && status_counts["todo"] == 0) {
+      // if all tasks are complete
+        status = "complete"
+      } else {
+      // no incomplete tasks and some are todo
+        status = "todo"
+      }
+
+      return status;
+    },
+
+    is_peer_active : function(peer_data) {
+      const status_counts = this.get_status_counts(peer_data);
+      if (!status_counts)
+        return
+
+      if (status_counts["complete"] > 0) {
+        return true;
+      }
+      return false;
+    },
+
+    get_status_counts : function(peer_data) {
+      if (peer_data.ipaddr.length == 0)
+        return;
+
+      const status_counts = {"complete": 0, "incomplete": 0, "todo": 0}
+
+      peer_data.ipaddr.forEach((port) => {
+        if (port.peer_session_status == "ok") {
+          status_counts["complete"] += 1;
+        } else if(port.peer_session_status != "ok" && peer_data.peer_request_status == "pending") {
+          status_counts["incomplete"] += 1;
+        } else {
+          status_counts["todo"] += 1;
+        }
+      });
+
+      return status_counts;
     }
   },
   twentyc.rest.List
 );
 
+$peerctl.OtherMutualLocationsButton = $tc.define(
+  "OtherMutualLocationsButton",
+  {
+    OtherMutualLocationsButton : function(jq, row, data) {
+      this.element = jq;
+      this.row = row;
+      this.data = data;
 
+      const other_mutual_loc_count = data.mutual_locations_count - 1;
+      if(other_mutual_loc_count > 0) {
+        this.element.find('.icon').show();
+        this.element.find('.text').text(`${other_mutual_loc_count} other exchange points`);
+        this.element.click(this.toggle_mutual_list.bind(this));
+      } else {
+        this.element.find('.text').text("No other exchange points");
+        this.element.find('.icon').hide();
+        this.element.attr("disabled", true);
+      }
+    },
+
+    toggle_mutual_list : function() {
+      if(this.mutual_list) {
+        this.remove_mutual_list();
+      } else {
+        this.add_mutual_list();
+      }
+    },
+
+    remove_mutual_list : function() {
+      this.element.find('.icon').removeClass('icon-caret-down').addClass('icon-caret-left');
+      this.mutual_list.element.remove();
+      this.mutual_list = null;
+    },
+
+    add_mutual_list : function() {
+      const container = this.row.find('.mutual-locations')
+      const loading = $ctl.loading_animation();
+
+      this.element.find('.icon').addClass('icon-caret-down').removeClass('icon-caret-left');
+      const mutual_list = this.mutual_list = new $peerctl.MutualLocations(
+        fullctl.template("port_list").data("data-api-base", this.element.data("data-api-base")),
+        this.data.id,
+        this.data
+      );
+      $(mutual_list).on("load:after", ()=>{
+        container.append(mutual_list.element);
+        loading.remove();
+      });
+      mutual_list.load();
+      container.append(loading);
+    },
+  }
+)
 
 
 $peerctl.TemplatePreview = $tc.extend(
   "TemplatePreview",
   {
-    TemplatePreview: function(jq, select_widget, type) {
+    TemplatePreview : function(jq, select_widget, type) {
       this.Form(jq);
       this.select = new select_widget(this.element.find('select'));
       this.editor = this.element.find('textarea');
@@ -1783,9 +1853,17 @@ $peerctl.TemplatePreview = $tc.extend(
         var url = this.editor.data("api-preview-default");
       var client = new twentyc.rest.Client(url);
 
+      var loading_shim = $('<div>').addClass("loading-shim")
+
+      this.editor.parent().append(loading_shim);
+
       client.post(null, this.preview_payload()).then(
         (response)=>{
+          loading_shim.detach();
           this.editor.val(response.first().body);
+        },
+        () => {
+          loading_shim.detach();
         }
       );
     }
@@ -1797,13 +1875,21 @@ $peerctl.TemplatePreview = $tc.extend(
 $peerctl.EmailTemplatePreview = $tc.extend(
   "EmailTemplatePreview",
   {
-    EmailTemplatePreview: function(jq, type, peer, ix_ids) {
+    EmailTemplatePreview : function(jq, type, peer, ix_ids) {
       this.peer = peer;
       this.ix_ids = ix_ids;
       this.TemplatePreview(jq, $peerctl.EmailTemplateSelect, type);
     },
 
-    preview_payload: function() {
+    payload : function() {
+      let payload = this.TemplatePreview_payload();
+
+      payload.ix_ids = this.ix_ids;
+
+      return payload;
+    },
+
+    preview_payload : function() {
       return {
         type: this.type,
         peer: this.peer.id,
@@ -1890,7 +1976,7 @@ $peerctl.modals.MD5 = $tc.extend(
 $peerctl.modals.DeviceConfig = $tc.extend(
   "DeviceConfig",
   {
-    DeviceConfig: function(peer) {
+    DeviceConfig : function(peer) {
       this.peer = peer;
       var form = new $peerctl.DeviceTemplatePreview(
         $ctl.template('device_config'),
@@ -1915,10 +2001,12 @@ $peerctl.modals.DeviceConfig = $tc.extend(
 $peerctl.modals.RequestPeering = $tc.extend(
   "RequestPeering",
   {
-    RequestPeering: function(peer) {
+    RequestPeering : function(peer, request_data={type: "email"}, ix_ids) {
       this.peer = peer;
+      this.request_data = request_data;
+      this.ix_ids = ix_ids;
 
-      var current_step = "peer-request";
+      let current_step = "peer-request";
       var title = "Peering Request";
 
       if(peer.peer_session_status == "requested") {
@@ -1929,85 +2017,304 @@ $peerctl.modals.RequestPeering = $tc.extend(
         current_step = "peer-session-live";
       }
 
-      var form = new $peerctl.EmailTemplatePreview(
-        $ctl.template('form_request_peering'),
-        current_step,
-        peer
-      );
-      form.fill(peer);
+      this.current_step = current_step;
 
-      form.element.find('.'+current_step).addClass("highlight");
+      this.Modal("save_lg", title, $());
 
+      this.change_peer_mode(request_data);
+    },
 
-      form.format_request_url = (url) => {
-        return url.replace("port_id", fullctl.peerctl.port()).replace("peer_id", peer.id);
-      };
-      $(form).on("api-write:success", (ev, endpoint, data, response)=>{
+    change_peer_mode : function(request_data) {
+      const body_elements = [];
+      if (request_data.autopeer_enabled) {
+        const select_peer_method = this.select_peer_method = $(
+          `<select class="form-select mb-4 mode-select">
+            <option value="autopeering" selected>Autopeer</option>
+            <option value="email">E-mail</option>
+          </select>`
+        );
 
-        if(form.element.find('#test-mode').is(":checked")) {
-          console.log(response);
-          alert("Test email has been sent");
-          return;
-        }
+        const modal = this;
+        select_peer_method.on('change', function(ev) {
+          const data = request_data;
+          data.type = $(this).find('option:selected').val();
+          modal.change_peer_mode(data);
+        });
 
-        this.hide();
-        peer.peer_session_status = response.first().peer_session_status;
-        peer.peer_session = response.first().peer_session;
-        if(peer.peer_session_status == "ok") {
-          fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(peer.id)
-        }
-      });
+        // select the correct mode in dropdown
+        this.select_peer_method.find(`[value="${request_data.type}"]`).attr('selected', true);
+        body_elements.push(select_peer_method);
+      }
 
-      this.Modal("save_lg", title, form.element);
-      form.wire_submit(this.$e.button_submit);
+      this.$e.button_submit.off('click')
+      this.$e.button_submit.siblings('.autopeer-error').detach();
 
-      this.$e.button_submit.empty().append($('<span>').addClass("icon icon-mail fullctl")).append($('<span>').addClass("label").text('Send'));
-    }
+      // change body of modal based on mode
+      if (request_data.type=="email") {
+        const form = new $peerctl.EmailPeeringForm(this.current_step, this.peer, this.ix_ids);
+        $(form).on("api-write:success", (ev, endpoint, data, response)=>{
+
+          if(form.element.find('#test-mode').is(":checked")) {
+            console.log(response);
+            alert("Test email has been sent");
+            return;
+          }
+
+          this.hide();
+          this.peer.peer_session_status = response.first().peer_session_status;
+          this.peer.peer_session = response.first().peer_session;
+          fullctl.peerctl.$t.peering_lists.$w.peers.reload_row(this.peer.id)
+          $(this).trigger("peer-request:after", []);
+        });
+        body_elements.push(form.element);
+        this.$e.button_submit.empty().append($('<span>').addClass("icon icon-mail fullctl")).append($('<span>').addClass("label").text('Send'));
+        form.wire_submit(this.$e.button_submit);
+      } else if (request_data.type=="autopeering") {
+        body_elements.push(
+          new $peerctl.AutopeerModalBody(
+            {
+              peer_name: this.peer.name,
+              asn: this.peer.asn,
+              current_step: this.current_step,
+              url: request_data.url
+            }
+          )
+        );
+        // wire submit button
+        this.$e.button_submit.empty().append($('<span>').addClass("icon icon-api fullctl")).append($('<span>').addClass("label").text('Send'));
+        this.$e.button_submit.on('click', (ev) => {
+          const url = `/api/autopeer/${fullctl.peerctl.network.asn}/`
+          const payload = {
+            asn: this.peer.asn,
+          }
+
+          this.$e.button_submit.siblings('.autopeer-error').detach();
+
+          $.ajax({
+            url: url,
+            method: "POST",
+            data: JSON.stringify(payload),
+            headers : {
+              "Content-Type" : "application/json",
+              "X-CSRFToken" : twentyc.rest.config.csrf
+            },
+          }).then((data)=>{
+            console.log(data);
+            this.hide();
+            $(this).trigger("peer-request:after", []);
+          }).fail((err)=>{
+            // TODO: make prettier error response
+            // all of this should really be in a twentyc.rest widget anyways
+            let error_message = $('<div class="alert alert-danger autopeer-error">').text(err.responseJSON.errors)
+            error_message.insertBefore(this.$e.button_submit);
+          });
+        });
+      }
+
+      this.set_content(body_elements);
+    },
 
   },
   $ctl.application.Modal
 );
 
-
-$peerctl.modals.RequestPeeringFromAsn = $tc.extend(
-  "RequestPeeringFromAsn",
+$peerctl.EmailPeeringForm = $tc.define(
+  "EmailPeeringForm",
   {
-    RequestPeeringFromAsn: function(peer, ix_ids) {
-
-      var current_step = "peer-request";
-      var title = "Peering Request";
-
-      var form = new $peerctl.EmailTemplatePreview(
-        $ctl.template('form_request_peering_from_asn'),
+    EmailPeeringForm : function(current_step, peer, ix_ids) {
+      const form = new $peerctl.EmailTemplatePreview(
+        $ctl.template('form_request_peering'),
         current_step,
         peer,
         ix_ids
       );
+
       form.fill(peer);
 
       form.element.find('.'+current_step).addClass("highlight");
 
-      $(form).on("api-write:success", (ev, endpoint, data, response)=>{
-
-        if(form.element.find('#test-mode').is(":checked")) {
-          console.log(response);
-          alert("Test email has been sent");
-          return;
+      form.format_request_url = (url) => {
+        if (ix_ids) {
+          return form.element.data('api-from-asn');
         }
+        return url.replace("port_id", fullctl.peerctl.port()).replace("peer_id", peer.id);
+      };
 
-        this.hide();
+      if (ix_ids) {
+        $(form).on("api-write:before", (ev, e, payload) => {
+          payload["asn"] = peer.asn;
+        });
+      }
+
+      return form
+    }
+  }
+);
+
+$peerctl.AutopeerModalBody = $tc.define(
+  "AutopeerModalBody",
+  {
+    AutopeerModalBody: function(data) {
+      this.element = $ctl.template('request_autopeer_body');
+      this.element.find('.peer-name').text(data.peer_name);
+      this.element.find('.peer-asn').text(data.asn);
+      this.element.find('.'+data.current_step).addClass("highlight");
+      this.element.find('a.autopeer-url').text(data.url).attr("href", data.url);
+
+      return this.element;
+    }
+  }
+)
+
+$peerctl.ContinuePeerRequest = $tc.extend(
+  "ContinuePeerRequest",
+  {
+    ContinuePeerRequest: function(jq, port_id) {
+      this.Button(jq);
+      this.port_id = port_id;
+      this.method = "GET";
+
+      $(this).on('api-read:success', (ev, endpoint, data, response)=> {
+        let peer_info = response.first();
+        let modal = new $peerctl.modals.RequestPeering(peer_info);
+        $(modal).on("peer-request:after", (ev) => {
+          $(this).trigger("peer-request:after", []);
+        });
+
       });
+    },
 
-      this.Modal("save_lg", title, form.element);
-      form.wire_submit(this.$e.button_submit);
-
-      this.$e.button_submit.empty().append($('<span>').addClass("icon icon-mail fullctl")).append($('<span>').addClass("label").text('Send'));
+    format_request_url: function(url) {
+      return url.replace("port_id", this.port_id);
     }
 
   },
-  $ctl.application.Modal
-);
+  twentyc.rest.Button
+)
 
+$peerctl.PeeringRequestsList = $tc.extend(
+  "PeeringRequestsList",
+  {
+    PeeringRequestsList : function() {
+      this.Tool("peering_requests_list");
+
+      this.ports = {};
+
+      // setup session summary widget
+      this.widget("list_peer_sessions", ($e) => {
+        const w = new twentyc.rest.List(
+          this.jquery.find('table'),
+        );
+
+        let peer_info_url = w.element.data('api-peer-info')
+
+        w.format_request_url = () => {
+          return `/api/autopeer/${fullctl.peerctl.network.asn}/`
+        }
+
+        w.formatters.status = (value, data) => {
+          let bg_class;
+          if(value == "completed")
+            bg_class = "success";
+          else if(value == "failed")
+            bg_class = "danger";
+          else if(value == "pending") {
+            bg_class = "warning";
+
+            if(data.type == "email" && data.peer_id && w.element.find('.row-'+data.id).length == 0) {
+              let button_continue_element = $('<button class="badge badge-btn bg-primary action">').append(
+                $('<span class="icon icon-mail">'),
+                $('<span class="label">').text("continue")
+              )
+              let loading_indicator = $('<div class="loading-indicator-container fixed"><div class="loading-indicator"></div></div>').hide();
+
+              button_continue_element.attr("data-api-base", peer_info_url).attr("data-api-action", data.peer_id);
+
+              let button_continue = new $peerctl.ContinuePeerRequest(button_continue_element,data.port_id);
+              $(button_continue).on('peer-request:after', () => { w.load();});
+
+              let col = $('<div style="position:relative">').append(button_continue_element, loading_indicator);
+
+              return col;
+            }
+          }
+
+          return $("<div>").addClass("badge").addClass("bg-"+bg_class).text(value);
+        }
+
+        w.formatters.type = (value, data) => {
+          let icon = "mail";
+          let text = "Email"
+          if(value == "autopeer") {
+            icon = "api";
+            text = "Autopeer";
+          }
+
+          const jq = $('<div class="d-flex justify-content-center align-items-center">');
+          jq.append($(`<span class="icon icon-${icon} me-1" title="${value}">`))
+          jq.append($("<span>").text(text))
+
+          return jq;
+        };
+
+        w.formatters.date = fullctl.formatters.datetime;
+
+        w.formatters.row = (row, data) => {
+          // add network tooltip to asn
+          const asn_field = row.find('[data-field="asn"]');
+          asn_field.attr("data-bs-toggle", "tooltip")
+            .attr("data-bs-placement", "top")
+            .attr("title", data.name)
+            .addClass("dotted-underline");
+          new bootstrap.Tooltip(asn_field);
+
+          // add view in summary functionality
+          const view_in_summary_btn = row.find('[data-action="summary-button"]');
+          view_in_summary_btn.on ('click', function() {
+            fullctl.peerctl.page("page-summary-sessions");
+
+            fullctl.peerctl.$t.sessions_summary.clear_select_filter();
+            fullctl.peerctl.$t.sessions_summary.$w.searchbar.element.val(data.asn);
+            fullctl.peerctl.$t.sessions_summary.$w.searchbar.search(data.asn);
+          });
+          if (data.sessions <= 0)
+            view_in_summary_btn.hide();
+
+          row.data("peering-request-id", data.id);
+          if(data.num_locations > 1) {
+
+            if(w.element.find('.row-'+data.id).length > 0) {
+              // additional location of this request, hide it
+              row.hide();
+              row.addClass("secondary")
+            } else {
+              // first location of this request
+              row.find("[data-field=location]").parent().addClass("action").click((ev) => {
+                // toggle elements with the same .row-{data.id} class as this row
+                // on or off, but this row should always remain visible
+                w.element.find('.row-'+data.id).not(row).toggle();
+              });
+              row.find(".note-expand").show();
+              row.find(".num-locations").text(data.num_locations-1);
+            }
+          }
+          return row;
+        };
+
+        return w;
+      });
+
+      this.$e.refresh_peering_requests.click((ev) => { this.$w.list_peer_sessions.load(); });
+
+      this.$w.list_peer_sessions.load();
+    },
+
+    sync: function() {
+      this.$w.list_peer_sessions.load();
+    }
+  },
+  $ctl.application.Tool
+);
 
 
 $(document).ready(function() {

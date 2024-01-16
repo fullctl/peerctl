@@ -1,0 +1,25 @@
+{% load i18n %}
+<table
+class="table list-table table-borderless center marg-top-lg"
+data-api-load="yes"
+data-api-base="{% url "peerctl_api:net-facilities" asn=selected_asn %}"
+data-template="facilities_list">
+<thead>
+<tr>
+    <th>
+    <div>{% trans "Facility Presences" %}</div>
+    </th>
+</tr>
+</thead>
+
+<tbody class="list-body">
+</tbody>
+
+<tbody class="templates">
+    <tr data-template="row" class="with-border">
+    <td>
+        <div data-field="name" class="highlight"></div>
+    </td>
+    </tr>
+</tbody>
+</table>

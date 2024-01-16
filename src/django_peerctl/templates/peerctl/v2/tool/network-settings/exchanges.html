@@ -1,70 +1,26 @@
 {% load i18n %}
-  <table
-  class="table list-table table-borderless center marg-top-lg"
-  data-api-load="yes"
-  data-api-base="{% url "peerctl_api:port-list" asn=selected_asn %}"
-  data-template="exchanges_list">
-  <thead>
-      <th>
-        <div>{% trans "Exchange / Port" %}</div>
-      </th>
-      <th>
-        <div>{% trans "Ip4" %}</div>
-        <div>{% trans "Ip6" %}</div>
-      </th>
-      <th>
-        <div>{% trans "MAC Address" %}</div>
-        <div></div>
-      </th>
-      <th></th>
-      </tr>
+<table
+class="table list-table table-borderless center marg-top-lg"
+data-api-load="yes"
+data-api-base="{% url "peerctl_api:net-internet-exchanges" asn=selected_asn %}"
+data-template="exchanges_list">
+<thead>
+  <tr>
+    <th>
+      <div>{% trans "Exchange Presences" %}</div>
+    </th>
+  </tr>
+</thead>
 
-  </thead>
+<tbody class="list-body">
+</tbody>
 
-  <tbody class="list-body">
-  </tbody>
-
-  <tbody class="templates">
-      <tr data-template="row" class="with-border">
-        <td>
-          <div data-field="ix_name" class="highlight"></div>
-        </td>
-        <td>
-          <div data-field="ip4"></div>
-          <div data-field="ip6"></div>
-        </td>
-        <td class="secondary">
-          <div>
-            <span data-field="policy4_name"></span>
-          </div>
-          <div>
-            <span data-field="policy6_name"></span>
-          </div>
-        </td>
-        <td>
-          <div data-field="port_display_name"></div>
-          <div data-field="device_name"></div>
-        </td>
-        <td>
-          <div data-field="meta4"></div>
-          <div data-field="meta6"></div>
-        </td>
-        <td class="control">
-          <div class="row">
-            <div class="col-xs-12 col-lg-6">
-              <a class="button" data-action="edit_session"><span class="icon fullctl icon-edit"></span></span></a>
-            </div>
-            <div class="col-xs-12 col-lg-6">
-              <a class="button"
-              data-api-action="{id}"
-              data-api-callback="remove"
-              data-confirm="Remove peer session?"
-              data-api-method="DELETE"><span class="icon fullctl icon-delete"></span></span>
-              </a>
-            </div>
-          </div>
-        </td>
-      </tr>
-  </tbody>
-  </table>
+<tbody class="templates">
+    <tr data-template="row" class="with-border">
+      <td>
+        <div data-field="name" class="highlight"></div>
+      </td>
+    </tr>
+</tbody>
+</table>
 

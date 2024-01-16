@@ -13,11 +13,17 @@ from django_peerctl.models import (
     Network,
     Organization,
     PeerNetwork,
+    PeerPort,
+    PeerRequest,
+    PeerRequestLocation,
     PeerSession,
     Policy,
+    PolicyPeerGroup,
+    Port,
     PortInfo,
     UserSession,
     Wish,
+    ref_fallback,
 )
 
 
@@ -33,6 +39,28 @@ def status_form(choices=None):
     return StatusForm
 
 
+class CachedPortMixin:
+    def _cache_ports(self, qs):
+        """
+        Caches Port instances in _ports
+        """
+
+        if hasattr(self, "_ports"):
+            return
+
+        self._ports = {
+            port.id: port
+            for port in Port().objects(
+                id__in=[i for i in qs.values_list("port", flat=True)]
+            )
+        }
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        self._cache_ports(qs)
+        return qs
+
+
 @admin.register(Network)
 class NetworkAdmin(admin.ModelAdmin):
     list_display = (
@@ -46,7 +74,7 @@ class NetworkAdmin(admin.ModelAdmin):
         "updated",
         "email_override",
     )
-    search_fields = ("asn", "name")
+    search_fields = ("asn",)
     readonly_fields = ("policy4", "policy6")
     fields = (
         "asn",
@@ -57,7 +85,6 @@ class NetworkAdmin(admin.ModelAdmin):
         "prefix4_override",
         "prefix6_override",
         "network_type_override",
-        "route_server_md5",
     )
     form = status_form()
 
@@ -82,24 +109,38 @@ class PeerNetworkAdmin(admin.ModelAdmin):
         return "no"
 
 
+@admin.register(PeerPort)
+class PeerPortAdmin(admin.ModelAdmin):
+    list_display = ("id", "peer_net", "port_info", "created", "updated")
+
+
 @admin.register(PortInfo)
-class PortInfoAdmin(admin.ModelAdmin):
-    list_display = ("net", "asn", "ref_id", "ix", "ipaddr4", "ipaddr6", "port")
-    readonly_fields = ("asn", "ix", "ipaddr4", "ipaddr6")
+class PortInfoAdmin(CachedPortMixin, admin.ModelAdmin):
+    list_display = ("net", "asn", "ref_id", "ip4", "ip6", "port")
+    readonly_fields = ("asn", "ix", "ip4", "ip6", "ref_ix_id")
     search_fields = ("net__asn",)
     form = status_form()
 
     def asn(self, obj):
         return obj.net.asn
 
-    def ix(self, obj):
-        return obj.ix_name
-
-    def pdb(self, obj):
+    @ref_fallback(None)
+    def ip4(self, obj):
         try:
-            return obj.pdb.id
-        except Exception:
-            return f"PDB Missing (id={obj.ref_id})"
+            return self._ports.get(int(obj.port)).ip_address_4
+        except (KeyError, AttributeError, TypeError):
+            pass
+
+        return obj.ip_address_4 or obj.ref.ipaddr4
+
+    @ref_fallback(None)
+    def ip6(self, obj):
+        try:
+            return self._ports.get(int(obj.port)).ip_address_6
+        except (KeyError, AttributeError, TypeError):
+            pass
+
+        return obj.ip_address_6 or obj.ref.ipaddr6
 
 
 @admin.register(DeviceTemplate)
@@ -113,8 +154,21 @@ class WishAdmin(admin.ModelAdmin):
     form = status_form()
 
 
+class PeerRequestLocationInline(admin.TabularInline):
+    model = PeerRequestLocation
+    extra = 0
+
+
+@admin.register(PeerRequest)
+class PeerRequestAdmin(admin.ModelAdmin):
+    search_fields = ("net__asn", "peer_asn")
+    list_display = ("net", "peer_asn", "type", "status", "created", "updated")
+
+    inlines = (PeerRequestLocationInline,)
+
+
 @admin.register(PeerSession)
-class PeerSessionAdmin(admin.ModelAdmin):
+class PeerSessionAdmin(CachedPortMixin, admin.ModelAdmin):
     search_fields = ("peer_port__peer_net__net__asn", "peer_port__peer_net__peer__asn")
     list_display = (
         "id",
@@ -122,22 +176,25 @@ class PeerSessionAdmin(admin.ModelAdmin):
         "peer",
         "ix_id",
         "ix_name",
-        "ipaddr4",
-        "ipaddr6",
+        "ip4",
+        "ip6",
         "peer_ipaddr4",
         "peer_ipaddr6",
         "policy4",
         "policy6",
         "status",
+        "request_status",
         "created",
         "updated",
+        "port",
+        "device",
     )
     list_filter = ("status",)
     form = status_form(
         choices=[("ok", "ok"), ("requested", "requested"), ("configured", "configured")]
     )
 
-    readonly_fields = ("net", "peer", "policy4", "policy6")
+    readonly_fields = ("net", "peer", "policy4", "policy6", "request_status")
 
     def net(self, obj):
         return obj.peer_port.peer_net.net
@@ -145,22 +202,42 @@ class PeerSessionAdmin(admin.ModelAdmin):
     def peer(self, obj):
         return obj.peer_port.peer_net.peer
 
+    @ref_fallback(0)
     def ix_id(self, obj):
-        try:
-            return obj.port.object.port_info_object.ix.id
-        except AttributeError:
-            return 0
+        if not obj.port:
+            return None
 
+        return self._ports.get(int(obj.port)).port_info_object.ix.id
+
+    @ref_fallback(None)
     def ix_name(self, obj):
-        try:
-            return obj.port.object.port_info_object.ix.name
-        except AttributeError:
-            return ""
+        if not obj.port:
+            return None
 
-    def ipaddr4(self, obj):
+        return self._ports.get(int(obj.port)).port_info_object.ix.name
+
+    @ref_fallback(None)
+    def ip4(self, obj):
+        if not obj.port:
+            return None
+
+        try:
+            return self._ports.get(int(obj.port)).ip_address_4
+        except (KeyError, AttributeError):
+            pass
+
         return obj.port.object.port_info_object.ipaddr4
 
-    def ipaddr6(self, obj):
+    @ref_fallback(None)
+    def ip6(self, obj):
+        if not obj.port:
+            return None
+
+        try:
+            return self._ports.get(int(obj.port)).ip_address_6
+        except (KeyError, AttributeError):
+            pass
+
         return obj.port.object.port_info_object.ipaddr6
 
     def peer_ipaddr4(self, obj):
@@ -168,6 +245,9 @@ class PeerSessionAdmin(admin.ModelAdmin):
 
     def peer_ipaddr6(self, obj):
         return obj.peer_port.port_info.ipaddr6
+
+    def request_status(self, obj):
+        return obj.status
 
 
 class OrganizationForm(forms.ModelForm):
@@ -252,11 +332,29 @@ class PolicyAdmin(admin.ModelAdmin):
         "net",
         "name",
         "import_policy",
+        "import_policy_managed",
         "export_policy",
+        "export_policy_managed",
         "peer_group",
+        "peer_group_managed",
         "created",
         "updated",
     )
+    form = status_form()
+
+
+@admin.register(PolicyPeerGroup)
+class PolicyPeerGroupAdmin(admin.ModelAdmin):
+    search_fields = ("slug",)
+    list_display = (
+        "id",
+        "net",
+        "slug",
+        "created",
+        "updated",
+    )
+    autocomplete_fields = ("net",)
+
     form = status_form()
 
 

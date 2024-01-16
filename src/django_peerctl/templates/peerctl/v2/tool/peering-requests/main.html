@@ -1,0 +1,87 @@
+{% load static i18n %}
+<div class="tool" data-component="peering_requests_list">
+  <div data-element="menu" class="row">
+  </div>
+
+  <div class="row mb-3 legend">
+    <div class="col-6">
+      <button class="secondary col-md-auto btn ms-3" data-element="refresh_peering_requests">
+        <div class="row align-items-center">
+          <div class="col label pe-0">{% trans "Refresh" %}</div>
+          <div class="col-auto">
+            <span class="icon icon-refresh"></span>
+          </div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <div class="row">
+
+  <table
+  class="table list-table table-borderless center peer-requests"
+  data-api-load="yes"
+  data-api-base=""
+  data-api-peer-info="{% url "peerctl_api:peer-list" asn=selected_asn port_pk="port_id" %}"
+  data-template="list">
+  <thead>
+    <tr>
+      <th>
+        <div>{% trans "ASN" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Location(s)" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Date" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Status" %}</div>
+      </th>
+      <th>
+        <div>{% trans "Type" %}</div>
+      </th>
+      <th>
+        {% trans "Actions" %}
+      </th>
+    </tr>
+
+  </thead>
+
+  <tbody class="list-body">
+  </tbody>
+
+  <tbody class="templates">
+      <tr data-template="row" class="with-border">
+        <td>
+          <span class="dotted-underline" data-field="asn"></span>
+        </td>
+        <td>
+          <span data-field="location"></span>
+          <div class="note-expand" style="display:none">
+            (+<span class="num-locations">0</span> more)
+          </div>
+        </td>
+        <td>
+          <span data-field="date"></span>
+        </td>
+        <td>
+          <span data-field="status"></span>
+        </td>
+        <td>
+          <div data-field="type"></div>
+        </td>
+        <td class="p-1">
+          <button class="btn" data-btn-type="secondary" data-action="summary-button">
+            {% trans "View in Summary" %}
+          </button>
+        </td>
+      </tr>
+  </tbody>
+  </table>
+  </div>
+
+  <div class="templates">
+    <div data-template="menu"></div>
+  </div>
+</div>

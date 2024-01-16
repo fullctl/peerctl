@@ -15,20 +15,22 @@
         <div>{% trans "Type" %}</div>
       </th>
       <th>
-        <div>{% trans "Ip4" %}</div>
-        <div>{% trans "Ip6" %}</div>
+        <div>{% trans "IP4" %}</div>
+        <div>{% trans "IP6" %}</div>
       </th>
       <th>
         <div>{% trans "Policy4" %}</div>
         <div>{% trans "Policy6" %}</div>
       </th>
       <th>
-        <div>{% trans "Port" %}</div>
-        <div>{% trans "Device" %}</div>
+        <div>{% trans "Site" %}</div>
       </th>
       <th>
-        <div>{% trans "Last Updown4" %}</div>
-        <div>{% trans "Last Updown6" %}</div>
+        <div>{% trans "Port - Device" %}</div>
+      </th>
+      <th>
+        <div>{% trans "status4" %}</div>
+        <div>{% trans "status6" %}</div>
       </th>
       <th></th>
       </tr>
@@ -41,43 +43,52 @@
   <tbody class="templates">
       <tr data-template="row" class="with-border">
         <td>
-          <div data-field="peer_asn" class="highlight"></div>
-          <div data-field="peer_session_type"></div>
+          <div data-field="peer_asn" class="highlight pb-1"></div>
+          <div data-field="peer_session_type" class="pt-1"></div>
         </td>
         <td>
-          <div data-field="peer_ip4"></div>
-          <div data-field="peer_ip6"></div>
+          <div data-element="ip_container">
+            <div data-field="peer_ip4" class="pb-1"></div>
+            <div data-field="peer_ip6" class="pt-1"></div>
+          </div>
         </td>
         <td class="secondary">
-          <div>
+          <div class="pb-1">
             <span data-field="policy4_name"></span>
           </div>
-          <div>
+          <div class="pt-1">
             <span data-field="policy6_name"></span>
           </div>
         </td>
         <td>
-          <div data-field="port_display_name"></div>
-          <div data-field="device_name"></div>
+          <div data-field="facility_slug"></div>
         </td>
         <td>
-          <div data-field="meta4"></div>
-          <div data-field="meta6"></div>
+          <span data-field="port_display_name"></span>
+          <span data-field="device_name"></span>
         </td>
-        <td class="control">
-          <div class="row">
-            <div class="col-xs-12 col-lg-6">
-              <a class="button" data-action="edit_session"><span class="icon fullctl icon-edit"></span></span></a>
-            </div>
-            <div class="col-xs-12 col-lg-6">
-              <a class="button"
-              data-api-action="{id}"
-              data-api-callback="remove"
-              data-confirm="Remove peer session?"
-              data-api-method="DELETE"><span class="icon fullctl icon-delete"></span></span>
-              </a>
-            </div>
-          </div>
+        <td>
+          <div data-field="meta4" class="pb-1"></div>
+          <div data-field="meta6" class="pt-1"></div>
+        </td>
+        <td data-field="controls" class="right">
+          <a
+            class="button btn"
+            data-action="edit_session"
+            role="button"
+          >
+            <span class="icon ixctl icon-edit"></span>
+          </a>
+          <a
+            class="button btn"
+            data-api-action="{id}"
+            data-api-callback="remove"
+            data-confirm="Remove peer session?"
+            data-api-method="DELETE"
+            role="button"
+          >
+            <span class="icon fullctl icon-delete"></span></span>
+          </a>
         </td>
       </tr>
   </tbody>
