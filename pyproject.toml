@@ -21,7 +21,7 @@ peerctl = "peerctl.cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "django4" }
+fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "prep-release" }
 
 netom = { git = "https://github.com/20c/netom.git", branch = "prep-release" }
 pydantic = ">=1.10.8"
