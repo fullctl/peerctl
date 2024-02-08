@@ -104,17 +104,15 @@ $ctl.application.Peerctl.SessionsSummary = $tc.extend(
           }
 
           value.last_updown = value.last_updown ? fullctl.formatters.seconds_to_wdhms(value.last_updown) : '-';
-          node.append($('<span class="ps-1">').text(
+          node.append($('<span class="dotted-underline ps-1 text-nowrap" data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').text(
+            (value.sent ? fullctl.formatters.shorten_number(value.sent) : '0') +
+            " • " +
             (value.accepted ? fullctl.formatters.shorten_number(value.accepted) : '0') +
             "/" +
             (value.received ? fullctl.formatters.shorten_number(value.received) : '0')
-          ));
-          node.append($('<span data-bs-html="true" data-bs-toggle="tooltip" data-bs-placement="top">').prop("title", fullctl.formatters.meta_data(value).html()).tooltip().append(
-            $('<span class="icon fullctl icon-list">')
-          ));
+          ).prop("title", fullctl.formatters.meta_data(value).html()).tooltip());
 
           return node;
-
         };
 
         w.formatters.meta6 = w.formatters.meta4;
