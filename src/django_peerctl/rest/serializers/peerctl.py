@@ -839,6 +839,7 @@ class PeerSessionMeta(serializers.Serializer):
     received = serializers.IntegerField(required=False, allow_null=True)
     accepted = serializers.IntegerField(required=False, allow_null=True)
     damped = serializers.IntegerField(required=False, allow_null=True)
+    sent = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         fields = [
@@ -848,6 +849,7 @@ class PeerSessionMeta(serializers.Serializer):
             "received",
             "accepted",
             "damped",
+            "sent",
         ]
 
 
