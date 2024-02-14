@@ -11,7 +11,7 @@ def test_schema():
         peer_ip="127.0.0.1",
         peer_type="peer",
         location=schema.Location(
-            id=f"pdb:ix:1",
+            id="pdb:ix:1",
             type="PUBLIC",
         ),
         md5="feb64ec1f94fd7834cf380069bd72f37",
