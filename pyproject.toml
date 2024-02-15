@@ -24,7 +24,7 @@ python = "^3.9"
 fullctl = { git = "https://github.com/fullctl/fullctl.git", branch = "prep-release" }
 
 netom = { git = "https://github.com/20c/netom.git", branch = "prep-release" }
-pydantic = "^1.10.8"
+pydantic = ">=1.10.8"
 
 [tool.poetry.dev-dependencies]
 # tests
@@ -45,11 +45,11 @@ pyupgrade = ">=2.19"
 # docs
 markdown = "*"
 markdown-include = ">=0.5,<1"
-mkdocs = "^1.2.3"
+mkdocs = ">=1.2.3"
 
 # ctl
 ctl = ">=1"
-jinja2 = "^3"
+jinja2 = ">=3"
 tmpl = ">=1"
 
 [tool.isort]
