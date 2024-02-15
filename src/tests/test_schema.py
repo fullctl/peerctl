@@ -1,7 +1,5 @@
 import uuid
 
-import pydantic
-
 import django_peerctl.autopeer.schema as schema
 
 
