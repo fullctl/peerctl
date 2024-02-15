@@ -21,4 +21,3 @@ def test_schema():
         uuid=str(uuid.uuid4()),
     )
     assert session.peer_asn == "1234568"
-    assert pydantic.version.VERSION == "2.5.3"
