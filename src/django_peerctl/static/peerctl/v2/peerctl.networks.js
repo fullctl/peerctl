@@ -65,7 +65,8 @@ $ctl.application.Peerctl.Networks = $tc.extend(
 
     request_peering : function(type) {
 
-      if(!this.peer) {
+      const peer = this.$w.list.peer;
+      if(!peer) {
         return alert("No network in results");
       }
 
@@ -76,8 +77,8 @@ $ctl.application.Peerctl.Networks = $tc.extend(
         ix_ids.push($(this).data("ix-id"));
       });
 
-      new $peerctl.modals.RequestPeering(
-        this.peer,
+      new $ctl.application.Peerctl.modals.RequestPeering(
+        peer,
         this.peer_request_data,
         ix_ids,
       );
